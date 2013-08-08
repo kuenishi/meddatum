@@ -1,0 +1,11 @@
+#!/usr/bin/env escript
+
+
+main([])->
+    {ok,Path} = file:get_cwd(),
+    code:add_pathz(Path ++ "/ebin"),
+    ssmix:walk(".");
+main([Dir])->
+    {ok,Path} = file:get_cwd(),
+    code:add_pathz(Path ++ "/ebin"),
+    ssmix:walk(Dir).

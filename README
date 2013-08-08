@@ -1,0 +1,27 @@
+# HL7tools
+
+Erlang/OTP library to handle [SS-MIX](http://www.hci-bc.com/ss-mix/ssmix/) data (Japanese local standard including HL7 format) and [electric rezepts](http://www.ssk.or.jp/rezept/). This toolkit includes:
+
+- [ ] SS-MIXed HL7 parser, converter and importer to Riak
+- [ ] electric rezept parser, converter and importer to Riak
+- [ ] backend query system to be installed into Riak cluster
+- [ ] forntend query tools
+
+This stores data into `/buckets/messages` and original data into `/buckets/ssmix`, `/buckets/erezept`
+
+# Prequisites
+
+- NKF command should be in path
+
+# TODO
+
+- remove null entry at jsonx
+- put data to riak
+
+# misc
+
+hope this helps [SS-MIX open source project](http://iryogakusei.com/portfolio-item/ss-mix%E3%82%AA%E3%83%BC%E3%83%97%E3%83%B3%E3%82%BD%E3%83%BC%E3%82%B9%E5%8C%96/)
+
+# license
+
+Apache 2.0

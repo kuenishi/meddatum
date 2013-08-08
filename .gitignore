@@ -1,5 +1,8 @@
-.eunit
+*.json
 deps
+*~
+.eunit
+*.plt
 *.o
 *.beam
-*.plt
+

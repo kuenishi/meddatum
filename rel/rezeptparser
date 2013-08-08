@@ -1,0 +1,9 @@
+#!/usr/bin/env escript
+
+
+main(Files)->
+    {ok,Path} = file:get_cwd(),
+    code:add_pathz(Path ++ "/ebin"),
+    lists:foreach(fun(Filename) ->
+                          rezept:process_file(Filename, info)
+                  end, Files).
