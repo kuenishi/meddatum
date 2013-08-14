@@ -77,13 +77,15 @@ process_file(Filename, Info)->
     %% TODO: compare Features and HL7Msg here
 
     %% TODO: print this as a JSON (or msgpack?)
-    %% ?debugVal(HL7Msg),
     HL7Msg = HL7Msg0#hl7msg{file = list_to_binary(Filename)},
-    JSON = hl7:to_json(HL7Msg),
-    %%io:format("~s~n", [binary_to_list(JSON)]),
-    ok = file:write_file(filename:basename(Filename) ++ ".json", JSON),
+    %% JSON = hl7:to_json(HL7Msg),
+    %% ok = file:write_file(filename:basename(Filename) ++ ".json", JSON),
     %% io:format("<<< ~s >>>~n", [filename:basename(Filename)++".json"]),
-    ok.
+    io:format("[info] output ~s to Riak as JSON~n", [filename:basename(HL7Msg#hl7msg.file)]),
+    %% io:put_chars(unicode:characters_to_list(JSON)),
+    {ok,C}=ssmix_importer:connect(localhost, 8087),
+    ok=ssmix_importer:put_json(C, HL7Msg),
+    ok=ssmix_importer:disconnect(C).
 
 filename2msg(Fullpath) ->
     Elems = lists:reverse(filename:split(Fullpath)),

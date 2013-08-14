@@ -1,363 +1,562 @@
-
-
 -record(hl7msg, {
           file :: filename:filename(),
           date :: string(),
-          msg_type :: string(),
+          msg_type_s :: string(),
           msg_id :: string(),
           segments = []
          }).
 
--record('EVN', {%% EVN-0 segment ID
-          segment_name = 'EVN',
-          recored_date, %% EVN-2 date
-          planned_date, %% EVN-3 planned date
-          reason_code,  %% EVN-4 reason code
-          operator_id,  %% EVN-5 operator id
-          event_date,   %% EVN-6 the date exactly it happened
-          fac           %% EVN-7 facility
+%% define primary records here, type/specs are in hl7.erl
+-type user_defined_code() :: string().
+-type hl7_defined_code() :: string().
+
+%% undefined in the excel:
+-type 'FN'() :: string(). %% JAHIS臨床検査データ交換規約3.1では構造を持ったものとして定義されている
+-type 'SAD'() :: string(). %% JAHIS臨床検査データ交換規約3.1では構造を持ったものとして定義されている
+-type 'GTS'() :: string().
+
+%% データ型	型の説明	成分
+-type 'ST'() :: string(). %%文字列データ	-
+-type 'TX'() :: string(). %%テキストデータ	-
+-type 'FT'() :: string(). %%書式付テキストデータ	-
+-type 'NM'() :: integer()|float(). %%数値	-
+-type 'IS'() :: user_defined_code(). %%使用者定義表コード化値	-
+-type 'ID'() :: hl7_defined_code(). %%HL7定義表コード化値	-
+
+%%HD 	階層的指定子	<Namespace ID (IS)> ^ <Universal ID (ST)> ^ <Universal ID Type (ID)>	namespace_id	univ_id	univ_id_type
+-record('HD', {
+          namespace_id :: 'IS'(),
+          univ_id      :: 'ST'(),
+          univ_id_type :: 'ID'()
          }).
+-type 'HD'() :: #'HD'{}.
+-define(HL7_HD, [
+          {namespace_id , 'IS'},
+          {univ_id      , 'ST'},
+          {univ_id_type , 'ID'}
+         ]).
 
--record('PID', {
-          segment_name = 'PID',
-          %% set_id,       %% PID-1
-          patient_id,   %% PID-3  patient id
-          name,         %% PID-5  patient name
-          birth_age,    %% PID-7
-          sex,          %% PID-8
-          address,      %% PID-11
-          housephone,   %% PID-13
-          workphone,    %% PID-14
-          last_updated  %% PID-33
+%% CE	コード化値	<Identifier (ST)> ^ <Text (ST)> ^ <Name of Coding System (IS)> ^ <Alternate Identifier (ST)> ^ <Alternate Text (ST)> ^ <Name of Alternate Coding System (IS)>	id	txt	nm_cs	id_alt	txt_alt	nm_cs_alt
+-record('CE', {
+          id       :: 'ST'(),
+          txt      :: 'ST'(),
+          nm_cs    :: 'IS'(),
+          id_alt   :: 'ST'(),
+          txt_alt  :: 'ST'(),
+          nm_cs_alt:: 'IS'()
          }).
+-type 'CE'() :: #'CE'{}.
+-define(HL7_CE, [
+          {id       , 'ST'},
+          {txt      , 'ST'},
+          {nm_cs    , 'IS'},
+          {id_alt   , 'ST'},
+          {txt_alt  , 'ST'},
+          {nm_cs_alt, 'IS'}
+         ]).
 
-%% P29 3.5.4
--record('NK1', {
-          segment_name = 'NK1'
+%% CNE	拡張なしのコード化値	<Identifier (ST)> ^ <Text (ST)> ^ <Name of Coding System (IS)> ^ <Alternate Identifier (ST)> ^ <Alternate Text (ST)> ^ <Name of Alternate Coding System (IS)> ^ <Coding System Version ID (ST)> ^ <Alternate Coding System Version ID (ST)> ^ <Original Text (ST)>	id	txt	nm_cs	id_alt	txt_alt	nm_cs_alt	cs_ver_id	cs_ver_id_alt	orgin_txt
+-record('CNE', {
+          id         :: 'ST'(),
+          txt        :: 'ST'(),
+          nm_cs      :: 'IS'(),
+          id_alt     :: 'ST'(),
+          txt_alt    :: 'ST'(),
+          nm_cs_alt  :: 'IS'(),
+          cs_ver_id  :: 'ST'(),
+          cs_ver_id_alt	:: 'ST'(),
+          orgin_txt  :: 'ST'()
          }).
+-type 'CNE'() :: #'CNE'{}.
+-define(HL7_CNE, [
+          {id         , 'ST'},
+          {txt        , 'ST'},
+          {nm_cs      , 'IS'},
+          {id_alt     , 'ST'},
+          {txt_alt    , 'ST'},
+          {nm_cs_alt  , 'IS'},
+          {cs_ver_id  , 'ST'},
+          {cs_ver_id_alt	, 'ST'},
+          {orgin_txt  , 'ST'}
+         ]).
 
-%% P30 3.5.5
--record('PV1', {
-          segment_name = 'PV1',
-          %% set_id,       %% PV1-1
-          patient_type,    %% PV1-2
-          current_place,   %% PV1-3
-          %% hospitalized_reason, %% PV1-4
-          previous_place,  %% PV1-5
-          doctor,          %% PV1-6
-          division,        %% PV1-10
-          doctor_on_enter, %% PV1-17
-          leave_reason,    %% PV1-36
-          enter_date,      %% PV1-44
-          leave_date       %% PV1-45
+%% CWE	拡張ありのコード化値	<Identifier (ST)> ^ <Text (ST)> ^ <Name of Coding System (IS)> ^ <Alternate Identifier (ST)> ^ <Alternate Text (ST)> ^ <Name of Alternate Coding System (IS)> ^ <Coding System Version ID (ST)> ^ <Alternate Coding System Version ID (ST)> ^ <Original Text (ST)>	id	txt	nm_cs	id_alt	txt_alt	nm_cs_alt	cs_ver_id	cs_ver_id_alt	orgin_txt
+-record('CWE', {
+          id         :: 'ST'(),
+          txt        :: 'ST'(),
+          nm_cs      :: 'IS'(),
+          id_alt     :: 'ST'(),
+          txt_alt    :: 'ST'(),
+          nm_cs_alt  :: 'IS'(),
+          cs_ver_id  :: 'ST'(),
+          cs_ver_id_alt	:: 'ST'(),
+          orgin_txt  :: 'ST'()
          }).
+-type 'CWE'() :: #'CWE'{}.
+-define(HL7_CWE, [
+          {id         , 'ST'},
+          {txt        , 'ST'},
+          {nm_cs      , 'IS'},
+          {id_alt     , 'ST'},
+          {txt_alt    , 'ST'},
+          {nm_cs_alt  , 'IS'},
+          {cs_ver_id  , 'ST'},
+          {cs_ver_id_alt	, 'ST'},
+          {orgin_txt  , 'ST'}
+         ]).
 
-%% P33 3.5.6
--record('PV2', {
-          segment_name = 'PV2'
+-type 'DT'() :: string(). %%日付	-
+-type 'TM'() :: string(). %%時間	-
+-type 'DTM'() :: string(). %%日付／時刻	-
+
+%% TS	タイムスタンプ	<Time (DTM)> ^ <DEPRECATED-Degree of Precision (ID)>
+-record('TS', {
+          time  :: 'DTM'(),
+          precision :: 'ID'()
          }).
+-type 'TS'() :: #'TS'{}.
+-define(HL7_TS, [
+          {time  , 'DTM'},
+          {precision , 'ID'}
+         ]).
 
-%% P36 3.5.7
--record('DB1', {
-          segment_name = 'DB1',
-          set_id,      %% DB1-1
-          handicap,    %% DB1-2
-          handicapped  %% DB1-4
+%% DR	日付／時間の範囲	<Range Start Date/Time (TS)> ^ <Range End Date/Time (TS)>
+-record('DR', {
+          time_start :: 'TS'(),
+          time_end   :: 'TS'()
          }).
-
-%% P37 3.5.8
--record('OBX', {
-          segment_name = 'OBX',
-          set_id,      %% OBX-1
-          value_type,  %% OBX-2
-          observation_id, %% Observation Identifier CWE 0 Yes 705
-          %% Observation Sub-ID ST 0 No 20
-          observation_value, %% Observation Value CD 0 Yes 581
-          units, %% Units CWE 0 No 705
-          %% References Range ST 0 No 60
-          %% Abnormal Flags IS -1 No 5
-          %% Probability NM 0 No 5
-          %% Nature of Abnormal Test ID -1 No 2
-          observation_result  %% Observation Result Status ID 0 Yes 1
+-type 'DR'() :: #'DR'{}.
+-define(HL7_DR, [
+          {time_start , 'TS'},
+          {time_end   , 'TS'}
+         ]).
+						
+%% MSG	メッセージ型	<Message type (ID)> ^ <Trigger Event (ID)> ^ <Message Structure(ID)>
+-record('MSG', {
+          msg_type     :: 'ID'(),
+          trigger_evnt :: 'ID'(),
+          msg_structure:: 'ID'()
          }).
+-type 'MSG'() :: #'MSG'{}.
+-define(HL7_MSG, [
+          {msg_type     , 'ID'},
+          {trigger_evnt , 'ID'},
+          {msg_structure, 'ID'}
+         ]).
 
-%% P38 3.5.9
--record('AL1', {
-          segment_name = 'AL1',
-          set_id,         %% AL1-1: Set ID - AL1 (CE)
-          allergen_type,  %% AL1-2: Allergen Type Code (CE) optional
-          allergen_desc   %% AL1-3: Allergen Code/Mnemonic/Description (CE)
-          %% AL1-4: Allergy Severity Code (CE) optional
-          %% AL1-5: Allergy Reaction Code (ST) optional repeating
-          %% AL1-6: Identification Date (DT) optional
+%% PT	処理型	<Processing ID (ID)> ^<Processing Mode (ID)>
+-record('PT', {
+          proc_id   :: 'ID'(),
+          proc_md   :: 'ID'()
          }).
+-type 'PT'() :: #'PT'{}.
+-define(HL7_PT, [
+          {proc_id   , 'ID'},
+          {proc_md   , 'ID'}
+         ]).
 
-
-%% P39 3.5.10
-%% http://hl7api.sourceforge.net/v24/apidocs/ca/uhn/hl7v2/model/v24/segment/IN1.html
--record('IN1', {
-          segment_name = 'IN1',
-          set_id,         %% IN1-1: Set ID - IN1 (SI)
-          insurance_plan_id, %% IN1-2: Insurance Plan ID (CE)
-          insurance_company_id, %% IN1-3: Insurance Company ID (CX) repeating
-          insurance_company,    %% IN1-4: Insurance Company Name (XON) optional repeating
-          %% IN1-5: Insurance Company Address (XAD) optional repeating
-          %% IN1-6: Insurance Co Contact Person (XPN) optional repeating
-          %% IN1-7: Insurance Co Phone Number (XTN) optional repeating
-          %% IN1-8: Group Number (ST) optional
-          %% IN1-9: Group Name (XON) optional repeating
-          insured_group_emp_id, %% IN1-10: Insured's Group Emp ID (CX) optional repeating
-          insured_group_emp,    %% IN1-11: Insured's Group Emp Name (XON) optional repeating
-          plan_effective_date,  %% IN1-12: Plan Effective Date (DT) optional
-          plan_expiration_date, %% IN1-13: Plan Expiration Date (DT) optional
-          %% IN1-14: Authorization Information (AUI) optional
-          plan_type,            %% IN1-15: Plan Type (IS) optional
-          %% IN1-16: Name Of Insured (XPN) optional repeating
-          insured_relationship_to_patient  %% IN1-17: Insured's Relationship To Patient (CE) optional
-          %% IN1-18: Insured's Date Of Birth (TS) optional
-          %% IN1-19: Insured's Address (XAD) optional repeating
-          %% IN1-20: Assignment Of Benefits (IS) optional
-          %% IN1-21: Coordination Of Benefits (IS) optional
-          %% IN1-22: Coord Of Ben. Priority (ST) optional
-          %% IN1-23: Notice Of Admission Flag (ID) optional
-          %% IN1-24: Notice Of Admission Date (DT) optional
-          %% IN1-25: Report Of Eligibility Flag (ID) optional
-          %% IN1-26: Report Of Eligibility Date (DT) optional
-          %% IN1-27: Release Information Code (IS) optional
-          %% IN1-28: Pre-Admit Cert (PAC) (ST) optional
-          %% IN1-29: Verification Date/Time (TS) optional
-          %% IN1-30: Verification By (XCN) optional repeating
-          %% IN1-31: Type Of Agreement Code (IS) optional
-          %% IN1-32: Billing Status (IS) optional
-          %% IN1-33: Lifetime Reserve Days (NM) optional
-          %% IN1-34: Delay Before L.R. Day (NM) optional
-          %% IN1-35: Company Plan Code (IS) optional
-          %% IN1-36: Policy Number (ST) optional
-          %% IN1-37: Policy Deductible (CP) optional
-          %% IN1-38: Policy Limit - Amount (CP) optional
-          %% IN1-39: Policy Limit - Days (NM) optional
-          %% IN1-40: Room Rate - Semi-Private (CP) optional
-          %% IN1-41: Room Rate - Private (CP) optional
-          %% IN1-42: Insured's Employment Status (CE) optional
-          %% IN1-43: Insured's Administrative Sex (IS) optional
-          %% IN1-44: Insured's Employer's Address (XAD) optional repeating
-          %% IN1-45: Verification Status (ST) optional
-          %% IN1-46: Prior Insurance Plan ID (IS) optional
-          %% IN1-47: Coverage Type (IS) optional
-          %% IN1-48: Handicap (IS) optional
-          %% IN1-49: Insured's ID Number (CX) optional repeating
-          %% IN1-50
-          %% IN1-51
-          %% IN1-52
-          %% IN1-53
+%% VID	バージョン識別子	<Version ID (ID)> ^ <Internationalization Code (CWE)> ^ <International Version ID (CWE)>
+-record('VID', {
+          ver_id      :: 'ID'(),
+          inter_cd    :: 'CWE'(),
+          inter_ver_id:: 'CWE'()
          }).
+-type 'VID'() :: #'VID'{}.
+-define(HL7_VID, [
+          {ver_id      , 'ID'},
+          {inter_cd    , 'CWE'},
+          {inter_ver_id, 'CWE'}
+         ]).
 
-%% P42 3.6.5
--record('IAM', {
-          segment_name = 'IAM',
-          set_id, %% IAM-1: Set ID - IAM (SI)
-          allergen_type, %% IAM-2: Allergen Type Code (CE) optional
-          allergen_code, %% IAM-3: Allergen Code/Mnemonic/Description (CE)
-          allergy_severity, %% IAM-4: Allergy Severity Code (CE) optional
-          allergy_reaction, %% IAM-5: Allergy Reaction Code (ST) optional repeating
-          allergy_action,   %% IAM-6: Allergy Action Code (CNE)
-          allergy_id,       %% IAM-7: Allergy Unique Identifier (EI)
-          action_reason,    %% IAM-8: Action Reason (ST) optional
-          sensitivity,      %% IAM-9: Sensitivity to Causative Agent Code (CE) optional
-          allergen_group,   %% IAM-10: Allergen Group Code/Mnemonic/Description (CE) optional
-          onset_date,       %% IAM-11: Onset Date (DT) optional
-          onset_date_text,  %% IAM-12: Onset Date Text (ST) optional
-          reported_date,    %% IAM-13: Reported Date/Time (TS) optional
-          reported_by,      %% IAM-14: Reported By (XPN) optional
-          reporter_relation,%% IAM-15: Relationship to Patient Code (CE) optional
-          %% IAM-16: Alert Device Code (CE) optional
-          allergy_clinical_status, %% IAM-17: Allergy Clinical Status Code (CE) optional
-          statused_by_person,      %% IAM-18: Statused by Person (XCN) optional
-          statused_by_org,         %% IAM-19: Statused by Organization (XON) optional
-          statused_date            %% IAM-20: Statused at Date/Time (TS) optional
+%% XCN	拡張複合IDと名前	"<ID Number (ST)> ^ <Family Name (FN)> ^ <Given Name (ST)> ^ <Second and FurtherGiven Names or Initials Thereof (ST)> ^ <Suffix (e.g., JR or III) (ST)> ^ <Prefix (e.g., DR)(ST)> ^ <Degree (e.g., MD) (IS)> ^ <Source Table (IS)> ^ <Assigning Authority (HD)> ^<Name Type Code (ID)> ^ <Identifier Check Digit (ST)> ^ <Check Digit Scheme (ID)> ^<Identifier Type Code (ID)> ^ <Assigning Facility (HD)> ^ <Name Representation Code(ID)> ^ <Name Context (CE)> ^ <Name Validity Range (DR)> ^ <Name Assembly Order(ID)> ^ <Effective Date (TS)> ^ <Expiration Date (TS)> ^ <Professional Suffix (ST)> ^ <Assigning Jurisdiction (CWE)> ^ < Assigning Agency or Department (CWE)>
+-record('XCN', {
+          id :: 'ST'(),
+          %% 2+3=nm TODO: what's this?
+          f_nm  :: 'FN'(), %% typename FN does not exist ???
+          g_nm  :: 'ST'(),
+          '2nd_nm'    :: 'ST'(),
+          suffix      :: 'ST'(),
+          prefix      :: 'ST'(),
+          degree      :: 'IS'(),
+          src_tbl     :: 'IS'(),
+          assign_authority :: 'HD'(),
+          nm_type_cd  :: 'ID'(),
+          id_chk_digit :: 'ST'(),
+          chk_digit_scheme :: 'ID'(),
+          id_type_cd  :: 'ID'(),
+          assign_facility :: 'HD'(),
+          nm_represent_cd :: 'ID'(),
+          nm_cntext   :: 'CE'(),
+          nm_valid_range  :: 'DR'(),
+          nm_assembly_order :: 'ID'(),
+          effective_date  :: 'TS'(),
+          expire_date :: 'TS'(),
+          pro_suffix  :: 'ST'(),
+          assign_jurisdict :: 'CWE'(),
+          assign_dpt  :: 'CWE'
          }).
+-type 'XCN'() :: #'XCN'{}.
+-define(HL7_XCN, [
+          {id , 'ST'},
+          %% 2+3=nm TODO: what's this?
+          {f_nm  , 'FN'}, %% typename FN does not exist ??? ^医師
+          {g_nm  , 'ST'},
+          {'2nd_nm'    , 'ST'},
+          {suffix      , 'ST'},
+          {prefix      , 'ST'},
+          {degree      , 'IS'},
+          {src_tbl     , 'IS'},
+          {assign_authority , 'HD'},
+          {nm_type_cd  , 'ID'},
+          {id_chk_digit , 'ST'},
+          {chk_digit_scheme , 'ID'},
+          {id_type_cd  , 'ID'},
+          {assign_facility , 'HD'},
+          {nm_represent_cd , 'ID'},
+          {nm_cntext   , 'CE'},
+          {nm_valid_range  , 'DR'},
+          {nm_assembly_order , 'ID'},
+          {effective_date  , 'TS'},
+          {expire_date , 'TS'},
+          {pro_suffix  , 'ST'},
+          {assign_jurisdict , 'CWE'},
+          {assign_dpt  , 'CWE'}
+         ]).
 
-%% P45 3.7.3
-%% http://www.mexi.be/documents/hl7/ch120022.htm
--record('PRB', {
-          segment_name = 'PRB',
-          action_code,   %% PRB-1
-          action_date,   %% PRB-2
-          problem_id,    %% PRB-3
-          problem_instance_id,  %% PRB-4
-          episode_care_id,   %% PRB-5
-          master_problem_list_num,      %% PRB6
-          problem_established_date,  %% PRB-7
-          problem_resolution_expected_date, %% PRB-8
-          problem_resolution_date, %% PRB-9
-          problem_classification,      %% PRB-10
-          problem_management_discipline,
-          problem_persistence,
-          problem_confirmation_status,
-          problem_lifecycle_status,
-          problem_lifecycle_status_date,
-          problem_onset_date,
-          problem_onset_text,
-          problem_ranking,
-          problem_certainty,
-          problem_probability,
-          problem_awareness,
-          problem_prognosis,
-          prognosis_awareness,
-          family_prognosis_awareness,
-          security_sensitivity
+%% CX	チェックデジット付き拡張複合ID	<ID Number (ST)> ^ <Check Digit (ST)> ^ <Check Digit Scheme (ID)> ^ <Assigning Authority (HD)> ^ <Identifier Type Code (ID)> ^ <Assigning Facility (HD)> ^ <Effective Date (DT)> ^ <Expiration Date (DT)> ^ <AssigningJurisdiction (CWE)> ^ <Assigning Agency or Department (CWE)>
+-record('CX', {
+          id         :: 'ST'(),
+          chk_digit	 :: 'ST'(),
+          chk_digit_scheme :: 'ID'(),
+          assign_authority :: 'HD'(),
+          id_type_cd :: 'ID'(),
+          assign_facility  :: 'HD'(),
+          effective_date   :: 'DT'(),
+          expire_date :: 'DT'(),
+          assign_jurisdict :: 'CWE'(),
+          assign_dpt :: 'CWE'()
          }).
+-type 'CX'() :: #'CX'{}.
+-define(HL7_CX, [
+          {id         , 'ST'},
+          {chk_digit	 , 'ST'},
+          {chk_digit_scheme , 'ID'},
+          {assign_authority , 'HD'},
+          {id_type_cd , 'ID'},
+          {assign_facility  , 'HD'},
+          {effective_date   , 'DT'},
+          {expire_date , 'DT'},
+          {assign_jurisdict , 'CWE'},
+          {assign_dpt , 'CWE'}
+         ]).
 
-%% P47 3.7.4
--record('ZPR', {
-          segment_name = 'ZPR',
-          prefix_id,   %% ZPR-1
-          disease_id,  %% ZPR-2
-          suffix_id,   %% ZPR-3
-          prefix_code, %% ZPR-4
-          disease_code,%% ZPR-5
-          suffix_code, %% ZPR-6
-          commentary   %% ZPR-7
+%% XPN	拡張人名	<Family Name (FN)> ^ <Given Name (ST)> ^ <Second and Further Given Names orInitials Thereof (ST)> ^ <Suffix (e.g., JR or III) (ST)> ^ <Prefix (e.g., DR) (ST)> ^ <Degree(e.g., MD) (IS)> ^ <Name Type Code (ID)> ^ <Name Representation Code (ID)> ^ <NameContext (CWE)> ^ <Name Validity Range (DR)> ^ <Name Assembly Order (ID)> ^<Effective Date (TS)> ^ <Expiration Date (TS)> ^ <Professional Suffix (ST)>
+-record('XPN', {
+          f_nm :: 'FN'(),
+          g_nm :: 'ST'(),
+          '2nd_nm' :: 'ST'(),
+          suffix :: 'ST'(),
+          prefix :: 'ST'(),
+          degree :: 'IS'(),
+          nm_type_cd :: 'ID'(),
+          nm_represent_cd :: 'ID'(),
+          nm_cntext  :: 'CWE'(),
+          nm_valid_range  :: 'DR'(),
+          nm_assembly_order :: 'ID'(),
+          effective_date :: 'TS'(),
+          expire_date :: 'TS'(),
+          pro_suffix  :: 'ST'()
          }).
+-type 'XPN'() :: #'XPN'{}.
+-define(HL7_XPN, [
+          {f_nm , 'ST'},
+          {g_nm , 'ST'},
+          {'2nd_nm' , 'ST'},
+          {suffix , 'ST'},
+          {prefix , 'ST'},
+          {degree , 'IS'},
+          {nm_type_cd , 'ID'},
+          {nm_represent_cd , 'ID'},
+          {nm_cntext  , 'CWE'},
+          {nm_valid_range  , 'DR'},
+          {nm_assembly_order , 'ID'},
+          {effective_date , 'TS'},
+          {expire_date , 'TS'},
+          {pro_suffix  , 'ST'}
+         ]).
 
-%% P48 3.7.6
--record('ORC', {
-          segment_name = 'ORC',
-          order_control,    %% ORC-1
-          placer_order_num, %% ORC-2
-          filler_order_num, %% ORC-3
-          placer_group_num, %% ORC-4
-          transaction_date, %% ORC-9
-          entered_by,       %% ORC-10
-          ordering_provider,%% ORC-12
-          enterer_location, %% ORC-13
-          order_effective_date, %% ORC-15
-          reason_code,      %% ORC-16
-          entering_org,     %% ORC-17
-          entering_device,  %% ORC-18
-          ordering_fac,     %% ORC-21
-          ordering_fac_address, %% ORC-22
-          ordering_fac_phone, %% ORC-23
-          order_type        %% ORC-29
+%% XAD	拡張住所	<Street Address (SAD)> ^ <Other Designation (ST)> ^ <City (ST)> ^ <State or Province (ST)> ^ <Zip or Postal Code (ST)> ^ <Country (ID)> ^ <Address Type (ID)> ^ <Other eographic Designation (ST)> ^ <County/Parish Code (IS)> ^ <Census Tract (IS)> ^ <Address Representation Code (ID)> ^ <Address Validity Range (DR)> ^ <Effective Date(TS)> ^ <Expiration Date (TS)>
+-record('XAD', {
+          street_address :: 'SAD'(), %% TODO: not defined
+          other_design   :: 'ST'(),
+          city           :: 'ST'(),
+          state          :: 'ST'(),
+          zip_cd         :: 'ST'(),
+          country        :: 'ID'(),
+          address_type   :: 'ID'(),
+          other_geo_design :: 'ST'(),
+          parish_cd      :: 'IS'(),
+          census_tract   :: 'IS'(),
+          address_represent_cd :: 'ID'(),
+          address_valid_range  :: 'DR'(),
+          effective_date :: 'TS'(),
+          expire_date    :: 'TS'()
          }).
+-type 'XAD'() :: #'XAD'{}.
+-define(HL7_XAD, [
+          {street_address , 'SAD'}, %% TODO: not defined
+          {other_design   , 'ST'},
+          {city           , 'ST'},
+          {state          , 'ST'},
+          {zip_cd         , 'ST'},
+          {country        , 'ID'},
+          {address_type   , 'ID'},
+          {other_geo_design , 'ST'},
+          {parish_cd      , 'IS'},
+          {census_tract   , 'IS'},
+          {address_represent_cd , 'ID'},
+          {address_valid_range  , 'DR'},
+          {effective_date , 'TS'},
+          {expire_date    , 'TS'}
+         ]).
 
-%% P53 3.8.5
-%%-record('ORC', {}).
-
-%% P55 3.8.6
--record('TQ1', {
-          segment_name = 'TQ1',
-          set_id,           %% TQ1-1
-          repeat,           %% TQ1-3
-          start_date,       %% TQ1-7
-          priority,         %% TQ1-9
-          conjunction       %% TQ1-12
+%% XTN	拡張テレコミュニケーション番号	<DEPRECATED-Telephone Number (ST)> ^ <Telecommunication Use Code (ID)> ^ <Telecommunication Equipment Type (ID)> ^ <Email Address (ST)> ^ <Country Code (NM)> ^ <Area/City Code (NM)> ^ <Local Number (NM)> ^ <Extension (NM)> ^ <Any Text (ST)> ^ <Extension Prefix (ST)> ^ <Speed Dial Code (ST)> ^ <Unformatted Telephone number (ST)>
+-record('XTN', {
+          tel_number :: 'ID'(),
+          tel_use_cd :: 'ID'(),
+          tel_equip_type :: 'ID'(),
+          email_address	 :: 'ST'(),
+          country_cd :: 'NM'(),
+          city_cd    :: 'NM'(),
+          local_number :: 'NM'(),
+          ext        :: 'NM'(),
+          any_txt    :: 'ST'(),
+          ex_prefix  :: 'ST'(),
+          speed_dial_cd :: 'ST'(),
+          unform_tel_number :: 'ST'()
          }).
+-type 'XTN'() :: #'XTN'{}.
+-define(HL7_XTN, [
+          {tel_number , 'ID'},
+          {tel_use_cd , 'ID'},
+          {tel_equip_type , 'ID'},
+          {email_address	 , 'ST'},
+          {country_cd , 'NM'},
+          {city_cd    , 'NM'},
+          {local_number , 'NM'},
+          {ext        , 'NM'},
+          {any_txt    , 'ST'},
+          {ex_prefix  , 'ST'},
+          {speed_dial_cd , 'ST'},
+          {unform_tel_number , 'ST'}
+         ]).
 
-%% P56 3.8.7
--record('ODS', {
-          segment_name = 'ODS'
+%% XON	拡張複合組織IDと名称	<Organization Name (ST)> ^ <Organization Name Type Code (IS)> ^ <ID Number (NM)> ^ <Check Digit (NM)> ^ <Check Digit Scheme (ID)> ^ <Assigning Authority (HD)> ^ <Identifier Type Code (ID)> ^ <Assigning Facility (HD)> ^ <Name epresentation Code(ID)> ^ <Organization Identifier (ST)>
+-record('XON', {
+          organ_nm :: 'ST'(),
+          organ_nm_type_cd :: 'IS'(),
+          id       :: 'NM'(),
+          chk_digit :: 'NM'(),
+          chk_digit_scheme :: 'ID'(),
+          assign_authority :: 'HD'(),
+          id_type_cd :: 'ID'(),
+          assign_facility  :: 'HD'(),
+          nm_represent_cd  :: 'ID'(),
+          organ_id :: 'ST'()
          }).
+-type 'XON'() :: #'XON'{}.
+-define(HL7_XON, [
+          {organ_nm , 'ST'},
+          {organ_nm_type_cd , 'IS'},
+          {id       , 'NM'},
+          {chk_digit , 'NM'},
+          {chk_digit_scheme , 'ID'},
+          {assign_authority , 'HD'},
+          {id_type_cd , 'ID'},
+          {assign_facility  , 'HD'},
+          {nm_represent_cd  , 'ID'},
+          {organ_id , 'ST'}
+         ]).
 
-%% P59 3.9.5
-%% -record('ORC', {}).
-
-%% P62 3.9.6
--record('RXE', {
-          segment_name = 'RXE',
-          give_code,   %% RXE-2
-          give_amount_min, %% RXE-3
-          give_amount_max, %% RXE-4
-          give_units,      %% RXE-5
-          dosage_form,     %% RXE-6
-          providers_instruction, %% RXE-7
-          dispence_amount, %% RXE-10
-          dispence_units,  %% RXE-11
-          doctor_dea,      %% RXE-13
-          pharmacist_id,   %% RXE-14
-          prescription_num,%% RXE-15
-          refills_remain,  %% RXE-16
-          doses_dispensed, %% RXE-17
-          recent_refill_date, %% RXE-18
-          daily_dose,      %% RXE-19
-          dispense_instructions, %% RXE-21
-          give_per,        %% RXE-22
-          give_factor,     %% RXE-25
-          give_factor_units,%% RXE-26
-          give_instructions,%% RXE-27
-          dispence_package_size, %% RXE-28
-          dispence_package_units, %% RXE-29
-          dispence_package_method, %% RXE-30
-          original_order_date, %% RXE-32
-          give_factor_quant,   %% RXE-33
-          give_factor_quant_units,   %% RXE-34
-          control_schedule,    %% RXE-35
-          dispance_status,     %% RXE-36
-          medicine_replacement,%% RXE-37
-          first_refill_dept,   %% RXE-38
-          first_refill_quant,  %% RXE-39
-          refill_dept,         %% RXE-40
-          refill_dept_addr,    %% RXE-41
-          deliver_loc,         %% RXE-42
-          deliver_address,     %% RXE-43
-          order_type           %% RXE-44
+%% PL	所在場所	<Point of Care (IS)> ^ <Room (IS)> ^ <Bed (IS)> ^ <Facility (HD)> ^ <LocationStatus (IS)> ^ <Person Location Type (IS)> ^ <Building (IS)> ^ <Floor (IS)> ^ <Location Description (ST)> ^ <Comprehensive Location dentifier(EI)> ^ <Assigning Authority for Location (HD)>
+-record('PL', {
+          pnt_care :: 'IS'(),
+          room     :: 'IS'(),
+          bed      :: 'IS'(),
+          facility :: 'HD'(),
+          loc_status :: 'IS'(),
+          person_loc_type :: 'IS'(),
+          building :: 'IS'(),
+          floor    :: 'IS'(),
+          loc_description :: 'ST'(),
+          comp_loc_id :: 'EI'(),
+          loc_assign_authority :: 'HD'()
          }).
+-type 'PL'() :: #'PL'{}.
+-define(HL7_PL, [
+          {pnt_care , 'IS'},
+          {room     , 'IS'},
+          {bed      , 'IS'},
+          {facility , 'HD'},
+          {loc_status , 'IS'},
+          {person_loc_type , 'IS'},
+          {building , 'IS'},
+          {floor    , 'IS'},
+          {loc_description , 'ST'},
+          {comp_loc_id , 'EI'},
+          {loc_assign_authority , 'HD'}
+         ]).
 
-%% P67 3.9.7 -> TQ1
-
-%% P67 3.9.8
--record('RXR', {
-          segment_name = 'RXR',
-          route,   %% RXR-1
-          site,    %% RXR-2
-          device,  %% RXR-3
-          method   %% RXR-4
+%% EI	エンティティ識別子	<Entity Identifier (ST)> ^ <Namespace ID (IS)> ^ <Universal ID (ST)> ^ <Universal ID Type (ID)>
+-record('EI', {
+          entity_id :: 'ST'(),
+          namespace_id :: 'IS'(),
+          univ_id   :: 'ST'(),
+          univ_id_type :: 'ID'()
          }).
+-type 'EI'() :: #'EI'{}.
+-define(HL7_EI, [
+          {entity_id , 'ST'},
+          {namespace_id , 'IS'},
+          {univ_id   , 'ST'},
+          {univ_id_type , 'ID'}
+         ]).
 
-%% P74 3.11.5 ORC
 
-%% P82 3.11.9
-%% http://hl7api.sourceforge.net/v24/apidocs/ca/uhn/hl7v2/model/v24/segment/RXC.html
--record('RXC', {
-          segment_name = 'RXC',
-          component_type,  %% RXC-1: RX Component Type (ID)
-          component_code,  %% RXC-2: Component Code (CE)
-          component_amount,%% RXC-3: Component Amount (NM)
-          component_units, %% RXC-4: Component Units (CE)
-          component_strength, %% RXC-5: Component Strength (NM) optional
-          component_strength_units, %% RXC-6: Component Strength Units (CE) optional
-          supplementary_code, %% RXC-7: Supplementary Code (CE) optional repeating
-          component_strength_quant, %% RXC-8
-          component_strength_quant_units %% RXC-9
+%% RPT	繰り返しパターン	<Repeat Pattern Code (CWE)> ^ <Calendar Alignment (ID)> ^ <Phase Range Begin Value (NM)> ^ <Phase Range End Value (NM)> ^ <Period Quantity (NM)> ^ <Period Units (IS)> ^ <Institution Specified Time (ID)> ^ <Event (ID)> ^ <Event Offset Quantity (NM)> ^ <Event Offset Units (IS)> ^ <General Timing Specification (GTS)>
+-record('RPT', {
+          repete_pattern_cd   :: 'CWE'(),
+          calendar_alignment  :: 'ID'(),
+          phase_range_begin   :: 'NM'(),
+          phase_range_end     :: 'NM'(),
+          period_quant        :: 'NM'(),
+          period_units        :: 'IS'(),
+          institute_spec_time :: 'ID'(),
+          event               :: 'ID'(),
+          event_offset_quant  :: 'NM'(),
+          event_offset_units  :: 'IS'(),
+          general_tim_spec    :: 'GTS'()
          }).
+-type 'RPT'() :: #'RPT'{}.
+-define(HL7_RPT, [
+          {repete_pattern_cd   , 'CWE'},
+          {calendar_alignment  , 'ID'},
+          {phase_range_begin   , 'NM'},
+          {phase_range_end     , 'NM'},
+          {period_quant        , 'NM'},
+          {period_units        , 'IS'},
+          {institute_spec_time , 'ID'},
+          {event               , 'ID'},
+          {event_offset_quant  , 'NM'},
+          {event_offset_units  , 'IS'},
+          {general_tim_spec    , 'GTS'}
+         ]).
 
-%% P92 3.13.5
--record('SPM', {
-          segment_name = 'SPM',
-          set_id,         %% SPM-1
-          specimen_id,    %% SPM-2
-          specimen_type,  %% SPM-4
-          specimen_origin,%% SPM-8
-          date            %% SPM-17
+%% CQ	単位付複合数量	<Quantity (NM)> ^ <Units (CWE)>
+-record('CQ', {
+          quant_nm :: 'NM'(),
+          units    :: 'CWE'()
          }).
+-type 'CQ'() :: #'CQ'{}.
+-define(HL7_CQ, [
+          {quant_nm , 'NM'},
+          {units    , 'CWE'}
+         ]).
 
-%% P96 3.13.7
--record('OBR', {
-          segment_name = 'OBR',
-          set_id,           %% OBR-1
-          placer_order_num, %% OBR-2
-          filler_order_num, %% OBR-3
-          service_id,       %% OBR-4
-          observation_date, %% OBR-7
-          observation_end_date, %% OBR-8
-          danger_code,      %% OBR-12
-          ordering_provider,%% OBR-16
-          change_date       %% OBR-22
+%% LA2	投薬場所	<Point of Care (IS)> ^ <Room (IS)> ^ <Bed (IS)> ^ <Facility (HD)> ^ <Location Status (IS)> ^ <Patient Location Type (IS)> ^ <Building (IS)> ^ <Floor (IS)> ^ <Street Address (ST)> ^ <Other Designation (ST)> ^ <City (ST)> ^ <State or Province (ST)> ^ <Zip or Postal Code (ST)> ^ <Country (ID)> ^ <Address Type (ID)> ^ <Other Geographic Designation (ST)>
+-record('LA2', {
+          pnt_care :: 'IS'(),
+          room     :: 'IS'(),
+          bed      :: 'IS'(),
+          facility :: 'HD'(),
+          loc_status  :: 'IS'(),
+          pt_loc_type :: 'IS'(),
+          building :: 'IS'(),
+          floor    :: 'IS'(),
+          street_address :: 'ST'(),
+          other_design   :: 'ST'(),
+          city     :: 'ST'(),
+          state    :: 'ST'(),
+          zip_cd   :: 'ST'(),
+          country  :: 'ID'(),
+          address_type   :: 'ID'(),
+          other_geo_design :: 'ST'()
          }).
+-type 'LA2'() :: #'LA2'{}.
+-define(HL7_LA2, [
+          {pnt_care , 'IS'},
+          {room     , 'IS'},
+          {bed      , 'IS'},
+          {facility , 'HD'},
+          {loc_status  , 'IS'},
+          {pt_loc_type , 'IS'},
+          {building , 'IS'},
+          {floor    , 'IS'},
+          {street_address , 'ST'},
+          {other_design   , 'ST'},
+          {city     , 'ST'},
+          {state    , 'ST'},
+          {zip_cd   , 'ST'},
+          {country  , 'ID'},
+          {address_type   , 'ID'},
+          {other_geo_design , 'ST'}
+         ]).
 
-%% %% P
-%% -record('', {}).
-%% %% P
-%% -record('', {}).
-%% %% P
-%% -record('', {}).
+%% EIP	エンティティ識別子ペア	<Placer Assigned Identifier (EI)> ^ <Filler Assigned Identifier (EI)>
+-record('EIP', {
+          placer_id :: 'EI'(),
+          filler_id :: 'EI'()
+         }).	
+-type 'EIP'() :: #'EIP'{}.
+-define(HL7_EIP, [
+          {placer_id , 'EI'},
+          {filler_id , 'EI'}
+         ]).	
+
+-type 'SI'() :: integer().
+
+%% TODO: where job_class comes from?
+%% JCC	職種コード／種類	<Job Category Code (ST)> ^ <Employment Status (ST)>
+-record('JCC', {
+          job_cd     :: 'ST'(),
+          job_class  :: 'ST'(),
+          job_descript_txt :: 'ST'()
+         }). 													  	 
+-type 'JCC'() :: #'JCC'{}.
+-define(HL7_JCC, [
+          {job_cd     , 'ST'},
+          {job_class  , 'ST'},
+          {job_descript_txt , 'ST'}
+         ]). 													  	 
+
+%% ZRD	放射線検査用薬剤やフィルムの情報（名称、コード、量）	<identifier (ST)> ^ <text (ST)> ^ <name of encoding system  (IS)> ^ <quantity (NM)> ^ <unit (CWE)> ^ <film partition number (NM)>
+-record('ZRD', {
+          id    :: 'ST'(),
+          txt   :: 'ST'(),
+          nm_encode_sys :: 'IS'(),
+          quantity :: 'NM'(),
+          unit     :: 'CWE'(),
+          film_part_number :: 'NM'()
+         }).
+-type 'ZRD'() :: #'ZRD'{}.
+-define(HL7_ZRD, [
+          {id    , 'ST'},
+          {txt   , 'ST'},
+          {nm_encode_sys , 'IS'},
+          {quantity , 'NM'},
+          {unit     , 'CWE'},
+          {film_part_number , 'NM'}
+         ]).
+
+-define(HL7_PRIMITIVE_TYPES,
+        [{'HD', ?HL7_HD}, {'CE', ?HL7_CE}, {'CNE', ?HL7_CNE}, {'CWE', ?HL7_CWE}, {'TS', ?HL7_TS},
+         {'DR', ?HL7_DR}, {'MSG', ?HL7_MSG}, {'PT', ?HL7_PT}, {'VID', ?HL7_VID}, {'XCN', ?HL7_XCN},
+         {'CX', ?HL7_CX}, {'XPN', ?HL7_XPN}, {'XAD', ?HL7_XAD}, {'XTN', ?HL7_XTN}, {'XON', ?HL7_XON},
+         {'PL', ?HL7_PL}, {'EI', ?HL7_EI}, {'RPT', ?HL7_RPT}, {'CQ', ?HL7_CQ}, {'LA2', ?HL7_LA2},
+         {'EIP', ?HL7_EIP}, {'JCC', ?HL7_JCC}, {'ZRD', ?HL7_ZRD}]).
+
+
+%% １）青色は『JAHIS臨床検査データ交換規約Ver3.0の第５章関連情報詳細』に詳細な説明があります。
+%% ２）赤色（LA2;RAX-11）は『JAHIS注射データ交換規約Ver1.0』のP138に詳細な説明があります。
+%% ３）肌色（ZRD:ZE1-9）は『JAHIS放射線データ交換規約Ver2.2』のP38に詳細な説明があります。
+%% ４）ZRDについては、『JAHIS内視鏡データ交換規約Ver1.0』のP40にもありますが、定義は３に内包されているので、３の定義でパースしてください。

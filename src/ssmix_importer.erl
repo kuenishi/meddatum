@@ -6,7 +6,8 @@
 
 -module(ssmix_importer).
 
--export([connect/2, disconnect/1, put/2]).
+-export([connect/2, disconnect/1, put_json/2]).
+-include("hl7.hrl").
 
 -spec connect(term(), inet:port_number()) -> {ok, pid()}.
 connect(Host, Port) ->
@@ -15,8 +16,11 @@ connect(Host, Port) ->
 disconnect(Client) ->
     riakc_pb_socket:stop(Client).
 
-put(Client, Msg) ->
+put_json(Client, Msg) ->
     %% TODO: Bucket, Key is to be extracted from msg
-    RiakObj = riakc_obj:new(<<"somebucket">>, <<"Key">>, hl7:to_json(Msg)),
+    ContentType = "application/json",
+    Key = filename:basename(Msg#hl7msg.file),
+    RiakObj = riakc_obj:new(<<"ssmix">>, Key,
+                            hl7:to_json(Msg), ContentType),
     %% TODO: put indices to all member
     riakc_pb_socket:put(Client, RiakObj).

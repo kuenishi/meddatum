@@ -1,4 +1,7 @@
-# HL7tools
+# meddatum
+========
+
+hl7/e-rezept parser and importer to Riak database with search tools.
 
 Erlang/OTP library to handle [SS-MIX](http://www.hci-bc.com/ss-mix/ssmix/) data (Japanese local standard including HL7 format) and [electric rezepts](http://www.ssk.or.jp/rezept/). This toolkit includes:
 
@@ -12,10 +15,12 @@ This stores data into `/buckets/messages` and original data into `/buckets/ssmix
 # Prequisites
 
 - NKF command should be in path
+- run Riak with Yokozuna enabled somewhere [install](https://github.com/basho/yokozuna/blob/master/docs/INSTALL.md)
+
+- rezept file's csv must have LF ('\n', or CRLF) at each end of line
 
 # TODO
 
-- remove null entry at jsonx
 - put data to riak
 
 # misc

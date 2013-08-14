@@ -3,9 +3,11 @@
 
 main([])->
     {ok,Path} = file:get_cwd(),
+    io:setopts([{encoding,utf8}]),
     code:add_pathz(Path ++ "/ebin"),
     ssmix:walk(".");
 main([Dir])->
     {ok,Path} = file:get_cwd(),
+    io:setopts([{encoding,utf8}]),
     code:add_pathz(Path ++ "/ebin"),
     ssmix:walk(Dir).
