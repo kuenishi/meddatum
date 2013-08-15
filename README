@@ -16,8 +16,37 @@ This stores data into `/buckets/messages` and original data into `/buckets/ssmix
 
 - NKF command should be in path
 - run Riak with Yokozuna enabled somewhere [install](https://github.com/basho/yokozuna/blob/master/docs/INSTALL.md)
-
+- make, gcc, erlang > 15B01 (download Erlang from [here](http://erlang-users.jp) )
 - rezept file's csv must have LF ('\n', or CRLF) at each end of line
+
+# Compile
+
+```
+$ make
+```
+
+# How to use
+
+## upload SS-MIX docs to Riak
+
+```sh
+$ ERL_LIBS=deps rel/hl7parser path/to/ssmixroot
+```
+
+TODO: set Riak place configurable...
+
+## upload e-rezept docs to Riak
+
+```sh
+$ ERL_LIBS=deps rel/rezeptparser path/to/11_REZEPTINFO_MED.CSV
+```
+
+## search docs in Riak
+
+```sh
+$ ERL_LIBS=deps rel/search localhost 8098 "*:*"
+```
+The search query is compatible with Solr [link](http://lucene.apache.org/core/2_9_4/queryparsersyntax.html).
 
 # TODO
 

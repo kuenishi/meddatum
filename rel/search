@@ -1,0 +1,36 @@
+#!/usr/bin/env escript
+
+
+main([Server, Port, Query])->
+    ibrowse:start(),
+    UrlBase = io_lib:format("http://~s:~s/", [Server, Port]),
+    Url = lists:flatten(UrlBase ++ "search/md_index?wt=json&q="++Query),
+    io:format("sending query to ~p~n", [Url]),
+    Res = ibrowse:send_req(Url, [], get),
+
+    {ok, "200", _Header, Body} = Res,
+
+    Json = jsonx:decode(unicode:characters_to_binary(Body), []),
+    Response = get_property(<<"response">>, Json),
+    Docs = get_property(<<"docs">>, Response),
+                        
+    MaxScore = get_property(<<"maxScore">>, Response),
+    NumFound = get_property(<<"numFound">>, Response),
+    io:format("~p results found (max=~p).~n", [NumFound, MaxScore]),
+    lists:foreach(fun(Doc) -> print_doc(Doc) end, Docs),
+    %% io:format("~p~n", [Docs]),
+    ibrowse:stop().
+    %% {ok, C} = riakc_pb_socket:start_link(Server, Port),
+    %% Result = riakc_pb_socket:search(C, <<"md_index">>, list_to_binary(Query)),
+    %% io:format("~p~n", [Result]),
+    %% riakc_pb_socket:stop(C).
+
+get_property(Key, JsonxObject) ->
+    {Proplist} = JsonxObject,
+    proplists:get_value(Key, Proplist).
+
+print_doc(Doc) ->
+    B = get_property(<<"_yz_rb">>, Doc),
+    K = get_property(<<"_yz_rk">>, Doc),
+    io:format("~p ~p~n", [B, K]).
+    
