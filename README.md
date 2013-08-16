@@ -5,12 +5,12 @@ hl7/e-rezept parser and importer to Riak database with search tools.
 
 Erlang/OTP library to handle [SS-MIX](http://www.hci-bc.com/ss-mix/ssmix/) data (Japanese local standard including HL7 format) and [electric rezepts](http://www.ssk.or.jp/rezept/). This toolkit includes:
 
-- [ ] SS-MIXed HL7 parser, converter and importer to Riak
-- [ ] electric rezept parser, converter and importer to Riak
-- [ ] backend query system to be installed into Riak cluster
-- [ ] forntend query tools
+- [x] SS-MIXed HL7 parser, converter and importer to Riak
+- [x] electric rezept parser, converter and importer to Riak
+- [x] backend query system to be installed into Riak cluster
+- [x] forntend query tools
 
-This stores data into `/buckets/messages` and original data into `/buckets/ssmix`, `/buckets/erezept`
+This stores parsed JSON data into `/buckets/rezept` and `/buckets/ssmix`
 
 # Prequisites
 
@@ -58,6 +58,8 @@ note: the JSON is just a concatination of several JSON Objects. Take care when p
 
 # TODO
 
+- document data conversion spec (original -> JSON)
+- do we store original data? (or just point to the file)
 - test more on real data
 - parallel push
 - apply node_package installation scheme?
