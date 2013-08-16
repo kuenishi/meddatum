@@ -27,6 +27,8 @@ $ make
 
 # How to use
 
+**Riak must listen on 8098 for http and on 8087 for pb.**
+
 ## upload SS-MIX docs to Riak
 
 ```sh
@@ -44,17 +46,27 @@ $ ERL_LIBS=deps rel/rezeptparser path/to/11_REZEPTINFO_MED.CSV
 ## search docs in Riak
 
 ```sh
-$ ERL_LIBS=deps rel/search localhost 8098 "*:*"
+$ ERL_LIBS=deps rel/search localhost "*:*"
 ```
-The search query is compatible with Solr [link](http://lucene.apache.org/core/2_9_4/queryparsersyntax.html).
+The search query is compatible with Solr [link](http://lucene.apache.org/core/2_9_4/queryparsersyntax.html). This command output the main json data to STDOUT, so typical usage is:
+
+```
+$ export ERL_LIBS=deps
+$ rel/search localhost "*:*" > data.json
+```
+note: the JSON is just a concatination of several JSON Objects. Take care when parsing.
 
 # TODO
 
-- put data to riak
+- test more on real data
+- parallel push
+- apply node_package installation scheme?
 
 # misc
 
-hope this helps [SS-MIX open source project](http://iryogakusei.com/portfolio-item/ss-mix%E3%82%AA%E3%83%BC%E3%83%97%E3%83%B3%E3%82%BD%E3%83%BC%E3%82%B9%E5%8C%96/)
+- [JAHIS standards](http://www.jahis.jp/jahis_hyojyun/seiteizumi_hyojyun/)
+- hope this helps [SS-MIX open source project](http://iryogakusei.com/portfolio-item/ss-mix%E3%82%AA%E3%83%BC%E3%83%97%E3%83%B3%E3%82%BD%E3%83%BC%E3%82%B9%E5%8C%96/)
+
 
 # license
 

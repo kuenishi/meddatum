@@ -20,7 +20,9 @@ put_json(Client, Msg) ->
     %% TODO: Bucket, Key is to be extracted from msg
     ContentType = "application/json",
     Key = filename:basename(Msg#hl7msg.file),
+    Data = hl7:to_json(Msg),
     RiakObj = riakc_obj:new(<<"ssmix">>, Key,
-                            hl7:to_json(Msg), ContentType),
+                            Data, ContentType),
+    
     %% TODO: put indices to all member
     riakc_pb_socket:put(Client, RiakObj).

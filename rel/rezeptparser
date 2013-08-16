@@ -4,6 +4,7 @@
 main(Files)->
     {ok,Path} = file:get_cwd(),
     code:add_pathz(Path ++ "/ebin"),
+    io:setopts([{encoding, unicode}]),
     lists:foreach(fun(Filename) ->
                           rezept:process_file(Filename, info)
                   end, Files).

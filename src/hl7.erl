@@ -135,13 +135,13 @@ handle_segment_0(MsgType, Tokens0, Msg, File) ->
             Data = lists:filter(fun({_,null}) -> false;
                                    (_) -> true end, Data0),
 
-            case proplists:get_value(<<"observation_value ">>, Data) of
+            case get_observation_value(Data) of
                 undefined ->
                     {ok, append_segment(Msg, Data)};
                 {'*', Col} -> %% special case for OBX-5
                     Data1 = case get_valuetype(Data) of
                                 undefined ->
-                                    proplists:delete("observation_value", Data);
+                                    delete_valuetype(Data);
                                 ValueType ->
                                     Value = to_json_object(binary_to_atom(ValueType, latin1), Col, 1),
                                     [{<<"observation_value">>, Value}|delete_valuetype(Data)]
@@ -154,6 +154,11 @@ get_valuetype(Data) ->
     case proplists:get_value(<<"valuetype ">>, Data) of
         undefined -> proplists:get_value(<<"valuetype">>, Data);
         ValueType -> ValueType
+    end.
+get_observation_value(Data) ->
+    case proplists:get_value(<<"observation_value ">>, Data) of
+        undefined -> proplists:get_value(<<"observation_value">>, Data);
+        Value -> Value
     end.
 
 delete_valuetype(Data) ->
@@ -270,7 +275,11 @@ encoder() ->
 
 to_json(#hl7msg{} = HL7Msg) ->
     E = encoder(),
-    E(HL7Msg).
+    case E(HL7Msg) of
+        Bin when is_binary(Bin) -> Bin;
+        Other -> error(Other)
+    end.
+             
     %% lists:map(
     %%   fun(S) ->
     %%           ?debugVal("----------------------------------"),

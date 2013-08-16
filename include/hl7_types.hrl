@@ -260,13 +260,13 @@
         [
          {"segid", 'ST', 3, "_____ ID"}, %% OBX-0 -
          {"setid", 'SI', 4, "___ ID - OBX"}, %% OBX-1 -
-         {"valuetype ", 'ID', 2, "__"}, %% OBX-2 -
-         {"observation_identifier ", 'CWE', 250, "____"}, %% OBX-3 <Identifier (ST)> ^ <Text (ST)> ^ <Name of Coding System (IS)> ^ <Alternate Identifier (ST)> ^ <Alternate Text (ST)> ^ <Name of Alternate Coding System (IS)> ^ <Coding System Version ID (ST)> ^ <Alternate Coding System Version ID (ST)> ^ <Original Text (ST)>
+         {"valuetype", 'ID', 2, "__"}, %% OBX-2 -
+         {"observation_identifier", 'CWE', 250, "____"}, %% OBX-3 <Identifier (ST)> ^ <Text (ST)> ^ <Name of Coding System (IS)> ^ <Alternate Identifier (ST)> ^ <Alternate Text (ST)> ^ <Name of Alternate Coding System (IS)> ^ <Coding System Version ID (ST)> ^ <Alternate Coding System Version ID (ST)> ^ <Original Text (ST)>
          {"observation_subid", 'ST', 20, "___ ID"}, %% OBX-4 -
-         {"observation_value ", '*', 65536, "___"}, %% OBX-5 OBX-2_______
+         {"observation_value", '*', 65536, "___"}, %% OBX-5 OBX-2_______
          {"units", 'CWE', 250, "__"}, %% OBX-6 <Identifier (ST)> ^ <Text (ST)> ^ <Name of Coding System (IS)> ^ <Alternate Identifier (ST)> ^ <Alternate Text (ST)> ^ <Name of Alternate Coding System (IS)> ^ <Coding System Version ID (ST)> ^ <Alternate Coding System Version ID (ST)> ^ <Original Text (ST)>
-         {"references_range ", 'ST', 60, "_____"}, %% OBX-7 -
-         {"abnormal_flags ", 'IS', 5, "_____"}, %% OBX-8 -
+         {"references_range", 'ST', 60, "_____"}, %% OBX-7 -
+         {"abnormal_flags", 'IS', 5, "_____"}, %% OBX-8 -
          {"probability", {maybe,'NM'}, 5, "__"}, %% OBX-9 -
          {"nature_of_abnormal_test", {maybe,'ID'}, 2, "_______"}, %% OBX-10 -
          {"observ_result", 'ID', 1, "______"}, %% OBX-11 -
@@ -361,14 +361,14 @@
          {"al_reacd", 'ST', 15, "_________"}, %% IAM-5 -
          {"al_actcd", 'CNE', 250, "_____________"}, %% IAM-6 <Identifier (ST)> ^ <Text (ST)> ^ <Name of Coding System (IS)> ^ <Alternate Identifier (ST)> ^ <Alternate Text (ST)> ^ <Name of Alternate Coding System (IS)> ^ <Coding System Version ID (ST)> ^ <Alternate Coding System Version ID (ST)> ^ <Original Text (ST)>
          {"al_id", 'EI', 427, "_________"}, %% IAM-7 <Entity Identifier (ST)> ^ <Namespace ID (IS)> ^ <Universal ID (ST)> ^ <Universal ID Type (ID)>
-         {"al_act_reason ", 'ST', 60, "______________"}, %% IAM-8 -
+         {"al_act_reason", 'ST', 60, "______________"}, %% IAM-8 -
          {"al_sens", 'CWE', 250, "______________"}, %% IAM-9 <Identifier (ST)> ^ <Text (ST)> ^ <Name of Coding System (IS)> ^ <Alternate Identifier (ST)> ^ <Alternate Text (ST)> ^ <Name of Alternate Coding System (IS)> ^ <Coding System Version ID (ST)> ^ <Alternate Coding System Version ID (ST)> ^ <Original Text (ST)>
          {"al_group_info", 'CWE', 250, "________"}, %% IAM-10 <Identifier (ST)> ^ <Text (ST)> ^ <Name of Coding System (IS)> ^ <Alternate Identifier (ST)> ^ <Alternate Text (ST)> ^ <Name of Alternate Coding System (IS)> ^ <Coding System Version ID (ST)> ^ <Alternate Coding System Version ID (ST)> ^ <Original Text (ST)>
-         {"al_onset_date ", 'DT', 8, "________"}, %% IAM-11 -
+         {"al_onset_date", 'DT', 8, "________"}, %% IAM-11 -
          {"al_onset_date_txt", 'ST', 60, "_________"}, %% IAM-12 -
          {"reporteddate", 'TS', 8, "______"}, %% IAM-13 <Time (DTM)> ^ <DEPRECATED-Degree of Precision (ID)>
-         {"reportedby ", 'XPN', 250, "_____"}, %% IAM-14 <Family Name (FN)> ^ <Given Name (ST)> ^ <Second and Further Given Names orInitials Thereof (ST)> ^ <Suffix (e.g., JR or III) (ST)> ^ <Prefix (e.g., DR) (ST)> ^ <Degree(e.g., MD) (IS)> ^ <Name Type Code (ID)> ^ <Name Representation Code (ID)> ^ <NameContext (CWE)> ^ <Name Validity Range (DR)> ^ <Name Assembly Order (ID)> ^<Effective Date (TS)> ^ <Expiration Date (TS)> ^ <Professional Suffix (ST)>
-         {"relationship_cd ", 'CWE', 250, "___________"}, %% IAM-15 <Identifier (ST)> ^ <Text (ST)> ^ <Name of Coding System (IS)> ^ <Alternate Identifier (ST)> ^ <Alternate Text (ST)> ^ <Name of Alternate Coding System (IS)> ^ <Coding System Version ID (ST)> ^ <Alternate Coding System Version ID (ST)> ^ <Original Text (ST)>
+         {"reportedby", 'XPN', 250, "_____"}, %% IAM-14 <Family Name (FN)> ^ <Given Name (ST)> ^ <Second and Further Given Names orInitials Thereof (ST)> ^ <Suffix (e.g., JR or III) (ST)> ^ <Prefix (e.g., DR) (ST)> ^ <Degree(e.g., MD) (IS)> ^ <Name Type Code (ID)> ^ <Name Representation Code (ID)> ^ <NameContext (CWE)> ^ <Name Validity Range (DR)> ^ <Name Assembly Order (ID)> ^<Effective Date (TS)> ^ <Expiration Date (TS)> ^ <Professional Suffix (ST)>
+         {"relationship_cd", 'CWE', 250, "___________"}, %% IAM-15 <Identifier (ST)> ^ <Text (ST)> ^ <Name of Coding System (IS)> ^ <Alternate Identifier (ST)> ^ <Alternate Text (ST)> ^ <Name of Alternate Coding System (IS)> ^ <Coding System Version ID (ST)> ^ <Alternate Coding System Version ID (ST)> ^ <Original Text (ST)>
          {"alert_device_code", {maybe,'CWE'}, 250, "________"}, %% IAM-16 <Identifier (ST)> ^ <Text (ST)> ^ <Name of Coding System (IS)> ^ <Alternate Identifier (ST)> ^ <Alternate Text (ST)> ^ <Name of Alternate Coding System (IS)> ^ <Coding System Version ID (ST)> ^ <Alternate Coding System Version ID (ST)> ^ <Original Text (ST)>
          {"al_statuscd", 'CWE', 250, "___________"}, %% IAM-17 <Identifier (ST)> ^ <Text (ST)> ^ <Name of Coding System (IS)> ^ <Alternate Identifier (ST)> ^ <Alternate Text (ST)> ^ <Name of Alternate Coding System (IS)> ^ <Coding System Version ID (ST)> ^ <Alternate Coding System Version ID (ST)> ^ <Original Text (ST)>
          {"chker", 'XCN', 250, "___"}, %% IAM-18 <ID Number (ST)> ^ <Family Name (FN)> ^ <Given Name (ST)> ^ <Second and FurtherGiven Names or Initials Thereof (ST)> ^ <Suffix (e.g., JR or III) (ST)> ^ <Prefix (e.g., DR)(ST)> ^ <Degree (e.g., MD) (IS)> ^ <Source Table (IS)> ^ <Assigning Authority (HD)> ^<Name Type Code (ID)> ^ <Identifier Check Digit (ST)> ^ <Check Digit Scheme (ID)> ^<Identifier Type Code (ID)> ^ <Assigning Facility (HD)> ^ <Name Representation Code(ID)> ^ <Name Context (CE)> ^ <Name Validity Range (DR)> ^ <Name Assembly Order(ID)> ^ <Effective Date (TS)> ^ <Expiration Date (TS)> ^ <Professional Suffix (ST)> ^ <Assigning Jurisdiction (CWE)> ^ < Assigning Agency or Department (CWE)>
@@ -422,22 +422,22 @@
 -define(HL7_ORC,
         [
          {"segid", 'ST', 3, "_____ ID"}, %% ORC-0 -
-         {"ordercontrol ", 'ID', 2, "_____"}, %% ORC-1 -
-         {"placer_order_number ", 'EI', 22, "________"}, %% ORC-2 <Entity Identifier (ST)> ^ <Namespace ID (IS)> ^ <Universal ID (ST)> ^ <Universal ID Type (ID)>
-         {"filler_order_number ", 'EI', 22, "________"}, %% ORC-3 <Entity Identifier (ST)> ^ <Namespace ID (IS)> ^ <Universal ID (ST)> ^ <Universal ID Type (ID)>
-         {"placer_order_number ", 'EI', 22, "_________"}, %% ORC-4 <Entity Identifier (ST)> ^ <Namespace ID (IS)> ^ <Universal ID (ST)> ^ <Universal ID Type (ID)>
-         {"order_status ", 'ID', 2, "_____"}, %% ORC-5 -
+         {"ordercontrol", 'ID', 2, "_____"}, %% ORC-1 -
+         {"placer_order_number", 'EI', 22, "________"}, %% ORC-2 <Entity Identifier (ST)> ^ <Namespace ID (IS)> ^ <Universal ID (ST)> ^ <Universal ID Type (ID)>
+         {"filler_order_number", 'EI', 22, "________"}, %% ORC-3 <Entity Identifier (ST)> ^ <Namespace ID (IS)> ^ <Universal ID (ST)> ^ <Universal ID Type (ID)>
+         {"placer_order_number", 'EI', 22, "_________"}, %% ORC-4 <Entity Identifier (ST)> ^ <Namespace ID (IS)> ^ <Universal ID (ST)> ^ <Universal ID Type (ID)>
+         {"order_status", 'ID', 2, "_____"}, %% ORC-5 -
          {"response_flag", {maybe,'ID'}, 1, "_____"}, %% ORC-6 -
          {"quantity/timing", {maybe,'TQ'}, 200, "__/_____"}, %% ORC-7 #N/A
-         {"parent ", 'EIP', 200, "_"}, %% ORC-8 <Placer Assigned Identifier (EI)> ^ <Filler Assigned Identifier (EI)>
+         {"parent", 'EIP', 200, "_"}, %% ORC-8 <Placer Assigned Identifier (EI)> ^ <Filler Assigned Identifier (EI)>
          {"transaction_date", 'TS', 26, "__________"}, %% ORC-9 <Time (DTM)> ^ <DEPRECATED-Degree of Precision (ID)>
          {"entered", 'XCN', 250, "___"}, %% ORC-10 <ID Number (ST)> ^ <Family Name (FN)> ^ <Given Name (ST)> ^ <Second and FurtherGiven Names or Initials Thereof (ST)> ^ <Suffix (e.g., JR or III) (ST)> ^ <Prefix (e.g., DR)(ST)> ^ <Degree (e.g., MD) (IS)> ^ <Source Table (IS)> ^ <Assigning Authority (HD)> ^<Name Type Code (ID)> ^ <Identifier Check Digit (ST)> ^ <Check Digit Scheme (ID)> ^<Identifier Type Code (ID)> ^ <Assigning Facility (HD)> ^ <Name Representation Code(ID)> ^ <Name Context (CE)> ^ <Name Validity Range (DR)> ^ <Name Assembly Order(ID)> ^ <Effective Date (TS)> ^ <Expiration Date (TS)> ^ <Professional Suffix (ST)> ^ <Assigning Jurisdiction (CWE)> ^ < Assigning Agency or Department (CWE)>
 
          {"verified_by", {maybe,'XCN'}, 250, "___"}, %% ORC-11 <ID Number (ST)> ^ <Family Name (FN)> ^ <Given Name (ST)> ^ <Second and FurtherGiven Names or Initials Thereof (ST)> ^ <Suffix (e.g., JR or III) (ST)> ^ <Prefix (e.g., DR)(ST)> ^ <Degree (e.g., MD) (IS)> ^ <Source Table (IS)> ^ <Assigning Authority (HD)> ^<Name Type Code (ID)> ^ <Identifier Check Digit (ST)> ^ <Check Digit Scheme (ID)> ^<Identifier Type Code (ID)> ^ <Assigning Facility (HD)> ^ <Name Representation Code(ID)> ^ <Name Context (CE)> ^ <Name Validity Range (DR)> ^ <Name Assembly Order(ID)> ^ <Effective Date (TS)> ^ <Expiration Date (TS)> ^ <Professional Suffix (ST)> ^ <Assigning Jurisdiction (CWE)> ^ < Assigning Agency or Department (CWE)>
 
-         {"order_provider ", 'XCN', 250, "___"}, %% ORC-12 <ID Number (ST)> ^ <Family Name (FN)> ^ <Given Name (ST)> ^ <Second and FurtherGiven Names or Initials Thereof (ST)> ^ <Suffix (e.g., JR or III) (ST)> ^ <Prefix (e.g., DR)(ST)> ^ <Degree (e.g., MD) (IS)> ^ <Source Table (IS)> ^ <Assigning Authority (HD)> ^<Name Type Code (ID)> ^ <Identifier Check Digit (ST)> ^ <Check Digit Scheme (ID)> ^<Identifier Type Code (ID)> ^ <Assigning Facility (HD)> ^ <Name Representation Code(ID)> ^ <Name Context (CE)> ^ <Name Validity Range (DR)> ^ <Name Assembly Order(ID)> ^ <Effective Date (TS)> ^ <Expiration Date (TS)> ^ <Professional Suffix (ST)> ^ <Assigning Jurisdiction (CWE)> ^ < Assigning Agency or Department (CWE)>
+         {"order_provider", 'XCN', 250, "___"}, %% ORC-12 <ID Number (ST)> ^ <Family Name (FN)> ^ <Given Name (ST)> ^ <Second and FurtherGiven Names or Initials Thereof (ST)> ^ <Suffix (e.g., JR or III) (ST)> ^ <Prefix (e.g., DR)(ST)> ^ <Degree (e.g., MD) (IS)> ^ <Source Table (IS)> ^ <Assigning Authority (HD)> ^<Name Type Code (ID)> ^ <Identifier Check Digit (ST)> ^ <Check Digit Scheme (ID)> ^<Identifier Type Code (ID)> ^ <Assigning Facility (HD)> ^ <Name Representation Code(ID)> ^ <Name Context (CE)> ^ <Name Validity Range (DR)> ^ <Name Assembly Order(ID)> ^ <Effective Date (TS)> ^ <Expiration Date (TS)> ^ <Professional Suffix (ST)> ^ <Assigning Jurisdiction (CWE)> ^ < Assigning Agency or Department (CWE)>
 
-         {"enterer_location ", 'PL', 80, "____"}, %% ORC-13 <Point of Care (IS)> ^ <Room (IS)> ^ <Bed (IS)> ^ <Facility (HD)> ^ <LocationStatus (IS)> ^ <Person Location Type (IS)> ^ <Building (IS)> ^ <Floor (IS)> ^ <Location Description (ST)> ^ <Comprehensive Location dentifier(EI)> ^ <Assigning Authority for Location (HD)>
+         {"enterer_location", 'PL', 80, "____"}, %% ORC-13 <Point of Care (IS)> ^ <Room (IS)> ^ <Bed (IS)> ^ <Facility (HD)> ^ <LocationStatus (IS)> ^ <Person Location Type (IS)> ^ <Building (IS)> ^ <Floor (IS)> ^ <Location Description (ST)> ^ <Comprehensive Location dentifier(EI)> ^ <Assigning Authority for Location (HD)>
          {"call_back_phone", {maybe,'XTN'}, 250, "___________"}, %% ORC-14 <DEPRECATED-Telephone Number (ST)> ^ <Telecommunication Use Code (ID)> ^ <Telecommunication Equipment Type (ID)> ^ <Email Address (ST)> ^ <Country Code (NM)> ^ <Area/City Code (NM)> ^ <Local Number (NM)> ^ <Extension (NM)> ^ <Any Text (ST)> ^ <Extension Prefix (ST)> ^ <Speed Dial Code (ST)> ^ <Unformatted Telephone number (ST)>
          {"order_date", 'TS', 26, "_______"}, %% ORC-15 <Time (DTM)> ^ <DEPRECATED-Degree of Precision (ID)>
          {"order_control_reason", 'CWE', 250, "___________"}, %% ORC-16 <Identifier (ST)> ^ <Text (ST)> ^ <Name of Coding System (IS)> ^ <Alternate Identifier (ST)> ^ <Alternate Text (ST)> ^ <Name of Alternate Coding System (IS)> ^ <Coding System Version ID (ST)> ^ <Alternate Coding System Version ID (ST)> ^ <Original Text (ST)>
@@ -462,18 +462,18 @@
         [
          {"segid", 'ST', 3, "_____ ID"}, %% TQ1-0 -
          {"setid", 'SI', 4, "___ ID - TQ1"}, %% TQ1-1 -
-         {"quantity ", 'CQ', 20, "__"}, %% TQ1-2 <Quantity (NM)> ^ <Units (CWE)>
-         {"repeatpattern ", 'RPT', 540, "_______"}, %% TQ1-3 <Repeat Pattern Code (CWE)> ^ <Calendar Alignment (ID)> ^ <Phase Range Begin Value (NM)> ^ <Phase Range End Value (NM)> ^ <Period Quantity (NM)> ^ <Period Units (IS)> ^ <Institution Specified Time (ID)> ^ <Event (ID)> ^ <Event Offset Quantity (NM)> ^ <Event Offset Units (IS)> ^ <General Timing Specification (GTS)>
-         {"explicit_time ", 'TM', 20, "______"}, %% TQ1-4 -
+         {"quantity", 'CQ', 20, "__"}, %% TQ1-2 <Quantity (NM)> ^ <Units (CWE)>
+         {"repeatpattern", 'RPT', 540, "_______"}, %% TQ1-3 <Repeat Pattern Code (CWE)> ^ <Calendar Alignment (ID)> ^ <Phase Range Begin Value (NM)> ^ <Phase Range End Value (NM)> ^ <Period Quantity (NM)> ^ <Period Units (IS)> ^ <Institution Specified Time (ID)> ^ <Event (ID)> ^ <Event Offset Quantity (NM)> ^ <Event Offset Units (IS)> ^ <General Timing Specification (GTS)>
+         {"explicit_time", 'TM', 20, "______"}, %% TQ1-4 -
          {"relative_time", 'CQ', 20, "____/__"}, %% TQ1-5 <Quantity (NM)> ^ <Units (CWE)>
-         {"service_duration ", 'CQ', 20, "______"}, %% TQ1-6 <Quantity (NM)> ^ <Units (CWE)>
+         {"service_duration", 'CQ', 20, "______"}, %% TQ1-6 <Quantity (NM)> ^ <Units (CWE)>
          {"stratdate", 'TS', 26, "____"}, %% TQ1-7 <Time (DTM)> ^ <DEPRECATED-Degree of Precision (ID)>
          {"enddate", 'TS', 26, "____"}, %% TQ1-8 <Time (DTM)> ^ <DEPRECATED-Degree of Precision (ID)>
          {"priority", 'CWE', 250, "___"}, %% TQ1-9 <Identifier (ST)> ^ <Text (ST)> ^ <Name of Coding System (IS)> ^ <Alternate Identifier (ST)> ^ <Alternate Text (ST)> ^ <Name of Alternate Coding System (IS)> ^ <Coding System Version ID (ST)> ^ <Alternate Coding System Version ID (ST)> ^ <Original Text (ST)>
-         {"condition_txt ", 'TX', 250, "______"}, %% TQ1-10 -
-         {"txt_instruction ", 'TX', 250, "______"}, %% TQ1-11 -
-         {"conjunction ", 'ID', 10, "__"}, %% TQ1-12 -
-         {"occurrence_duration ", 'CQ', 20, "______"}, %% TQ1-13 <Quantity (NM)> ^ <Units (CWE)>
+         {"condition_txt", 'TX', 250, "______"}, %% TQ1-10 -
+         {"txt_instruction", 'TX', 250, "______"}, %% TQ1-11 -
+         {"conjunction", 'ID', 10, "__"}, %% TQ1-12 -
+         {"occurrence_duration", 'CQ', 20, "______"}, %% TQ1-13 <Quantity (NM)> ^ <Units (CWE)>
          {"total_occurrence", 'NM', 10, "____"} %% TQ1-14 -
         ]).
 
@@ -495,27 +495,27 @@
          {"give_max", 'NM', 20, "______"}, %% RXE-4 -
          {"give_units", 'CWE', 250, "____"}, %% RXE-5 <Identifier (ST)> ^ <Text (ST)> ^ <Name of Coding System (IS)> ^ <Alternate Identifier (ST)> ^ <Alternate Text (ST)> ^ <Name of Alternate Coding System (IS)> ^ <Coding System Version ID (ST)> ^ <Alternate Coding System Version ID (ST)> ^ <Original Text (ST)>
          {"give_dosage", 'CWE', 250, "____"}, %% RXE-6 <Identifier (ST)> ^ <Text (ST)> ^ <Name of Coding System (IS)> ^ <Alternate Identifier (ST)> ^ <Alternate Text (ST)> ^ <Name of Alternate Coding System (IS)> ^ <Coding System Version ID (ST)> ^ <Alternate Coding System Version ID (ST)> ^ <Original Text (ST)>
-         {"provider_instructions ", 'CWE', 250, "________"}, %% RXE-7 <Identifier (ST)> ^ <Text (ST)> ^ <Name of Coding System (IS)> ^ <Alternate Identifier (ST)> ^ <Alternate Text (ST)> ^ <Name of Alternate Coding System (IS)> ^ <Coding System Version ID (ST)> ^ <Alternate Coding System Version ID (ST)> ^ <Original Text (ST)>
+         {"provider_instructions", 'CWE', 250, "________"}, %% RXE-7 <Identifier (ST)> ^ <Text (ST)> ^ <Name of Coding System (IS)> ^ <Alternate Identifier (ST)> ^ <Alternate Text (ST)> ^ <Name of Alternate Coding System (IS)> ^ <Coding System Version ID (ST)> ^ <Alternate Coding System Version ID (ST)> ^ <Original Text (ST)>
          {"deliver-to_location", {maybe,'LA1'}, 200, "___"}, %% RXE-8 #N/A
          {"substitution_status", {maybe,'ID'}, 1, "_____"}, %% RXE-9 -
-         {"dispense_amount ", 'NM', 20, "___"}, %% RXE-10 -
-         {"dispense_units ", 'CWE', 250, "____"}, %% RXE-11 <Identifier (ST)> ^ <Text (ST)> ^ <Name of Coding System (IS)> ^ <Alternate Identifier (ST)> ^ <Alternate Text (ST)> ^ <Name of Alternate Coding System (IS)> ^ <Coding System Version ID (ST)> ^ <Alternate Coding System Version ID (ST)> ^ <Original Text (ST)>
+         {"dispense_amount", 'NM', 20, "___"}, %% RXE-10 -
+         {"dispense_units", 'CWE', 250, "____"}, %% RXE-11 <Identifier (ST)> ^ <Text (ST)> ^ <Name of Coding System (IS)> ^ <Alternate Identifier (ST)> ^ <Alternate Text (ST)> ^ <Name of Alternate Coding System (IS)> ^ <Coding System Version ID (ST)> ^ <Alternate Coding System Version ID (ST)> ^ <Original Text (ST)>
          {"number_of_refills", {maybe,'NM'}, 3, "______"}, %% RXE-12 -
          {"order_DEA", 'XCN', 250, "_______ DEA __"}, %% RXE-13 <ID Number (ST)> ^ <Family Name (FN)> ^ <Given Name (ST)> ^ <Second and FurtherGiven Names or Initials Thereof (ST)> ^ <Suffix (e.g., JR or III) (ST)> ^ <Prefix (e.g., DR)(ST)> ^ <Degree (e.g., MD) (IS)> ^ <Source Table (IS)> ^ <Assigning Authority (HD)> ^<Name Type Code (ID)> ^ <Identifier Check Digit (ST)> ^ <Check Digit Scheme (ID)> ^<Identifier Type Code (ID)> ^ <Assigning Facility (HD)> ^ <Name Representation Code(ID)> ^ <Name Context (CE)> ^ <Name Validity Range (DR)> ^ <Name Assembly Order(ID)> ^ <Effective Date (TS)> ^ <Expiration Date (TS)> ^ <Professional Suffix (ST)> ^ <Assigning Jurisdiction (CWE)> ^ < Assigning Agency or Department (CWE)>
 
          {"pharmacist", 'XCN', 250, "___/________ ID"}, %% RXE-14 <ID Number (ST)> ^ <Family Name (FN)> ^ <Given Name (ST)> ^ <Second and FurtherGiven Names or Initials Thereof (ST)> ^ <Suffix (e.g., JR or III) (ST)> ^ <Prefix (e.g., DR)(ST)> ^ <Degree (e.g., MD) (IS)> ^ <Source Table (IS)> ^ <Assigning Authority (HD)> ^<Name Type Code (ID)> ^ <Identifier Check Digit (ST)> ^ <Check Digit Scheme (ID)> ^<Identifier Type Code (ID)> ^ <Assigning Facility (HD)> ^ <Name Representation Code(ID)> ^ <Name Context (CE)> ^ <Name Validity Range (DR)> ^ <Name Assembly Order(ID)> ^ <Effective Date (TS)> ^ <Expiration Date (TS)> ^ <Professional Suffix (ST)> ^ <Assigning Jurisdiction (CWE)> ^ < Assigning Agency or Department (CWE)>
 
-         {"prescription_number ", 'ST', 20, "_____"}, %% RXE-15 -
-         {"refills_remaining ", 'NM', 20, "____"}, %% RXE-16 -
-         {"doses_dispensed ", 'NM', 20, "____________"}, %% RXE-17 -
+         {"prescription_number", 'ST', 20, "_____"}, %% RXE-15 -
+         {"refills_remaining", 'NM', 20, "____"}, %% RXE-16 -
+         {"doses_dispensed", 'NM', 20, "____________"}, %% RXE-17 -
          {"most_recent_refill", 'TS', 26, "_________________"}, %% RXE-18 <Time (DTM)> ^ <DEPRECATED-Degree of Precision (ID)>
-         {"total_daily_dose ", 'CQ', 10, "1 _________"}, %% RXE-19 <Quantity (NM)> ^ <Units (CWE)>
-         {"needs_human_review ", 'ID', 1, "____________"}, %% RXE-20 -
+         {"total_daily_dose", 'CQ', 10, "1 _________"}, %% RXE-19 <Quantity (NM)> ^ <Units (CWE)>
+         {"needs_human_review", 'ID', 1, "____________"}, %% RXE-20 -
          {"pharmacy", 'CWE', 250, "____ / ______ _ ___ ____"}, %% RXE-21 <Identifier (ST)> ^ <Text (ST)> ^ <Name of Coding System (IS)> ^ <Alternate Identifier (ST)> ^ <Alternate Text (ST)> ^ <Name of Alternate Coding System (IS)> ^ <Coding System Version ID (ST)> ^ <Alternate Coding System Version ID (ST)> ^ <Original Text (ST)>
          {"give_per", 'ST', 20, "________"}, %% RXE-22 -
-         {"give_rate_amount ", 'ST', 6, "____"}, %% RXE-23 -
-         {"give_rate_units ", 'CWE', 250, "______"}, %% RXE-24 <Identifier (ST)> ^ <Text (ST)> ^ <Name of Coding System (IS)> ^ <Alternate Identifier (ST)> ^ <Alternate Text (ST)> ^ <Name of Alternate Coding System (IS)> ^ <Coding System Version ID (ST)> ^ <Alternate Coding System Version ID (ST)> ^ <Original Text (ST)>
-         {"give_strength ", 'NM', 20, "____"}, %% RXE-25 -
+         {"give_rate_amount", 'ST', 6, "____"}, %% RXE-23 -
+         {"give_rate_units", 'CWE', 250, "______"}, %% RXE-24 <Identifier (ST)> ^ <Text (ST)> ^ <Name of Coding System (IS)> ^ <Alternate Identifier (ST)> ^ <Alternate Text (ST)> ^ <Name of Alternate Coding System (IS)> ^ <Coding System Version ID (ST)> ^ <Alternate Coding System Version ID (ST)> ^ <Original Text (ST)>
+         {"give_strength", 'NM', 20, "____"}, %% RXE-25 -
          {"give_strength_unit", 'CWE', 250, "______"}, %% RXE-26 <Identifier (ST)> ^ <Text (ST)> ^ <Name of Coding System (IS)> ^ <Alternate Identifier (ST)> ^ <Alternate Text (ST)> ^ <Name of Alternate Coding System (IS)> ^ <Coding System Version ID (ST)> ^ <Alternate Coding System Version ID (ST)> ^ <Original Text (ST)>
          {"give_indication", 'CWE', 250, "____"}, %% RXE-27 <Identifier (ST)> ^ <Text (ST)> ^ <Name of Coding System (IS)> ^ <Alternate Identifier (ST)> ^ <Alternate Text (ST)> ^ <Name of Alternate Coding System (IS)> ^ <Coding System Version ID (ST)> ^ <Alternate Coding System Version ID (ST)> ^ <Original Text (ST)>
          {"dispense_pkg_size", 'NM', 20, "__________"}, %% RXE-28 -
@@ -525,25 +525,25 @@
          {"order_date", 'TS', 26, "_______/__"}, %% RXE-32 <Time (DTM)> ^ <DEPRECATED-Degree of Precision (ID)>
          {"give_strength_vol", 'NM', 5, "_____"}, %% RXE-33 -
          {"give_strength_vol_unit", 'CWE', 250, "_______"}, %% RXE-34 <Identifier (ST)> ^ <Text (ST)> ^ <Name of Coding System (IS)> ^ <Alternate Identifier (ST)> ^ <Alternate Text (ST)> ^ <Name of Alternate Coding System (IS)> ^ <Coding System Version ID (ST)> ^ <Alternate Coding System Version ID (ST)> ^ <Original Text (ST)>
-         {"substance_schedule ", 'CWE', 60, "______________"}, %% RXE-35 <Identifier (ST)> ^ <Text (ST)> ^ <Name of Coding System (IS)> ^ <Alternate Identifier (ST)> ^ <Alternate Text (ST)> ^ <Name of Alternate Coding System (IS)> ^ <Coding System Version ID (ST)> ^ <Alternate Coding System Version ID (ST)> ^ <Original Text (ST)>
-         {"formulary_status ", 'ID', 1, "________"}, %% RXE-36 -
-         {"substance_alternative ", 'CWE', 60, "_____"}, %% RXE-37 <Identifier (ST)> ^ <Text (ST)> ^ <Name of Coding System (IS)> ^ <Alternate Identifier (ST)> ^ <Alternate Text (ST)> ^ <Name of Alternate Coding System (IS)> ^ <Coding System Version ID (ST)> ^ <Alternate Coding System Version ID (ST)> ^ <Original Text (ST)>
+         {"substance_schedule", 'CWE', 60, "______________"}, %% RXE-35 <Identifier (ST)> ^ <Text (ST)> ^ <Name of Coding System (IS)> ^ <Alternate Identifier (ST)> ^ <Alternate Text (ST)> ^ <Name of Alternate Coding System (IS)> ^ <Coding System Version ID (ST)> ^ <Alternate Coding System Version ID (ST)> ^ <Original Text (ST)>
+         {"formulary_status", 'ID', 1, "________"}, %% RXE-36 -
+         {"substance_alternative", 'CWE', 60, "_____"}, %% RXE-37 <Identifier (ST)> ^ <Text (ST)> ^ <Name of Coding System (IS)> ^ <Alternate Identifier (ST)> ^ <Alternate Text (ST)> ^ <Name of Alternate Coding System (IS)> ^ <Coding System Version ID (ST)> ^ <Alternate Coding System Version ID (ST)> ^ <Original Text (ST)>
          {"new_give", 'CWE', 250, "_________"}, %% RXE-38 <Identifier (ST)> ^ <Text (ST)> ^ <Name of Coding System (IS)> ^ <Alternate Identifier (ST)> ^ <Alternate Text (ST)> ^ <Name of Alternate Coding System (IS)> ^ <Coding System Version ID (ST)> ^ <Alternate Coding System Version ID (ST)> ^ <Original Text (ST)>
-         {"dispense_amount ", 'NM', 250, "______"}, %% RXE-39 -
-         {"dispensing_pharmacy ", 'CWE', 250, "_____"}, %% RXE-40 <Identifier (ST)> ^ <Text (ST)> ^ <Name of Coding System (IS)> ^ <Alternate Identifier (ST)> ^ <Alternate Text (ST)> ^ <Name of Alternate Coding System (IS)> ^ <Coding System Version ID (ST)> ^ <Alternate Coding System Version ID (ST)> ^ <Original Text (ST)>
-         {"dispensing_pharmacy_address ", 'XAD', 250, "________"}, %% RXE-41 <Street Address (SAD)> ^ <Other Designation (ST)> ^ <City (ST)> ^ <State or Province (ST)> ^ <Zip or Postal Code (ST)> ^ <Country (ID)> ^ <Address Type (ID)> ^ <Other eographic Designation (ST)> ^ <County/Parish Code (IS)> ^ <Census Tract (IS)> ^ <Address Representation Code (ID)> ^ <Address Validity Range (DR)> ^ <Effective Date(TS)> ^ <Expiration Date (TS)>
+         {"dispense_amount", 'NM', 250, "______"}, %% RXE-39 -
+         {"dispensing_pharmacy", 'CWE', 250, "_____"}, %% RXE-40 <Identifier (ST)> ^ <Text (ST)> ^ <Name of Coding System (IS)> ^ <Alternate Identifier (ST)> ^ <Alternate Text (ST)> ^ <Name of Alternate Coding System (IS)> ^ <Coding System Version ID (ST)> ^ <Alternate Coding System Version ID (ST)> ^ <Original Text (ST)>
+         {"dispensing_pharmacy_address", 'XAD', 250, "________"}, %% RXE-41 <Street Address (SAD)> ^ <Other Designation (ST)> ^ <City (ST)> ^ <State or Province (ST)> ^ <Zip or Postal Code (ST)> ^ <Country (ID)> ^ <Address Type (ID)> ^ <Other eographic Designation (ST)> ^ <County/Parish Code (IS)> ^ <Census Tract (IS)> ^ <Address Representation Code (ID)> ^ <Address Validity Range (DR)> ^ <Effective Date(TS)> ^ <Expiration Date (TS)>
          {"deliver_location", 'PL', 80, "________"}, %% RXE-42 <Point of Care (IS)> ^ <Room (IS)> ^ <Bed (IS)> ^ <Facility (HD)> ^ <LocationStatus (IS)> ^ <Person Location Type (IS)> ^ <Building (IS)> ^ <Floor (IS)> ^ <Location Description (ST)> ^ <Comprehensive Location dentifier(EI)> ^ <Assigning Authority for Location (HD)>
          {"deliver_address", 'XAD', 250, "_____"}, %% RXE-43 <Street Address (SAD)> ^ <Other Designation (ST)> ^ <City (ST)> ^ <State or Province (ST)> ^ <Zip or Postal Code (ST)> ^ <Country (ID)> ^ <Address Type (ID)> ^ <Other eographic Designation (ST)> ^ <County/Parish Code (IS)> ^ <Census Tract (IS)> ^ <Address Representation Code (ID)> ^ <Address Validity Range (DR)> ^ <Effective Date(TS)> ^ <Expiration Date (TS)>
-         {"pharmacy_type ", 'ID', 1, "________"} %% RXE-44 -
+         {"pharmacy_type", 'ID', 1, "________"} %% RXE-44 -
         ]).
 
 -define(HL7_RXR,
         [
          {"segid", 'ST', 3, "_____ ID  "}, %% RXR-0 -
-         {"route ", 'CWE', 250, "__        "}, %% RXR-1 <Identifier (ST)> ^ <Text (ST)> ^ <Name of Coding System (IS)> ^ <Alternate Identifier (ST)> ^ <Alternate Text (ST)> ^ <Name of Alternate Coding System (IS)> ^ <Coding System Version ID (ST)> ^ <Alternate Coding System Version ID (ST)> ^ <Original Text (ST)>
-         {"site ", 'CWE', 250, "__        "}, %% RXR-2 <Identifier (ST)> ^ <Text (ST)> ^ <Name of Coding System (IS)> ^ <Alternate Identifier (ST)> ^ <Alternate Text (ST)> ^ <Name of Alternate Coding System (IS)> ^ <Coding System Version ID (ST)> ^ <Alternate Coding System Version ID (ST)> ^ <Original Text (ST)>
-         {"administration_device ", 'CWE', 250, "____      "}, %% RXR-3 <Identifier (ST)> ^ <Text (ST)> ^ <Name of Coding System (IS)> ^ <Alternate Identifier (ST)> ^ <Alternate Text (ST)> ^ <Name of Alternate Coding System (IS)> ^ <Coding System Version ID (ST)> ^ <Alternate Coding System Version ID (ST)> ^ <Original Text (ST)>
-         {"administration_method ", 'CWE', 250, "____      "}, %% RXR-4 <Identifier (ST)> ^ <Text (ST)> ^ <Name of Coding System (IS)> ^ <Alternate Identifier (ST)> ^ <Alternate Text (ST)> ^ <Name of Alternate Coding System (IS)> ^ <Coding System Version ID (ST)> ^ <Alternate Coding System Version ID (ST)> ^ <Original Text (ST)>
+         {"route", 'CWE', 250, "__        "}, %% RXR-1 <Identifier (ST)> ^ <Text (ST)> ^ <Name of Coding System (IS)> ^ <Alternate Identifier (ST)> ^ <Alternate Text (ST)> ^ <Name of Alternate Coding System (IS)> ^ <Coding System Version ID (ST)> ^ <Alternate Coding System Version ID (ST)> ^ <Original Text (ST)>
+         {"site", 'CWE', 250, "__        "}, %% RXR-2 <Identifier (ST)> ^ <Text (ST)> ^ <Name of Coding System (IS)> ^ <Alternate Identifier (ST)> ^ <Alternate Text (ST)> ^ <Name of Alternate Coding System (IS)> ^ <Coding System Version ID (ST)> ^ <Alternate Coding System Version ID (ST)> ^ <Original Text (ST)>
+         {"administration_device", 'CWE', 250, "____      "}, %% RXR-3 <Identifier (ST)> ^ <Text (ST)> ^ <Name of Coding System (IS)> ^ <Alternate Identifier (ST)> ^ <Alternate Text (ST)> ^ <Name of Alternate Coding System (IS)> ^ <Coding System Version ID (ST)> ^ <Alternate Coding System Version ID (ST)> ^ <Original Text (ST)>
+         {"administration_method", 'CWE', 250, "____      "}, %% RXR-4 <Identifier (ST)> ^ <Text (ST)> ^ <Name of Coding System (IS)> ^ <Alternate Identifier (ST)> ^ <Alternate Text (ST)> ^ <Name of Alternate Coding System (IS)> ^ <Coding System Version ID (ST)> ^ <Alternate Coding System Version ID (ST)> ^ <Original Text (ST)>
          {"routing_instruction", {maybe,'CWE'}, 250, "____      "}, %% RXR-5 <Identifier (ST)> ^ <Text (ST)> ^ <Name of Coding System (IS)> ^ <Alternate Identifier (ST)> ^ <Alternate Text (ST)> ^ <Name of Alternate Coding System (IS)> ^ <Coding System Version ID (ST)> ^ <Alternate Coding System Version ID (ST)> ^ <Original Text (ST)>
          {"administration_site_modifier", {maybe,'CWE'}, 250, "___________"} %% RXR-6 <Identifier (ST)> ^ <Text (ST)> ^ <Name of Coding System (IS)> ^ <Alternate Identifier (ST)> ^ <Alternate Text (ST)> ^ <Name of Alternate Coding System (IS)> ^ <Coding System Version ID (ST)> ^ <Alternate Coding System Version ID (ST)> ^ <Original Text (ST)>
         ]).
@@ -640,7 +640,7 @@
         [
          {"segid", 'ST', 3, "_____ ID"}, %% OBR-0 -
          {"setid", 'SI', 4, "___ ID- OBR"}, %% OBR-1 -
-         {"placer_number ", 'EI', 22, "________"}, %% OBR-2 <Entity Identifier (ST)> ^ <Namespace ID (IS)> ^ <Universal ID (ST)> ^ <Universal ID Type (ID)>
+         {"placer_number", 'EI', 22, "________"}, %% OBR-2 <Entity Identifier (ST)> ^ <Namespace ID (IS)> ^ <Universal ID (ST)> ^ <Universal ID Type (ID)>
          {"filler_number", 'EI', 22, "________"}, %% OBR-3 <Entity Identifier (ST)> ^ <Namespace ID (IS)> ^ <Universal ID (ST)> ^ <Universal ID Type (ID)>
          {"universal_id", 'CWE', 250, "____ ID"}, %% OBR-4 <Identifier (ST)> ^ <Text (ST)> ^ <Name of Coding System (IS)> ^ <Alternate Identifier (ST)> ^ <Alternate Text (ST)> ^ <Name of Alternate Coding System (IS)> ^ <Coding System Version ID (ST)> ^ <Alternate Coding System Version ID (ST)> ^ <Original Text (ST)>
          {"priority", {maybe,'ID'}, 2, "___"}, %% OBR-5 -
@@ -655,7 +655,7 @@
          {"relevant_clinical_info", {maybe,'ST'}, 300, "______"}, %% OBR-13 -
          {"specimen_received_date/time", {maybe,'TS'}, 26, "______"}, %% OBR-14 <Time (DTM)> ^ <DEPRECATED-Degree of Precision (ID)>
          {"specimen_source", {maybe,'SPS'}, 300, "____/____"}, %% OBR-15 #N/A
-         {"ordering_provider ", 'XCN', 250, "___"}, %% OBR-16 <ID Number (ST)> ^ <Family Name (FN)> ^ <Given Name (ST)> ^ <Second and FurtherGiven Names or Initials Thereof (ST)> ^ <Suffix (e.g., JR or III) (ST)> ^ <Prefix (e.g., DR)(ST)> ^ <Degree (e.g., MD) (IS)> ^ <Source Table (IS)> ^ <Assigning Authority (HD)> ^<Name Type Code (ID)> ^ <Identifier Check Digit (ST)> ^ <Check Digit Scheme (ID)> ^<Identifier Type Code (ID)> ^ <Assigning Facility (HD)> ^ <Name Representation Code(ID)> ^ <Name Context (CE)> ^ <Name Validity Range (DR)> ^ <Name Assembly Order(ID)> ^ <Effective Date (TS)> ^ <Expiration Date (TS)> ^ <Professional Suffix (ST)> ^ <Assigning Jurisdiction (CWE)> ^ < Assigning Agency or Department (CWE)>
+         {"ordering_provider", 'XCN', 250, "___"}, %% OBR-16 <ID Number (ST)> ^ <Family Name (FN)> ^ <Given Name (ST)> ^ <Second and FurtherGiven Names or Initials Thereof (ST)> ^ <Suffix (e.g., JR or III) (ST)> ^ <Prefix (e.g., DR)(ST)> ^ <Degree (e.g., MD) (IS)> ^ <Source Table (IS)> ^ <Assigning Authority (HD)> ^<Name Type Code (ID)> ^ <Identifier Check Digit (ST)> ^ <Check Digit Scheme (ID)> ^<Identifier Type Code (ID)> ^ <Assigning Facility (HD)> ^ <Name Representation Code(ID)> ^ <Name Context (CE)> ^ <Name Validity Range (DR)> ^ <Name Assembly Order(ID)> ^ <Effective Date (TS)> ^ <Expiration Date (TS)> ^ <Professional Suffix (ST)> ^ <Assigning Jurisdiction (CWE)> ^ < Assigning Agency or Department (CWE)>
 
          {"order_callback_phone_number", {maybe,'XTN'}, 250, "______________"}, %% OBR-17 <DEPRECATED-Telephone Number (ST)> ^ <Telecommunication Use Code (ID)> ^ <Telecommunication Equipment Type (ID)> ^ <Email Address (ST)> ^ <Country Code (NM)> ^ <Area/City Code (NM)> ^ <Local Number (NM)> ^ <Extension (NM)> ^ <Any Text (ST)> ^ <Extension Prefix (ST)> ^ <Speed Dial Code (ST)> ^ <Unformatted Telephone number (ST)>
          {"placer_field_1", {maybe,'ST'}, 60, "_____ 1"}, %% OBR-18 -
