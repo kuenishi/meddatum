@@ -9,6 +9,7 @@ Erlang/OTP library to handle [SS-MIX](http://www.hci-bc.com/ss-mix/ssmix/) data 
 - [x] electric rezept parser, converter and importer to Riak
 - [x] backend query system to be installed into Riak cluster
 - [x] forntend query tools
+- [ ] pluggable to other datastore like Mongo,MySQL,Hive,Solr,??
 
 This stores parsed JSON data into `/buckets/rezept` and `/buckets/ssmix`
 
