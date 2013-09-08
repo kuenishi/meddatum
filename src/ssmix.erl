@@ -49,8 +49,7 @@ eval_filefun(FileFun, Path, FileInfo) ->
         {error, R} ->
             io:format("~p: ~s~n", [R, Path]);
         Other ->
-            erlang:display(Other),
-            io:format("unknown_failure: ~s~n", [Path]),
+            io:format("unknown_failure: ~s ~p~n", [Path, Other]),
             error
     end.
              
@@ -82,7 +81,7 @@ process_file(Filename, Info)->
     %% ok = file:write_file(filename:basename(Filename) ++ ".json", JSON),
     %% io:format("<<< ~s >>>~n", [filename:basename(Filename)++".json"]),
     io:format("[info] output ~s to Riak as JSON~n", [filename:basename(HL7Msg#hl7msg.file)]),
-    %% io:put_chars(unicode:characters_to_list(JSON)),
+    %io:put_chars(unicode:characters_to_list(JSON)),
     {ok,C}=ssmix_importer:connect(localhost, 8087),
     ok=ssmix_importer:put_json(C, HL7Msg),
     ok=ssmix_importer:disconnect(C).

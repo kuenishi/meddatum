@@ -8,6 +8,7 @@
 
 -export([connect/2, disconnect/1, put_json/2]).
 -include("hl7.hrl").
+-include_lib("eunit/include/eunit.hrl").
 
 -spec connect(term(), inet:port_number()) -> {ok, pid()}.
 connect(Host, Port) ->

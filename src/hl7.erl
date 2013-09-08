@@ -110,6 +110,7 @@ parse_1(Msg, [Line|Lines] = _Lines, File) ->
 
 
 handle_segment_0(MsgType, Tokens0, Msg, File) ->
+    ?debugVal(MsgType),
     case proplists:get_value(MsgType, ?HL7_TYPES) of
         undefined -> {ok, Msg};
         MsgDef0 ->
@@ -121,6 +122,7 @@ handle_segment_0(MsgType, Tokens0, Msg, File) ->
                                       %% ok to skip
                                       {Property, null};
                                  ({{Property, {maybe, Type}, Length, _Text}, Col}) ->
+                                      ?debugVal({Property, Type}),
                                       to_json_object(Property, Type, Length, Col, 0);
                                  ({{Property, _Type, _Length, _Text}, ""}) ->
                                       %% warning
@@ -129,6 +131,7 @@ handle_segment_0(MsgType, Tokens0, Msg, File) ->
                                       {Property, null};
                                       
                                  ({{Property, Type, Length, _Text}, Col}) ->
+                                      ?debugVal({Property, Type}),
                                       to_json_object(Property, Type, Length, Col, 0)
                       end,
                       lists:zip(MsgDef, Tokens)),
@@ -190,7 +193,7 @@ to_json_object('SI', Col, _D)-> list_to_integer(Col);
 
 %% Work arounds
 to_json_object('*', Col, _) -> {'*', Col}; %% as it is and process later
-to_json_object('FN', Col, _D)-> unicode:characters_to_binary(Col); %% undefined
+%to_json_object('FN', Col, _D)-> ?debugVal(Col), exit(1); %unicode:characters_to_binary(Col); %% undefined
 to_json_object('SAD', Col, _D)-> unicode:characters_to_binary(Col); %% undefined
 to_json_object('SPS', Col, _D)-> unicode:characters_to_binary(Col); %% undefined, maybe, and exists.
 to_json_object('AUI', Col, _D)-> unicode:characters_to_binary(Col); %% undefined, maybe, and exists.
