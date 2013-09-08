@@ -7,26 +7,25 @@
 
 -module(meddatum).
 
--export([search/2, search/4]).
+-export([search/2, search/3]).
 
 search(Server, Query) ->
     search(Server, Query,
-           fun md_searcher:simple_offset_counter/2,
-           fun md_searcher:simple_doc_mapper/1).
+           fun md_searcher:simple_doc_retriever/1).
 
-search(Server, Query, OffsetCounter, DocMapper) ->
+search(Server, Query, DocRetriever) ->
     Self = self(),
     Pid = spawn_link(fun() -> consumer(Server, waiting, Self) end),
     ibrowse:start(),
     io:setopts([{encoding, unicode}]),
     Url = md_searcher:plain_query_url(Server, Query),
-    {ok, {NumFound, BKs}} = md_searcher:run_query(Url, 0, OffsetCounter, DocMapper),
+    {ok, {NumFound, BKs}} = md_searcher:run_query(Url, 0, DocRetriever),
     io:format(standard_error, "sending query to ~p~n", [Url]),
     Pid ! {start, NumFound, BKs},
 
     io:format(standard_error, "~p results found (~p).~n", [NumFound, length(BKs)]),
 
-    pagenate(Url, NumFound, length(BKs), Pid, OffsetCounter, DocMapper),
+    pagenate(Url, NumFound, length(BKs), Pid, DocRetriever),
     
     %% io:format("~p~n", [Docs]),
     ibrowse:stop(),
@@ -37,12 +36,12 @@ search(Server, Query, OffsetCounter, DocMapper) ->
     end.
 
 
-pagenate(Url0, _NumFound0, Offset, Pid, OffsetCounter, DocMapper) ->
-    {ok, {NumFound, BKs}} = md_searcher:run_query(Url0, Offset, OffsetCounter, DocMapper),
+pagenate(Url0, _NumFound0, Offset, Pid, DocRetriever) ->
+    {ok, {NumFound, BKs}} = md_searcher:run_query(Url0, Offset, DocRetriever),
 
     if length(BKs) > 0 ->
             Pid ! {data, BKs},
-            pagenate(Url0, NumFound, Offset+length(BKs), Pid, OffsetCounter, DocMapper);
+            pagenate(Url0, NumFound, Offset+length(BKs), Pid, DocRetriever);
        true ->
             ok
     end.
