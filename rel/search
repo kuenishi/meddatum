@@ -4,4 +4,4 @@ main([Server, Query0])->
     {ok,Path} = file:get_cwd(),
     code:add_pathz(Path ++ "/ebin"),
     io:setopts([{encoding, unicode}]),
-    meddatum:search(Server, Query0).
+    meddatum:search(Server, "q="++Query0).
