@@ -1,4 +1,6 @@
 -record(hl7msg, {
+          hid  :: binary(),
+          pid  :: binary(),
           file :: filename:filename(),
           date :: string(),
           msg_type_s :: string(),

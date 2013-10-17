@@ -71,12 +71,12 @@ patient(Path, ID, _FirstSix) ->
 
 -spec process_file(filename:filename(), file:file_info()) -> ok | {error, any()}.
 process_file(Filename, Info)->
-    _Features = filename2msg(Filename),
+    %% _Features = filename2msg(Filename),
     {ok, HL7Msg0} = hl7:parse(Filename, Info),
     %% TODO: compare Features and HL7Msg here
 
     %% TODO: print this as a JSON (or msgpack?)
-    HL7Msg = HL7Msg0#hl7msg{file = list_to_binary(Filename)},
+    HL7Msg = hl7:annotate(HL7Msg0#hl7msg{file=list_to_binary(Filename)}),
     %% JSON = hl7:to_json(HL7Msg),
     %% ok = file:write_file(filename:basename(Filename) ++ ".json", JSON),
     %% io:format("<<< ~s >>>~n", [filename:basename(Filename)++".json"]),
