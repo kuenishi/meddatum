@@ -1,6 +1,6 @@
 -record(hl7msg, {
-          hid  :: binary(),
-          pid  :: binary(),
+          hospital_id  :: binary(),
+          patient_id  :: binary(),
           file :: filename:filename(),
           date :: string(),
           msg_type_s :: string(),

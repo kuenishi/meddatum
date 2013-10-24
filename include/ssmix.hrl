@@ -1,6 +1,6 @@
 -record(ssmix_msg, {
-          hid :: string(), %% hospital id
-          pid :: string(), %% patient id
+          hospital_id :: string(), %% hospital id
+          patient_id :: string(), %% patient id
           date :: string(), %% YYYYMMDD
           datatype :: string(), %% OML-11 or else
           path :: filename:filename() %% path/to/the/file

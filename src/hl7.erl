@@ -22,7 +22,7 @@
 -spec annotate(#hl7msg{}) -> #hl7msg{}.
 annotate(HL70 = #hl7msg{segments=Segs}) ->
     {PatientID, HospitalID} = extract(Segs, {undefined, undefined}),
-    HL70#hl7msg{pid=PatientID, hid=HospitalID}.
+    HL70#hl7msg{patient_id=PatientID, hospital_id=HospitalID}.
 
 extract([], Tuple) -> Tuple;
 extract([Seg|Segs], {P0, H0}) ->

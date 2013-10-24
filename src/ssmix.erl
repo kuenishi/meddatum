@@ -109,4 +109,4 @@ process_file(Filename, Info)->
 filename2msg(Fullpath) ->
     Elems = lists:reverse(filename:split(Fullpath)),
     [_, DT, Date, PID, _, _, HID|_] = Elems,
-    #ssmix_msg{hid=HID, pid=PID, date=Date, datatype=DT, path=Fullpath}.
+    #ssmix_msg{hospital_id=HID, patient_id=PID, date=Date, datatype=DT, path=Fullpath}.
