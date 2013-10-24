@@ -85,6 +85,4 @@ print_doc(C, {B,K}) ->
             io:format("~n");
         Other ->
             io:format(standard_error, "unknown: ~p~n", [Other])
-
     end.
-    

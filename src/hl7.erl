@@ -6,7 +6,7 @@
 
 -module(hl7).
 
--export([parse/2, to_json/1]).
+-export([parse/2, to_json/1, annotate/1]).
 -export_type(['ST'/0, 'TX'/0, 'FT'/0, 'NM'/0, 'IS'/0, 'ID'/0,
               'HD'/0, 'CE'/0, 'CNE'/0, 'CWE'/0, 'DT'/0, 'TM'/0,
               'DTM'/0,
@@ -18,6 +18,26 @@
 -include_lib("eunit/include/eunit.hrl").
 -include("hl7.hrl").
 -include("hl7_types.hrl").
+
+-spec annotate(#hl7msg{}) -> #hl7msg{}.
+annotate(HL70 = #hl7msg{segments=Segs}) ->
+    {PatientID, HospitalID} = extract(Segs, {undefined, undefined}),
+    HL70#hl7msg{pid=PatientID, hid=HospitalID}.
+
+extract([], Tuple) -> Tuple;
+extract([Seg|Segs], {P0, H0}) ->
+    case Seg of
+        [{<<"segid">>, <<"PID">>}|Rest] ->
+            case proplists:get_value(<<"idlist">>, Rest) of
+                undefined ->
+                    extract(Segs, {P0, H0});
+                IDList ->
+                    ID = proplists:get_value(id, IDList),
+                    {ID, H0}
+            end;
+        _ ->
+            extract(Segs, {P0, H0})
+    end.
 
 -spec parse(filename:filename(), file:file_info()) -> ok | {error, any()}.
 parse(Filename, _Info)->
@@ -110,7 +130,7 @@ parse_1(Msg, [Line|Lines] = _Lines, File) ->
 
 
 handle_segment_0(MsgType, Tokens0, Msg, File) ->
-    ?debugVal(MsgType),
+    %% ?debugVal(MsgType),
     case proplists:get_value(MsgType, ?HL7_TYPES) of
         undefined -> {ok, Msg};
         MsgDef0 ->
@@ -122,7 +142,7 @@ handle_segment_0(MsgType, Tokens0, Msg, File) ->
                                       %% ok to skip
                                       {Property, null};
                                  ({{Property, {maybe, Type}, Length, _Text}, Col}) ->
-                                      ?debugVal({Property, Type}),
+                                      %% ?debugVal({Property, Type}),
                                       to_json_object(Property, Type, Length, Col, 0);
                                  ({{Property, _Type, _Length, _Text}, ""}) ->
                                       %% warning
@@ -131,7 +151,7 @@ handle_segment_0(MsgType, Tokens0, Msg, File) ->
                                       {Property, null};
                                       
                                  ({{Property, Type, Length, _Text}, Col}) ->
-                                      ?debugVal({Property, Type}),
+                                      %% ?debugVal({Property, Type}),
                                       to_json_object(Property, Type, Length, Col, 0)
                       end,
                       lists:zip(MsgDef, Tokens)),
@@ -169,7 +189,7 @@ delete_valuetype(Data) ->
                      proplists:delete(<<"observation_value">>, Data)).
     
 
-to_json_object(Property, Type, Len, Col, Depth) ->
+to_json_object(Property, Type, _Len, Col, Depth) ->
     %% DAMN NONSENSE GUARD
     %% if length(Col) > Len ->
     %%         error({"too long text", Col, Len});
@@ -231,8 +251,6 @@ to_record(Name, Col, Depth) ->
             Data
     end.
 
-
-    
 append_segment(#hl7msg{segments = Segs} = Msg, Seg) ->
     Msg#hl7msg{segments = [Seg|Segs]}.
 

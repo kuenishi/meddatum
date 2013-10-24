@@ -13,7 +13,27 @@
 -include("hl7.hrl").
 
 walk(Path) ->
-    walk(lists:reverse(filename:split(Path)), none, fun process_file/2).
+    walk2(Path).
+%%    walk(lists:reverse(filename:split(Path)), none, fun process_file/2).
+
+walk2(Path) ->
+    {ok, Pid} = ssmix_walker:start_link(Path),
+    {ok,C}=ssmix_importer:connect(localhost, 8087),
+    timer:sleep(100),
+    wait_for_walker(Pid, C, 0).
+
+wait_for_walker(Pid, C, N) ->
+    {Flag, HL7Msgs} = ssmix_walker:pop(Pid),
+    %% ?debugVal(Flag),
+    lists:foreach(fun(HL7Msg) ->
+                          ok=ssmix_importer:put_json(C, HL7Msg)
+                  end, HL7Msgs),
+    N2 = length(HL7Msgs) + N,
+    io:format("~p msgs stored.~n", [length(HL7Msgs)]),
+    case Flag of
+        ok -> ok=ssmix_importer:disconnect(C);
+        cont -> wait_for_walker(Pid, C, N2)
+    end.
 
 -spec walk([string()], fun(), fun()) -> no_return().
 walk(Path0, DirFun, FileFun)->
@@ -71,12 +91,12 @@ patient(Path, ID, _FirstSix) ->
 
 -spec process_file(filename:filename(), file:file_info()) -> ok | {error, any()}.
 process_file(Filename, Info)->
-    _Features = filename2msg(Filename),
+    %% _Features = filename2msg(Filename),
     {ok, HL7Msg0} = hl7:parse(Filename, Info),
     %% TODO: compare Features and HL7Msg here
 
     %% TODO: print this as a JSON (or msgpack?)
-    HL7Msg = HL7Msg0#hl7msg{file = list_to_binary(Filename)},
+    HL7Msg = hl7:annotate(HL7Msg0#hl7msg{file=list_to_binary(Filename)}),
     %% JSON = hl7:to_json(HL7Msg),
     %% ok = file:write_file(filename:basename(Filename) ++ ".json", JSON),
     %% io:format("<<< ~s >>>~n", [filename:basename(Filename)++".json"]),

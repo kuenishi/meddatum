@@ -10,12 +10,15 @@
 
 -export([plain_query_url/2, run_query/3, run_query0/2,
          simple_doc_retriever/1,
+         get_property/2,
          simple_offset_counter/2, simple_doc_mapper/1]).
+
+-include_lib("eunit/include/eunit.hrl").
 
 plain_query_url(Server, Query0) ->
     UrlBase = io_lib:format("http://~s:8098/", [Server]),
     Query = (re:replace(Query0, "[\s]", "%20", [unicode,{return,list},global])),
-    Params = "wt=json&q="++Query,
+    Params = "wt=json&"++Query,
     lists:flatten(UrlBase ++ "search/md_index?"++Params).
 
 -spec run_query(Url::string(), non_neg_integer(),
@@ -42,7 +45,7 @@ get_property(Key, JsonxObject) ->
 simple_doc_retriever(Json) ->
     Response = get_property(<<"response">>, Json),
     Docs = get_property(<<"docs">>, Response),
-    
+
     _MaxScore = get_property(<<"maxScore">>, Response),
     NumFound = get_property(<<"numFound">>, Response),
 

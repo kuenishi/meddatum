@@ -19,11 +19,16 @@ disconnect(Client) ->
 
 put_json(Client, Msg) ->
     %% TODO: Bucket, Key is to be extracted from msg
-    ContentType = "application/json",
+    ContentType = <<"application/json">>,
     Key = filename:basename(Msg#hl7msg.file),
     Data = hl7:to_json(Msg),
-    RiakObj = riakc_obj:new(<<"ssmix">>, Key,
-                            Data, ContentType),
-    
-    %% TODO: put indices to all member
+    RiakObj0 = riakc_obj:new(<<"ssmix">>, Key, Data, ContentType),
+
+    RiakObj = set_2i(RiakObj0, Msg#hl7msg.date, Msg#hl7msg.pid),
     riakc_pb_socket:put(Client, RiakObj).
+
+set_2i(RiakObj0, Date, PatientID) ->
+    MD0 = riakc_obj:get_update_metadata(RiakObj0),
+    MD1 = riakc_obj:set_secondary_index(MD0, {{binary_index, <<"date">>}, [Date]}),
+    MD2 = riakc_obj:set_secondary_index(MD1, {{binary_index, <<"pid">>}, [PatientID]}),
+    riakc_obj:update_metadata(RiakObj0, MD2).
