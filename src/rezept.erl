@@ -8,12 +8,16 @@
 
 -include_lib("eunit/include/eunit.hrl").
 -include("rezept.hrl").
--include_lib("eunit/include/eunit.hrl").
 
--export([process_file/2, put_record/2]).
+-export([process_file/2, process_file/3,
+         put_record/2, default_extractor/1]).
 
 -spec process_file(filename:filename(), file:file_info()) -> ok.
-process_file(Filename, _Info) ->
+process_file(Filename, Info) ->
+    process_file(Filename, Info, fun ?MODULE:default_extractor/1).
+
+-spec process_file(filename:filename(), file:file_info(), fun()) -> ok.
+process_file(Filename, _Info, InfoExtractor) when is_function(InfoExtractor) ->
     {ok, Lines} = japanese:read_file(Filename),
     %% io:format("~p~n", [Lines]),
     F = fun({newline, NewLine}, Ctx0) ->
@@ -23,20 +27,52 @@ process_file(Filename, _Info) ->
         end,
     {ok, ResultCtx} = ecsv:process_csv_string_with(lists:flatten(Lines), F, {[], []}),
     {Remain, Records0} = ResultCtx,
-    Records = [ lists:reverse(Remain) | Records0 ],
-    io:format("~p records.~n", [length(Records)]),
-    
+    Records1 = [ lists:reverse(Remain) | Records0 ],
+    io:format("~p records.~n", [length(Records1)]),
+    Records = case InfoExtractor of
+                  undefined -> Records1;
+                  _  -> lists:map(InfoExtractor, Records1)
+              end,
     {ok, C} = riakc_pb_socket:start_link(localhost, 8087),
     lists:foreach(fun(Record)-> put_record(C, Record) end, Records),
     %%put_record(hd(Records)),
     riakc_pb_socket:stop(C),
     ok.
 
+default_extractor(Record) ->
+    extract(Record)++[{<<"segments">>, Record}].
+
+extract([]) -> [];
+extract([H|T]) ->
+    case proplists:get_value(<<"レコード識別情報">>, H) of
+        <<"IR">> ->
+            [{<<"date">>, extract_date(H)},
+             {<<"hospital_id">>, extract_hospital(H)}];
+        _ -> extract(T)
+    end.
+
+extract_date(Col) ->
+    case proplists:get_value(<<"請求年月">>, Col) of
+        undefined -> undefined;
+        DateBin ->
+            [P,Y0,Y1,M0,M1] = binary_to_list(DateBin),
+            Year = p2base(P) + list_to_integer([Y0,Y1]),
+            integer_to_list(Year) ++ [M0,M1]
+    end.
+
+p2base($4) -> 1988; %% 平成0年
+p2base($3) -> 1925; %% 昭和0年
+p2base($2) -> 1911; %% 大正0年
+p2base($1) -> 1971. %% 明治0年
+
+extract_hospital(Col) ->
+    proplists:get_value(<<"医療機関コード">>, Col).
+
+
 to_json(Rezept) when length(Rezept) > 0 ->
     case jsonx:encode(Rezept) of
         {error, A, B} ->
-            ?debugVal(A),
-            ?debugVal(B),
+            io:format("[error] ~p, ~p~n", [A, B]),
             {error, {A,B}};
         {no_match, _O} ->
             erlang:display(_O),
@@ -47,7 +83,7 @@ to_json(Rezept) when length(Rezept) > 0 ->
     end;
 to_json(_) ->
     {error, empty}.
-    
+
 
 put_record(C, Record0) ->
     case to_json(Record0) of
@@ -130,7 +166,7 @@ check_type({Name, integer, _MaxDigits}, Entry) ->
     {ok, {Name, list_to_integer(Entry)}};
 check_type({Name, latin1, _MaxDigits}, Entry) ->
     {ok, {Name, list_to_binary(Entry)}};
-check_type({Name, unicode, _MaxDigits}, Entry) -> 
+check_type({Name, unicode, _MaxDigits}, Entry) ->
     %% io:format(">>>> => ~ts~n", [unicode:characters_to_binary(Entry, utf8)]),
     {ok, {Name, unicode:characters_to_binary(Entry, unicode)}};
 check_type({Name, gyymm, 5}, Entry) ->
