@@ -90,7 +90,7 @@ parse_line(Line, {List, Records}) ->
             {Line1,_} = lists:split(ShortLen, Line),
             {Cols, _} = lists:split(ShortLen, Cols0),
             Data0 = lists:map(fun({Col, Entry}) ->
-                                      %% ?debugVal(Entry),
+                                      %%?debugVal({Col,Entry}),
                                       case check_type(Col, Entry) of
                                           {ok, {K,V}} ->
                                               {hardcode_to_binary(K), V};

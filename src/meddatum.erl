@@ -9,11 +9,14 @@
 
 -export([search/2, search/3]).
 
+-include_lib("eunit/include/eunit.hrl").
+
 search(Server, Query) ->
     search(Server, Query,
            fun md_searcher:simple_doc_retriever/1).
 
 search(Server, Query, DocRetriever) ->
+    ?debugHere,
     Self = self(),
     Pid = spawn_link(fun() -> consumer(Server, waiting, Self) end),
     ibrowse:start(),

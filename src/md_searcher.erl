@@ -8,7 +8,7 @@
 %%%-------------------------------------------------------------------
 -module(md_searcher).
 
--export([plain_query_url/2, run_query/3,
+-export([plain_query_url/2, run_query/3, run_query0/2,
          simple_doc_retriever/1,
          simple_offset_counter/2, simple_doc_mapper/1]).
 
@@ -22,13 +22,18 @@ plain_query_url(Server, Query0) ->
                 fun()) ->
                    {ok, {non_neg_integer(), [{binary(),binary()}]}}.
 run_query(Url0, Offset, DocRetriever) ->
+    Json = run_query0(Url0, Offset),
+    {ok, {_Num, _BKs}} = DocRetriever(Json).
+
+
+run_query0(Url0, Offset) ->
     Url = Url0 ++ "&start=" ++ integer_to_list(Offset),
+    %% ?debugVal(Url),
     Res = ibrowse:send_req(Url, [], get),
     {ok, "200", _Header, Body} = Res,
     
-    Json = jsonx:decode(unicode:characters_to_binary(Body), []),
-
-    {ok, {_Num, _BKs}} = DocRetriever(Json).
+    _Json = jsonx:decode(unicode:characters_to_binary(Body), []).
+    
 
 get_property(Key, JsonxObject) ->
     {Proplist} = JsonxObject,
