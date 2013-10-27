@@ -35,7 +35,7 @@ set_2i(RiakObj0, Date, PatientID) ->
     riakc_obj:update_metadata(RiakObj0, MD2).
 
 index_name(patient_id) ->
-    <<"patient_id">>;
+    "patient_id";
 index_name(date) ->
-    <<"date">>.
+    "date".
 

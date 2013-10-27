@@ -130,7 +130,6 @@ parse_1(Msg, [Line|Lines] = _Lines, File) ->
 
 
 handle_segment_0(MsgType, Tokens0, Msg, File) ->
-    %% ?debugVal(MsgType),
     case proplists:get_value(MsgType, ?HL7_TYPES) of
         undefined -> {ok, Msg};
         MsgDef0 ->
