@@ -6,7 +6,7 @@
 
 -module(hl7).
 
--export([parse/2, to_json/1, annotate/1]).
+-export([parse/2, to_json/1, from_json/1, annotate/1]).
 -export_type(['ST'/0, 'TX'/0, 'FT'/0, 'NM'/0, 'IS'/0, 'ID'/0,
               'HD'/0, 'CE'/0, 'CNE'/0, 'CWE'/0, 'DT'/0, 'TM'/0,
               'DTM'/0,
@@ -267,31 +267,17 @@ maybe_nth(N, List) ->
         {Segment, record_info(fields, Segment)}
        ).
 
-encoder() ->
-    jsonx:encoder([{hl7msg, record_info(fields, hl7msg)}
-                   %% ?DECLEARE_TO_JSON('MSH'),
-                   %% ?DECLEARE_TO_JSON('EVN'),
-                   %% ?DECLEARE_TO_JSON('PID'),
-                   %% ?DECLEARE_TO_JSON('NK1'),
-                   %% ?DECLEARE_TO_JSON('PV1'),
-                   %% ?DECLEARE_TO_JSON('PV2'),
-                   %% ?DECLEARE_TO_JSON('DB1'),
-                   %% ?DECLEARE_TO_JSON('OBX'),
-                   %% ?DECLEARE_TO_JSON('AL1'),
-                   %% ?DECLEARE_TO_JSON('IN1'),
-                   %% ?DECLEARE_TO_JSON('IAM'),
-                   %% ?DECLEARE_TO_JSON('PRB'),
-                   %% ?DECLEARE_TO_JSON('ZPR'),
-                   %% ?DECLEARE_TO_JSON('ORC'),
-                   %% ?DECLEARE_TO_JSON('TQ1'),
-                   %% ?DECLEARE_TO_JSON('ODS'),
-                   %% ?DECLEARE_TO_JSON('RXE'),
-                   %% ?DECLEARE_TO_JSON('RXR'),
-                   %% ?DECLEARE_TO_JSON('RXC'),
-                   %% ?DECLEARE_TO_JSON('SPM'),
-                   %% ?DECLEARE_TO_JSON('OBR')
-                  ],
+decoder() ->
+    jsonx:decoder([{hl7msg, record_info(fields, hl7msg)}],
                   [{ignore, [null]}]).
+
+encoder() ->
+    jsonx:encoder([{hl7msg, record_info(fields, hl7msg)}],
+                  [{ignore, [null]}]).
+
+from_json(Json) when is_binary(Json) ->
+    D = decoder(),
+    D(Json).
 
 to_json(#hl7msg{} = HL7Msg) ->
     E = encoder(),
