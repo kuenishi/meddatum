@@ -6,7 +6,8 @@
 
 -module(ssmix_importer).
 
--export([connect/2, disconnect/1, put_json/2]).
+-export([connect/2, disconnect/1, put_json/2,
+         index_name/1]).
 -include("hl7.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
@@ -29,6 +30,12 @@ put_json(Client, Msg) ->
 
 set_2i(RiakObj0, Date, PatientID) ->
     MD0 = riakc_obj:get_update_metadata(RiakObj0),
-    MD1 = riakc_obj:set_secondary_index(MD0, {{binary_index, <<"date">>}, [Date]}),
-    MD2 = riakc_obj:set_secondary_index(MD1, {{binary_index, <<"patient_id">>}, [PatientID]}),
+    MD1 = riakc_obj:set_secondary_index(MD0, {{binary_index, index_name(date)}, [Date]}),
+    MD2 = riakc_obj:set_secondary_index(MD1, {{binary_index, index_name(patient_id)}, [PatientID]}),
     riakc_obj:update_metadata(RiakObj0, MD2).
+
+index_name(patient_id) ->
+    <<"patient_id">>;
+index_name(date) ->
+    <<"date">>.
+
