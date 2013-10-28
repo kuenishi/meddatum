@@ -46,7 +46,7 @@ extract([]) -> [];
 extract([H|T]) ->
     case proplists:get_value(<<"レコード識別情報">>, H) of
         <<"IR">> ->
-            [{<<"date">>, extract_date(H)},
+            [{<<"date">>, list_to_binary(extract_date(H))},
              {<<"hospital_id">>, extract_hospital(H)}];
         _ -> extract(T)
     end.
