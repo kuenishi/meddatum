@@ -42,12 +42,15 @@ convert(UnicodeCharCapital) when 65313 =< UnicodeCharCapital
     UnicodeCharCapital - 65313 + $A;
 convert(UnicodeChar) when 65345 =< UnicodeChar
                           andalso UnicodeChar =< 65370 ->
-    UnicodeChar - 65345 + $a.
+    UnicodeChar - 65345 + $a;
+convert(Char) when 0 =< Char andalso Char =< 255 ->
+    Char.
 
 -ifdef(TEST).
 
 unicode_test() ->
     UnicodeString = unicode:characters_to_list(<<"０１２３４５６７８９ａｚＡＺ">>),
-    ?assertEqual("0123456789azAZ", hankaku(UnicodeString)).
+    ?assertEqual("0123456789azAZ", hankaku(UnicodeString)),
+    ?assertEqual("0123456789azAZ", hankaku("0123456789azAZ")).
 
 -endif.
