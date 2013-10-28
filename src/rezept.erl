@@ -57,7 +57,7 @@ extract_date(Col) ->
         DateBin ->
             [P,Y0,Y1,M0,M1] = binary_to_list(DateBin),
             Year = p2base(P) + list_to_integer([Y0,Y1]),
-            integer_to_list(Year) ++ [M0,M1]
+            lists:flatten(integer_to_list(Year) ++ [M0,M1])
     end.
 
 p2base($4) -> 1988; %% 平成0年

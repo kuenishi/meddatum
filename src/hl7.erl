@@ -268,30 +268,9 @@ maybe_nth(N, List) ->
        ).
 
 encoder() ->
-    jsonx:encoder([{hl7msg, record_info(fields, hl7msg)}
-                   %% ?DECLEARE_TO_JSON('MSH'),
-                   %% ?DECLEARE_TO_JSON('EVN'),
-                   %% ?DECLEARE_TO_JSON('PID'),
-                   %% ?DECLEARE_TO_JSON('NK1'),
-                   %% ?DECLEARE_TO_JSON('PV1'),
-                   %% ?DECLEARE_TO_JSON('PV2'),
-                   %% ?DECLEARE_TO_JSON('DB1'),
-                   %% ?DECLEARE_TO_JSON('OBX'),
-                   %% ?DECLEARE_TO_JSON('AL1'),
-                   %% ?DECLEARE_TO_JSON('IN1'),
-                   %% ?DECLEARE_TO_JSON('IAM'),
-                   %% ?DECLEARE_TO_JSON('PRB'),
-                   %% ?DECLEARE_TO_JSON('ZPR'),
-                   %% ?DECLEARE_TO_JSON('ORC'),
-                   %% ?DECLEARE_TO_JSON('TQ1'),
-                   %% ?DECLEARE_TO_JSON('ODS'),
-                   %% ?DECLEARE_TO_JSON('RXE'),
-                   %% ?DECLEARE_TO_JSON('RXR'),
-                   %% ?DECLEARE_TO_JSON('RXC'),
-                   %% ?DECLEARE_TO_JSON('SPM'),
-                   %% ?DECLEARE_TO_JSON('OBR')
-                  ],
+    jsonx:encoder([{hl7msg, record_info(fields, hl7msg)}],
                   [{ignore, [null]}]).
+
 
 to_json(#hl7msg{} = HL7Msg) ->
     E = encoder(),
