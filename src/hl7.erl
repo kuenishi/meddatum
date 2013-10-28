@@ -6,7 +6,7 @@
 
 -module(hl7).
 
--export([parse/2, to_json/1, annotate/1]).
+-export([parse/2, to_json/1, from_json/1, annotate/1, get_segment/2]).
 -export_type(['ST'/0, 'TX'/0, 'FT'/0, 'NM'/0, 'IS'/0, 'ID'/0,
               'HD'/0, 'CE'/0, 'CNE'/0, 'CWE'/0, 'DT'/0, 'TM'/0,
               'DTM'/0,
@@ -38,6 +38,14 @@ extract([Seg|Segs], {P0, H0}) ->
         _ ->
             extract(Segs, {P0, H0})
     end.
+
+get_segment(#hl7msg{segments = Segments}, SegName) ->
+    lists:foldl(fun({Segment}, Acc0) ->
+                        case proplists:get_value(<<"segid">>, Segment) of
+                            SegName -> {ok, Segment};
+                            _ -> Acc0
+                        end
+                end, {error, not_found}, Segments).
 
 -spec parse(filename:filename(), file:file_info()) -> ok | {error, any()}.
 parse(Filename, _Info)->
@@ -267,10 +275,17 @@ maybe_nth(N, List) ->
         {Segment, record_info(fields, Segment)}
        ).
 
+decoder() ->
+    jsonx:decoder([{hl7msg, record_info(fields, hl7msg)}],
+                  [{ignore, [null]}]).
+
 encoder() ->
     jsonx:encoder([{hl7msg, record_info(fields, hl7msg)}],
                   [{ignore, [null]}]).
 
+from_json(Json) when is_binary(Json) ->
+    D = decoder(),
+    D(Json).
 
 to_json(#hl7msg{} = HL7Msg) ->
     E = encoder(),
