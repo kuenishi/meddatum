@@ -75,7 +75,6 @@ to_json(Rezept) when length(Rezept) > 0 ->
             io:format("[error] ~p, ~p~n", [A, B]),
             {error, {A,B}};
         {no_match, _O} ->
-            erlang:display(_O),
             io:format("~p~n", [Rezept]),
             {error, no_match};
         JSONRecords when is_binary(JSONRecords) ->
@@ -93,15 +92,29 @@ put_record(C, Record0) ->
     %%ok = file:write_file("test.json", JSONRecords).
             ContentType = "application/json",
             Key = list_to_binary(integer_to_list(erlang:phash2(JSONRecords))),
-            RiakObj = riakc_obj:new(<<"rezept">>, Key,
+            RiakObj0 = riakc_obj:new(<<"rezept">>, Key,
                                     JSONRecords, ContentType),
-            %% TODO: put indices to all member
+
+            %% put indices to all member
+            RiakObj = set_2i(RiakObj0, Record0),
             riakc_pb_socket:put(C, RiakObj);
         {error, empty} -> ok;
         Other ->
-            erlang:display(Other),
-            exit(-1)
+            error(Other)
     end.
+
+set_2i(RiakObj0, Record0) ->
+    RiakObj1 = case proplists:get_value(<<"patient_id">>, Record0) of
+                   undefined -> RiakObj0;
+                   PatientID ->
+                       MD0 = riakc_obj:get_update_metadata(RiakObj0),
+                       MD1 = riakc_obj:set_secondary_index(MD0, {{binary_index, ssmix_importer:index_name(patient_id)}, [PatientID]}),
+                       riakc_obj:update_metadata(RiakObj0, MD1)
+               end,
+    Date = proplists:get_value(<<"date">>, Record0),
+    MD2 = riakc_obj:get_update_metadata(RiakObj1),
+    MD3 = riakc_obj:set_secondary_index(MD2, {{binary_index, ssmix_importer:index_name(date)}, [Date]}),
+    riakc_obj:update_metadata(RiakObj1, MD3).    
 
 %% how to make hardcoded "ほげほげ" printable:
 hardcode_list_to_string(S) ->
