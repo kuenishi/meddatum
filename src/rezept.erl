@@ -10,7 +10,8 @@
 -include("rezept.hrl").
 
 -export([process_file/2, process_file/3,
-         put_record/2, default_extractor/1]).
+         put_record/2, default_extractor/1,
+         to_json/1, from_json/1]).
 
 -spec process_file(filename:filename(), file:file_info()) -> ok.
 process_file(Filename, Info) ->
@@ -83,6 +84,8 @@ to_json(Rezept) when length(Rezept) > 0 ->
 to_json(_) ->
     {error, empty}.
 
+from_json(RezeptJson) ->
+    jsonx:decode(RezeptJson).
 
 put_record(C, Record0) ->
     case to_json(Record0) of
