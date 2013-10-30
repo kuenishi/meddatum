@@ -11,7 +11,9 @@
 
 -export([process_file/2, process_file/3,
          parse_file/2, parse_file/3,
-         put_record/2, default_extractor/1]).
+         put_record/2, default_extractor/1,
+         from_json/1, to_json/1
+        ]).
 
 -spec process_file(filename:filename(), file:file_info()) -> ok.
 process_file(Filename, Info) ->
@@ -33,6 +35,7 @@ parse_file(Filename, Info) ->
 parse_file(Filename, _Info, InfoExtractor) when is_function(InfoExtractor) ->
     {ok, Lines} = japanese:read_file(Filename),
     %% io:format("~p~n", [Lines]),
+
     F = fun({newline, NewLine}, Ctx0) ->
                 {ok, Ctx} = parse_line(NewLine, Ctx0),
                 Ctx;
@@ -41,7 +44,7 @@ parse_file(Filename, _Info, InfoExtractor) when is_function(InfoExtractor) ->
     {ok, ResultCtx} = ecsv:process_csv_string_with(lists:flatten(Lines), F, {[], []}),
     {Remain, Records0} = ResultCtx,
     Records1 = [ lists:reverse(Remain) | Records0 ],
-    io:format("~p records.~n", [length(Records1)]),
+    meddatum:log(info, "~p records.~n", [length(Records1)]),
     case InfoExtractor of
         undefined -> Records1;
         _  -> lists:map(InfoExtractor, Records1)
@@ -80,10 +83,10 @@ extract_hospital(Col) ->
 to_json(Rezept) when length(Rezept) > 0 ->
     case jsonx:encode(Rezept) of
         {error, A, B} ->
-            io:format("[error] ~p, ~p~n", [A, B]),
+            meddatum:log(error, " ~p, ~p~n", [A, B]),
             {error, {A,B}};
         {no_match, _O} ->
-            io:format("~p~n", [Rezept]),
+            meddatum:log(error, "~p~n", [Rezept]),
             {error, no_match};
         JSONRecords when is_binary(JSONRecords) ->
             {ok, JSONRecords}
@@ -97,9 +100,7 @@ from_json(RezeptJson) ->
 put_record(C, Record0) ->
     case to_json(Record0) of
         {ok, JSONRecords} ->
-    %%io:format("~ts~n", [JSONRecords]),
-    %%io:put_chars(JSONRecords),
-    %%ok = file:write_file("test.json", JSONRecords).
+            %%ok = file:write_file("test.json", JSONRecords).
             ContentType = "application/json",
             Key = list_to_binary(integer_to_list(erlang:phash2(JSONRecords))),
             RiakObj0 = riakc_obj:new(<<"rezept">>, Key,
@@ -136,15 +137,15 @@ hardcode_list_to_string(S) ->
 hardcode_to_binary(S) ->
     list_to_binary(S).
 
-
 parse_line(Line, {List, Records}) ->
     [_DataID, _, _, RecordID|_] = Line,
-    %% io:format("~p~n", [Line]),
+
     case lists:keytake(RecordID, 1, ?RECORD_TYPES) of
         {value, {RecordID, Name, Cols0}, _} ->
-            io:format("[~s]", [RecordID]),
-            io:put_chars(hardcode_list_to_string(Name)),
-            io:format("~n"),
+            meddatum:log(info, "[info]: '~s' ~ts~n",
+                         [RecordID,
+                          hardcode_list_to_string(Name)]),
+
             ShortLen = erlang:min(length(Line), length(Cols0)),
             {Line1,_} = lists:split(ShortLen, Line),
             {Cols, _} = lists:split(ShortLen, Cols0),
@@ -154,14 +155,14 @@ parse_line(Line, {List, Records}) ->
                                           {ok, {K,V}} ->
                                               {hardcode_to_binary(K), V};
                                           {warning, {K,V}} ->
-                                              io:format("[warning]: ~s~n", [RecordID]),
+                                              %% meddatum:log(warning, "[warning]: ~s~n", [RecordID]),
                                               {hardcode_to_binary(K), V}
                                       end
                               end,
                               lists:zip(Cols, Line1)),
             Data = lists:filter(fun({_,null}) -> false; (_) -> true end,
                                 Data0),
-            %% ?debugVal(Data),
+
             case RecordID of
 
                 "MN" ->
@@ -182,7 +183,7 @@ check_type({Name, {maybe, _}, _}, []) -> {ok, {Name, null}};
 check_type({Name, {maybe, Type}, MaxDigits}, Entry) ->
     check_type({Name, Type, MaxDigits}, Entry);
 check_type({Name, _, _}, []) ->
-    io:format("[warning]: empty value which is not optional: ~ts~n",
+    meddatum:log(warning, "[warning]: empty value which is not optional: ~ts~n",
               [hardcode_list_to_string(Name)]),
     {warning, {Name, null}};
 check_type({Name, integer, _MaxDigits}, Entry) ->
@@ -190,7 +191,7 @@ check_type({Name, integer, _MaxDigits}, Entry) ->
 check_type({Name, latin1, _MaxDigits}, Entry) ->
     {ok, {Name, list_to_binary(Entry)}};
 check_type({Name, unicode, _MaxDigits}, Entry) ->
-    %% io:format(">>>> => ~ts~n", [unicode:characters_to_binary(Entry, utf8)]),
+    %% meddatum:log(">>>> => ~ts~n", [unicode:characters_to_binary(Entry, utf8)]),
     {ok, {Name, unicode:characters_to_binary(Entry, unicode)}};
 check_type({Name, gyymm, 5}, Entry) ->
     {ok, {Name, list_to_binary(Entry)}};

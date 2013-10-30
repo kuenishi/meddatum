@@ -29,7 +29,7 @@ wait_for_walker(Pid, C, N) ->
                           ok=ssmix_importer:put_json(C, HL7Msg)
                   end, HL7Msgs),
     N2 = length(HL7Msgs) + N,
-    io:format("~p msgs stored.~n", [length(HL7Msgs)]),
+    meddatum:log(info, "~p msgs stored.~n", [length(HL7Msgs)]),
     case Flag of
         ok -> ok=ssmix_importer:disconnect(C);
         cont -> wait_for_walker(Pid, C, N2)
@@ -53,9 +53,9 @@ walk(Path0, DirFun, FileFun)->
         {ok, #file_info{type=regular} = FileInfo} ->
             eval_filefun(FileFun, Path, FileInfo);
         {error, _Reason} = E ->
-            io:format("can't open file (~p):~s~n", [E, Path]);
+            meddatum:log(error, "can't open file (~p):~s~n", [E, Path]);
         Other ->
-            io:format("mmmmmm: ~p~n", [Other])
+            meddatum:log(error, "mmmmmm: ~p~n", [Other])
     end.
 
 eval_dirfun(none, _, _) -> ok;
@@ -67,15 +67,14 @@ eval_filefun(FileFun, Path, FileInfo) ->
     case  FileFun(Path, FileInfo) of
         ok -> ok;
         {error, R} ->
-            io:format("~p: ~s~n", [R, Path]);
+            meddatum:log(error, "~p: ~s~n", [R, Path]);
         Other ->
-            io:format("unknown_failure: ~s ~p~n", [Path, Other]),
+            meddatum:log(fatal, "unknown_failure: ~s ~p~n", [Path, Other]),
             error
     end.
              
 
 patient(Path, ID, _FirstSix) ->
-    io:format("~s -> ~s~n", [Path, ID]),
     case file:list_dir(Path) of
         {ok, Formats} ->
             F = fun(Format)->
@@ -100,7 +99,7 @@ process_file(Filename, Info)->
     %% JSON = hl7:to_json(HL7Msg),
     %% ok = file:write_file(filename:basename(Filename) ++ ".json", JSON),
     %% io:format("<<< ~s >>>~n", [filename:basename(Filename)++".json"]),
-    io:format("[info] output ~s to Riak as JSON~n", [filename:basename(HL7Msg#hl7msg.file)]),
+    meddatum:log(info, "output ~s to Riak as JSON~n", [filename:basename(HL7Msg#hl7msg.file)]),
     %io:put_chars(unicode:characters_to_list(JSON)),
     {ok,C}=ssmix_importer:connect(localhost, 8087),
     ok=ssmix_importer:put_json(C, HL7Msg),

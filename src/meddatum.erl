@@ -7,35 +7,38 @@
 
 -module(meddatum).
 
--export([search/2, search/3]).
+-export([search/2, search/3, log/3]).
 
 -include_lib("eunit/include/eunit.hrl").
+
+log(standard_error, Format, Argv) -> log(warning, Format, Argv);
+log(_Level, Format, Argv) ->
+    lager:log(_Level, Format, Argv).
+%%    io:format(standard_error, Format, Argv).
 
 search(Server, Query) ->
     search(Server, Query,
            fun md_searcher:simple_doc_retriever/1).
 
 search(Server, Query, DocRetriever) ->
-    ?debugHere,
+
     Self = self(),
     Pid = spawn_link(fun() -> consumer(Server, waiting, Self) end),
     ibrowse:start(),
     io:setopts([{encoding, unicode}]),
     Url = md_searcher:plain_query_url(Server, Query),
     {ok, {NumFound, BKs}} = md_searcher:run_query(Url, 0, DocRetriever),
-    io:format(standard_error, "sending query to ~p~n", [Url]),
+    meddatum:log(info, "sending query to ~p~n", [Url]),
     Pid ! {start, NumFound, BKs},
 
-    io:format(standard_error, "~p results found (~p).~n", [NumFound, length(BKs)]),
+    meddatum:log(info, "~p results found (~p).~n", [NumFound, length(BKs)]),
 
     pagenate(Url, NumFound, length(BKs), Pid, DocRetriever),
     
-    %% io:format("~p~n", [Docs]),
     ibrowse:stop(),
-    %% Result = riakc_pb_socket:search(C, <<"md_index">>, list_to_binary(Query)),
-    %% io:format("~p~n", [Result]),
+
     receive done ->
-            io:format(standard_error, "all data yeilded.~n", [])
+            meddatum:log(info, "all data yeilded.~n", [])
     end.
 
 

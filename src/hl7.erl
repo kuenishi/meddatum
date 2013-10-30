@@ -114,7 +114,7 @@ parse_1(Msg, [Line|Lines] = _Lines, File) ->
             parse_1(NewMsg, Lines, File);
 
         _Other ->
-            io:format("unknown segment: ~s", [_Other]),
+            meddatum:log(error, "unknown segment: ~s", [_Other]),
             {error, badarg}
     end.
 
@@ -153,7 +153,7 @@ handle_segment_0(MsgType, Tokens0, Msg, File) ->
                                       to_json_object(Property, Type, Length, Col, 0);
                                  ({{Property, _Type, _Length, _Text}, ""}) ->
                                       %% warning
-                                      io:format("[warning] empty property '~s' which isn't optional in ~s~n",
+                                      meddatum:log(warning, " empty property '~s' which isn't optional in ~s~n",
                                                 [Property, File]),
                                       {Property, null};
                                       
