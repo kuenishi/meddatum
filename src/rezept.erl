@@ -91,6 +91,8 @@ to_json(Rezept) when length(Rezept) > 0 ->
 to_json(_) ->
     {error, empty}.
 
+from_json(RezeptJson) ->
+    jsonx:decode(RezeptJson).
 
 put_record(C, Record0) ->
     case to_json(Record0) of
