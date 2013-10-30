@@ -10,6 +10,7 @@
 -include("rezept.hrl").
 
 -export([process_file/2, process_file/3,
+         parse_file/2, parse_file/3,
          put_record/2, default_extractor/1]).
 
 -spec process_file(filename:filename(), file:file_info()) -> ok.
@@ -17,7 +18,19 @@ process_file(Filename, Info) ->
     process_file(Filename, Info, fun ?MODULE:default_extractor/1).
 
 -spec process_file(filename:filename(), file:file_info(), fun()) -> ok.
-process_file(Filename, _Info, InfoExtractor) when is_function(InfoExtractor) ->
+process_file(Filename, Info, InfoExtractor) when is_function(InfoExtractor) ->
+    Records = parse_file(Filename, Info, InfoExtractor),
+    {ok, C} = riakc_pb_socket:start_link(localhost, 8087),
+    lists:foreach(fun(Record)-> put_record(C, Record) end, Records),
+    %%put_record(hd(Records)),
+riakc_pb_socket:stop(C),
+    ok.
+
+-spec parse_file(filename:filename(), file:file_info()) -> ok.
+parse_file(Filename, Info) ->
+    parse_file(Filename, Info, fun ?MODULE:default_extractor/1).
+
+parse_file(Filename, _Info, InfoExtractor) when is_function(InfoExtractor) ->
     {ok, Lines} = japanese:read_file(Filename),
     %% io:format("~p~n", [Lines]),
     F = fun({newline, NewLine}, Ctx0) ->
@@ -29,15 +42,10 @@ process_file(Filename, _Info, InfoExtractor) when is_function(InfoExtractor) ->
     {Remain, Records0} = ResultCtx,
     Records1 = [ lists:reverse(Remain) | Records0 ],
     io:format("~p records.~n", [length(Records1)]),
-    Records = case InfoExtractor of
-                  undefined -> Records1;
-                  _  -> lists:map(InfoExtractor, Records1)
-              end,
-    {ok, C} = riakc_pb_socket:start_link(localhost, 8087),
-    lists:foreach(fun(Record)-> put_record(C, Record) end, Records),
-    %%put_record(hd(Records)),
-    riakc_pb_socket:stop(C),
-    ok.
+    case InfoExtractor of
+        undefined -> Records1;
+        _  -> lists:map(InfoExtractor, Records1)
+    end.
 
 default_extractor(Record) ->
     extract(Record)++[{<<"segments">>, Record}].
