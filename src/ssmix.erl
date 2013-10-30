@@ -1,8 +1,18 @@
-%%% @copyright (C) 2013, Basho Technologies Inc.,
-%%% @doc
-%%%
-%%% @end
-%%% Created : 17 Jul 2013 by UENISHI Kota <kota@basho.com>
+%%
+%% Copyright (C) 2013-2013 UENISHI Kota
+%%
+%%    Licensed under the Apache License, Version 2.0 (the "License");
+%%    you may not use this file except in compliance with the License.
+%%    You may obtain a copy of the License at
+%%
+%%        http://www.apache.org/licenses/LICENSE-2.0
+%%
+%%    Unless required by applicable law or agreed to in writing, software
+%%    distributed under the License is distributed on an "AS IS" BASIS,
+%%    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+%%    See the License for the specific language governing permissions and
+%%    limitations under the License.
+%%
 
 -module(ssmix).
 
@@ -90,16 +100,14 @@ patient(Path, ID, _FirstSix) ->
 
 -spec process_file(filename:filename(), file:file_info()) -> ok | {error, any()}.
 process_file(Filename, Info)->
-    %% _Features = filename2msg(Filename),
     {ok, HL7Msg0} = hl7:parse(Filename, Info),
-    %% TODO: compare Features and HL7Msg here
 
     %% TODO: print this as a JSON (or msgpack?)
     HL7Msg = hl7:annotate(HL7Msg0#hl7msg{file=list_to_binary(Filename)}),
     %% JSON = hl7:to_json(HL7Msg),
     %% ok = file:write_file(filename:basename(Filename) ++ ".json", JSON),
-    %% io:format("<<< ~s >>>~n", [filename:basename(Filename)++".json"]),
-    meddatum:log(info, "output ~s to Riak as JSON~n", [filename:basename(HL7Msg#hl7msg.file)]),
+    meddatum:log(info, "output ~s to Riak as JSON~n",
+                 [filename:basename(HL7Msg#hl7msg.file)]),
     %io:put_chars(unicode:characters_to_list(JSON)),
     {ok,C}=ssmix_importer:connect(localhost, 8087),
     ok=ssmix_importer:put_json(C, HL7Msg),
@@ -108,4 +116,5 @@ process_file(Filename, Info)->
 filename2msg(Fullpath) ->
     Elems = lists:reverse(filename:split(Fullpath)),
     [_, DT, Date, PID, _, _, HID|_] = Elems,
-    #ssmix_msg{hospital_id=HID, patient_id=PID, date=Date, datatype=DT, path=Fullpath}.
+    #ssmix_msg{hospital_id=HID, patient_id=PID, date=Date,
+               datatype=DT, path=Fullpath}.

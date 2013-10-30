@@ -1,5 +1,5 @@
 # meddatum
-========
+==========
 
 hl7/e-rezept parser and importer to Riak database with search tools.
 
@@ -73,4 +73,4 @@ note: the JSON is just a concatination of several JSON Objects. Take care when p
 
 # license
 
-Apache 2.0
+Apache 2.0, see LICENCE file.

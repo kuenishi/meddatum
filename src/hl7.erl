@@ -1,8 +1,18 @@
-%%% @copyright (C) 2013, Basho Technologies Inc.,
-%%% @doc
-%%%  HL7 importer, transformer.
-%%% @end
-%%% Created : 17 Jul 2013 by UENISHI Kota <kota@basho.com>
+%%
+%% Copyright (C) 2013-2013 UENISHI Kota
+%%
+%%    Licensed under the Apache License, Version 2.0 (the "License");
+%%    you may not use this file except in compliance with the License.
+%%    You may obtain a copy of the License at
+%%
+%%        http://www.apache.org/licenses/LICENSE-2.0
+%%
+%%    Unless required by applicable law or agreed to in writing, software
+%%    distributed under the License is distributed on an "AS IS" BASIS,
+%%    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+%%    See the License for the specific language governing permissions and
+%%    limitations under the License.
+%%
 
 -module(hl7).
 
@@ -87,7 +97,6 @@ get_all_lines(Port, Binary) ->
              
 
 parse_0([Line|_Lines]) ->
-    %% lists:foreach(fun(L)->pp(L)end, Lines),
     %% case binary:split(Line, <<"|">>, [global]) of
     %% case string:tokens(Line, "|") of
     Tokens = re:split(Line, "[|]", [{return,list},unicode]),
@@ -109,7 +118,6 @@ parse_1(Msg, [Line|Lines] = _Lines, File) ->
     Tokens = re:split(Line, "[|]", [{return,list},unicode]),
     case hd(Tokens) of
         Segment when is_list(Segment) ->
-            %% io:put_chars(Line),
             {ok, NewMsg} = handle_segment_0(Segment, Tokens, Msg, File),
             parse_1(NewMsg, Lines, File);
 
@@ -131,7 +139,6 @@ parse_1(Msg, [Line|Lines] = _Lines, File) ->
      "~ISO IR87", %% Charcode is fixed (but already translated to UTF8 :)
      _Lang,
      "ISO 2022-1994"|_] = Tokens,
-    %% ?debugVal(length(Tokens)),
     #hl7msg{date = maybe_nth(7, Tokens),
             msg_type_s = maybe_nth(9, Tokens),
             msg_id = maybe_nth(10, Tokens)}.
@@ -144,15 +151,14 @@ handle_segment_0(MsgType, Tokens0, Msg, File) ->
             ShortLen = erlang:min(length(MsgDef0), length(Tokens0)),
             {MsgDef, _} = lists:split(ShortLen, MsgDef0),
             {Tokens, _} = lists:split(ShortLen, Tokens0),
-            %% ?debugVal( lists:zip(MsgDef, Tokens0)),
+
             Data0 = lists:map(fun({{Property, {maybe, _Type}, _Length, _Text}, ""}) ->
                                       %% ok to skip
                                       {Property, null};
                                  ({{Property, {maybe, Type}, Length, _Text}, Col}) ->
-                                      %% ?debugVal({Property, Type}),
                                       to_json_object(Property, Type, Length, Col, 0);
+
                                  ({{Property, _Type, _Length, _Text}, ""}) ->
-                                      %% warning
                                       meddatum:log(warning, " empty property '~s' which isn't optional in ~s~n",
                                                 [Property, File]),
                                       {Property, null};
@@ -237,19 +243,15 @@ to_record(Name, Col, Depth) ->
     Tokens0 = re:split(Col, get_separator(Depth), [{return,list},unicode]),
     case proplists:get_value(Name, ?HL7_PRIMITIVE_TYPES) of
         undefined ->
-            %% ?debugVal(Tokens0),
-            %% io:put_chars(Col),
             error({unknown, Name});
+
         TypeDef0 ->
             ShortLen = erlang:min(length(TypeDef0), length(Tokens0)),
             {TypeDef, _} = lists:split(ShortLen, TypeDef0),
             {Tokens, _}  = lists:split(ShortLen, Tokens0),
-            %% ?debugFmt("~", lists:zip(TypeDef, Tokens)),
+
             Data0 = lists:map(fun({{Property, _Type}, []}) -> {Property, null};
                                  ({{Property, Type}, Tok}) ->
-                                      %% ?debugVal(Property),
-                                      %% io:put_chars(Tok),
-                                      %% ?debugVal(Type),
                                       {Property, to_json_object(Type, Tok, Depth+1)}
                               end,
                               lists:zip(TypeDef, Tokens)),
@@ -293,21 +295,3 @@ to_json(#hl7msg{} = HL7Msg) ->
         Bin when is_binary(Bin) -> Bin;
         Other -> error(Other)
     end.
-             
-    %% lists:map(
-    %%   fun(S) ->
-    %%           ?debugVal("----------------------------------"),
-    %%           ?debugVal(jsonx:encode(S)),
-    %%           ?debugVal(S),
-    %%           case proplists:get_value(<<"segid">>, S) of
-    %%               <<"OBX">> ->
-    %%                   lists:foreach(fun({Key,Value}) ->
-    %%                                         ?debugVal({Key, jsonx:encode(Value)})
-    %%                                 end, S),
-    %%                   jsonx:encode(S);
-    %%               _ ->
-    %%                   ?debugVal(jsonx:encode(S)),
-    %%                   jsonx:encode(S)
-    %%           end
-    %%   end,
-    %%   HL7Msg#hl7msg.segments).
