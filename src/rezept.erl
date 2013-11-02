@@ -25,20 +25,16 @@
          from_json/1, to_json/1
         ]).
 
--spec process_file(filename:filename(), file:file_info()) -> ok.
+-spec process_file(filename:filename(), file:file_info()) -> {ok, [term()]}.
 process_file(Filename, Info) ->
     process_file(Filename, Info, fun ?MODULE:default_extractor/1).
 
--spec process_file(filename:filename(), file:file_info(), fun()) -> ok.
+-spec process_file(filename:filename(), file:file_info(), fun()) -> {ok, [term()]}.
 process_file(Filename, Info, InfoExtractor) when is_function(InfoExtractor) ->
     Records = parse_file(Filename, Info, InfoExtractor),
-    {ok, C} = riakc_pb_socket:start_link(localhost, 8087),
-    lists:foreach(fun(Record)-> put_record(C, Record) end, Records),
-    %%put_record(hd(Records)),
-riakc_pb_socket:stop(C),
-    ok.
+    {ok, Records}.
 
--spec parse_file(filename:filename(), file:file_info()) -> ok.
+-spec parse_file(filename:filename(), file:file_info()) -> {ok, [term()]}.
 parse_file(Filename, Info) ->
     parse_file(Filename, Info, fun ?MODULE:default_extractor/1).
 
@@ -108,6 +104,7 @@ from_json(RezeptJson) ->
     jsonx:decode(RezeptJson).
 
 put_record(C, Record0) ->
+    %% io:format("~p", [(Record0)]),
     case to_json(Record0) of
         {ok, JSONRecords} ->
             %%ok = file:write_file("test.json", JSONRecords).
@@ -121,6 +118,13 @@ put_record(C, Record0) ->
             riakc_pb_socket:put(C, RiakObj);
         {error, empty} -> ok;
         Other ->
+            %% TODO: insert probe code to find bad data format or spec.
+            %% lists:foreach(fun(R) ->
+            %%                       lists:foreach(fun(P) ->
+            %%                                             io:format("~n~p~n", [[P]]),
+            %%                                             {ok, _} = to_json([P])
+            %%                                     end, R)
+            %%               end, proplists:get_value(<<"segments">>, Record0)),
             error(Other)
     end.
 

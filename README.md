@@ -17,7 +17,7 @@ This stores parsed JSON data into `/buckets/rezept` and `/buckets/ssmix`
 
 - NKF command should be in path
 - run Riak with Yokozuna enabled somewhere [install](https://github.com/basho/yokozuna/blob/master/docs/INSTALL.md)
-- make, gcc, erlang > 15B01 (download Erlang from [here](http://erlang-users.jp) )
+- make, gcc, erlang > R16B02 (download Erlang from [here](http://erlang-users.jp) )
 - rezept file's csv must have LF ('\n', or CRLF) at each end of line
 
 # Compile

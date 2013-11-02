@@ -5,6 +5,13 @@ main(Files)->
     {ok,Path} = file:get_cwd(),
     code:add_pathz(Path ++ "/ebin"),
     io:setopts([{encoding, unicode}]),
+    io:format("~p~n", [Files]),
+    {ok, C} = riakc_pb_socket:start_link(localhost, 8087),
     lists:foreach(fun(Filename) ->
-                          rezept:process_file(Filename, info)
-                  end, Files).
+                          {ok, Records} = rezept:process_file(Filename, info),
+                          lists:foreach(fun(Record)->
+                                                rezept:put_record(C, Record)
+                                        end, Records)
+                  end, Files),
+    ok = riakc_pb_socket:stop(C).
+
