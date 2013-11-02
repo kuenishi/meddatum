@@ -132,7 +132,7 @@
           {time_start , 'TS'},
           {time_end   , 'TS'}
          ]).
-						
+
 %% MSG	メッセージ型	<Message type (ID)> ^ <Trigger Event (ID)> ^ <Message Structure(ID)>
 -record('MSG', {
           msg_type     :: 'ID'(),
@@ -508,12 +508,12 @@
 -record('EIP', {
           placer_id :: 'EI'(),
           filler_id :: 'EI'()
-         }).	
+         }).
 -type 'EIP'() :: #'EIP'{}.
 -define(HL7_EIP, [
           {placer_id , 'EI'},
           {filler_id , 'EI'}
-         ]).	
+         ]).
 
 -type 'SI'() :: integer().
 
@@ -523,13 +523,13 @@
           job_cd     :: 'ST'(),
           job_class  :: 'ST'(),
           job_descript_txt :: 'ST'()
-         }). 													  	 
+         }).
 -type 'JCC'() :: #'JCC'{}.
 -define(HL7_JCC, [
           {job_cd     , 'ST'},
           {job_class  , 'ST'},
           {job_descript_txt , 'ST'}
-         ]). 													  	 
+         ]).
 
 %% ZRD	放射線検査用薬剤やフィルムの情報（名称、コード、量）	<identifier (ST)> ^ <text (ST)> ^ <name of encoding system  (IS)> ^ <quantity (NM)> ^ <unit (CWE)> ^ <film partition number (NM)>
 -record('ZRD', {
