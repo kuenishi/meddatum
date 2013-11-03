@@ -139,7 +139,7 @@ set_2i(RiakObj0, Record0) ->
     Date = proplists:get_value(<<"date">>, Record0),
     MD2 = riakc_obj:get_update_metadata(RiakObj1),
     MD3 = riakc_obj:set_secondary_index(MD2, {{binary_index, ssmix_importer:index_name(date)}, [Date]}),
-    riakc_obj:update_metadata(RiakObj1, MD3).    
+    riakc_obj:update_metadata(RiakObj1, MD3).
 
 %% how to make hardcoded "ほげほげ" printable:
 hardcode_list_to_string(S) ->

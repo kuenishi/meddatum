@@ -1,19 +1,14 @@
-.PHONY: all dist package.src package clean
+.PHONY: all clean test compile
 
 all:
 	./rebar get-deps
 	## ./rebar update-deps
+
+compile:
 	./rebar compile
+
+test: compile
+	./rebar eunit skip_deps=true
 
 clean:
 	./rebar clean
-
-PKG_ID=hl7
-PKG_VERSION=$(shell echo $(PKG_ID) | sed -e 's/^$(REPO)-//')
-
-dist: package.src
-	cp package/$(PKG_ID).tar.gz .
-
-package: package.src
-	mkdir -p package
-	make -C package -f $(PKG_ID)/deps/node_package/Makefile
