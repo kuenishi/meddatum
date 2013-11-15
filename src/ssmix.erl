@@ -16,23 +16,34 @@
 
 -module(ssmix).
 
--export([walk/1]).
+-export([walk/1, walk/3]).
 -include_lib("eunit/include/eunit.hrl").
 
 walk(Path) ->
+    walk(Path, localhost, 8087).
+
+walk(Path, Host, Port) ->
     {ok, Pid} = ssmix_walker:start_link(Path),
-    {ok,C}=ssmix_importer:connect(localhost, 8087),
+    {ok,C}=ssmix_importer:connect(Host, Port),
+    meddatum:log(info, "connected.~p~n", [C]),
     timer:sleep(100),
     wait_for_walker(Pid, C, 0).
 
 wait_for_walker(Pid, C, N) ->
     {Flag, HL7Msgs} = ssmix_walker:pop(Pid),
-    %% ?debugVal(Flag),
+    %?debugVal(Flag),
+    lager:info("inserting ~p msgs..~n", [length(HL7Msgs)]),
     lists:foreach(fun(HL7Msg) ->
-                          ok=ssmix_importer:put_json(C, HL7Msg)
+                          lager:info("inserting:~n", []),
+			  try
+			  ok=ssmix_importer:put_json(C, HL7Msg)
+			  catch T:E ->
+			  lager:error("~p:~p", [T,E])
+                          end,
+                          lager:info("done.~n", [])
                   end, HL7Msgs),
     N2 = length(HL7Msgs) + N,
-    meddatum:log(info, "~p msgs stored.~n", [length(HL7Msgs)]),
+    lager:info("~p msgs stored.~n", [length(HL7Msgs)]),
     case Flag of
         ok -> ok=ssmix_importer:disconnect(C);
         cont -> wait_for_walker(Pid, C, N2)

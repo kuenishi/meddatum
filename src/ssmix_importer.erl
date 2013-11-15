@@ -34,9 +34,13 @@ put_json(Client, Msg) ->
     Key = filename:basename(Msg#hl7msg.file),
     Data = hl7:to_json(Msg),
     RiakObj0 = riakc_obj:new(<<"ssmix">>, Key, Data, ContentType),
-
+                          lager:info("inserting:~n", []),
     RiakObj = set_2i(RiakObj0, Msg#hl7msg.date, Msg#hl7msg.patient_id),
-    riakc_pb_socket:put(Client, RiakObj).
+                          lager:info("inserting:~n", []),
+    case riakc_pb_socket:put(Client, RiakObj) of
+      ok -> ok;
+      Error -> meddatum:log(error, "error: ~p", [Error])
+    end.
 
 set_2i(RiakObj0, Date, PatientID) ->
     MD0 = riakc_obj:get_update_metadata(RiakObj0),
