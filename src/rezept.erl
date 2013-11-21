@@ -89,7 +89,7 @@ encoder() ->
 -define(ENCODER, (encoder())).
 
 to_json(Rezept) when is_record(Rezept, recept) > 0 ->
-    ?debugVal(Rezept),
+
     case ?ENCODER(Rezept) of
         {error, A, B} ->
             meddatum:log(error, " ~p, ~p~n", [A, B]),
