@@ -6,12 +6,12 @@ main(Files)->
     code:add_pathz(Path ++ "/ebin"),
     io:setopts([{encoding, unicode}]),
     io:format("~p~n", [Files]),
-    {ok, C} = riakc_pb_socket:start_link(localhost, 8087),
     lists:foreach(fun(Filename) ->
                           {ok, Records} = rezept:process_file(Filename, info),
-                          lists:foreach(fun(Record)->
-                                                rezept:put_record(C, Record)
-                                        end, Records)
-                  end, Files),
-    ok = riakc_pb_socket:stop(C).
-
+                          lists:foreach(fun({ok, JSON}) ->
+                                                io:format("~s~n", [rezept:hardcode_list_to_string(JSON)]);
+                                           ({error, _}) ->
+                                                io:format("error~n")
+                                        end,
+                                        lists:map(fun rezept:to_json/1, Records))
+                  end, Files).
