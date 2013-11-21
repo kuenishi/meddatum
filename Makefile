@@ -2,7 +2,7 @@
 
 all:
 	./rebar get-deps
-	## ./rebar update-deps
+## ./rebar update-deps
 
 compile:
 	./rebar compile

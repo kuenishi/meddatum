@@ -9,9 +9,9 @@ main(Files)->
     lists:foreach(fun(Filename) ->
                           {ok, Records} = rezept:process_file(Filename, info),
                           lists:foreach(fun({ok, JSON}) ->
-                                                io:format("~s~n", [rezept:hardcode_list_to_string(JSON)]);
-                                           ({error, _}) ->
-                                                io:format("error~n")
+                                                io:format("~ts~n", [JSON]);
+                                           ({error, E}) ->
+                                                io:format("error: ~p~n", [E])
                                         end,
                                         lists:map(fun rezept:to_json/1, Records))
                   end, Files).

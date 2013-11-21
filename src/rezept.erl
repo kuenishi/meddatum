@@ -47,26 +47,23 @@ parse_file(Filename, _Info, InfoExtractor) when is_function(InfoExtractor) ->
                 Ctx;
            (_, Ctx0) -> Ctx0
         end,
-    {ok, ResultCtx} = ecsv:process_csv_string_with(lists:flatten(Lines), F, {[], []}),
-    {Remain, Records0} = ResultCtx,
-    Records1 = [ lists:reverse(Remain) | Records0 ],
+    {ok, ResultCtx} = ecsv:process_csv_string_with(lists:flatten(Lines), F,
+                                                   {undefined, [], #recept{}}),
+    {Recept, Records0, _} = ResultCtx,
+
+    Records1 = case Recept of
+                   undefined -> Records0;
+                   _ when is_record(Recept, recept) ->
+                       NewList = lists:reverse(Recept#recept.segments),
+                       [Recept#recept{segments=NewList}|Records0]
+               end,
     meddatum:log(info, "~p records.~n", [length(Records1)]),
     case InfoExtractor of
         undefined -> Records1;
         _  -> lists:map(InfoExtractor, Records1)
     end.
 
-default_extractor(Record) ->
-    extract(Record)++[{<<"segments">>, Record}].
-
-extract([]) -> [];
-extract([H|T]) ->
-    case proplists:get_value(<<"レコード識別情報">>, H) of
-        <<"IR">> ->
-            [{<<"date">>, list_to_binary(extract_date(H))},
-             {<<"hospital_id">>, extract_hospital(H)}];
-        _ -> extract(T)
-    end.
+default_extractor(Record) -> Record.
 
 extract_date(Col) ->
     case proplists:get_value(<<"請求年月">>, Col) of
@@ -85,9 +82,15 @@ p2base($1) -> 1971. %% 明治0年
 extract_hospital(Col) ->
     proplists:get_value(<<"医療機関コード">>, Col).
 
+encoder() ->
+    jsonx:encoder([{recept, record_info(fields, recept)}],
+                  [{ignore, [null]}]).
 
-to_json(Rezept) when length(Rezept) > 0 ->
-    case jsonx:encode(Rezept) of
+-define(ENCODER, (encoder())).
+
+to_json(Rezept) when is_record(Rezept, recept) > 0 ->
+    ?debugVal(Rezept),
+    case ?ENCODER(Rezept) of
         {error, A, B} ->
             meddatum:log(error, " ~p, ~p~n", [A, B]),
             {error, {A,B}};
@@ -97,7 +100,7 @@ to_json(Rezept) when length(Rezept) > 0 ->
         JSONRecords when is_binary(JSONRecords) ->
             {ok, JSONRecords}
     end;
-to_json(_) ->
+to_json(_R) ->
     {error, empty}.
 
 from_json(RezeptJson) ->
@@ -143,16 +146,16 @@ set_2i(RiakObj0, Record0) ->
 
 %% how to make hardcoded "ほげほげ" printable:
 hardcode_list_to_string(S) ->
-    %% ?debugVal(NewLine),
-    %% io:format("~ts~n", [NewLine]),
-    %% io:format(unicode:characters_to_list(list_to_binary("210MN910000158東京都港区新橋13142405910000158"))),
+    %%?debugVal(S),
+    %%io:format(unicode:characters_to_list(list_to_binary(S))),
     unicode:characters_to_list(list_to_binary(S)).
 
 hardcode_to_binary(S) ->
     list_to_binary(S).
 
-parse_line(Line, {List, Records}) ->
-    [_DataID, _, _, RecordID|_] = Line,
+parse_line(Line, {Recept, Records, ReceptTemplate}) ->
+    [RecordID|_] = Line,
+    %% [_DataID, _, _, RecordID|_] = Line,
 
     case lists:keytake(RecordID, 1, ?RECORD_TYPES) of
         {value, {RecordID, Name, Cols0}, _} ->
@@ -177,19 +180,48 @@ parse_line(Line, {List, Records}) ->
             Data = lists:filter(fun({_,null}) -> false; (_) -> true end,
                                 Data0),
 
-            case RecordID of
-
-                "MN" ->
-                    {ok, {[Data], [lists:reverse(List)|Records]}};
-                _ ->
-                    NewList = [Data|List],
-                    {ok, {NewList, Records}}
+            case {RecordID, is_record(Recept, recept)} of
+                {"MN", false} -> %% skip
+                    {ok, {undefined, Records, ReceptTemplate}};
+                {"MN", true} -> %% error
+                    {ok, {undefined, [finalize_recept(Recept)|Records], #recept{}}};
+                {"IR", false} -> %% remember hospital ID
+                    NewHospitalID = extract_hospital(Data),
+                    Date = list_to_binary(extract_date(Data)),
+                    NewReceptTemplate = ReceptTemplate#recept{date=Date,
+                                                              hospital_id=NewHospitalID},
+                    {ok, {undefined, Records, NewReceptTemplate}};
+                {"IR", true} ->
+                    NewHospitalID = extract_hospital(Data),
+                    Date = list_to_binary(extract_date(Data)),
+                    NewReceptTemplate = ReceptTemplate#recept{date=Date,
+                                                              hospital_id=NewHospitalID},
+                    {ok, {undefined, [finalize_recept(Recept)|Records], NewReceptTemplate}};
+                {"GO", true} -> %% End of file
+                    {ok, {undefined, [finalize_recept(Recept)|Records], ReceptTemplate}};
+                {"GO", false} -> %% End of file, buggy
+                    {error, unexpected_eof};
+                {"RE", true} ->
+                    {ok, {ReceptTemplate, [finalize_recept(Recept)|Records], ReceptTemplate}};
+                {"RE", false} ->
+                    {ok, {ReceptTemplate, Records, ReceptTemplate}};
+                {_, true} ->
+                    {ok, {append_to_recept(Recept, Data), Records, ReceptTemplate}};
+                {_, false} ->
+                    {ok, {append_to_recept(ReceptTemplate, Data), Records, ReceptTemplate}}
             end;
         {value, _, _} ->
             {error, {not_yet, RecordID}};
         false ->
             {error, {unknown_record, RecordID}}
     end.
+
+append_to_recept(#recept{segments=List} = Recept, Data) ->
+    Recept#recept{segments=[Data|List]}.
+
+finalize_recept(#recept{segments=List} = Recept) ->
+    NewList = lists:reverse(List),
+    Recept#recept{segments=NewList}.
 
 -spec check_type({string(), atom()|{maybe,atom()}, integer()}, string())
                 -> {ok, {string(), null|binary()}}. %% unicode binary
@@ -198,7 +230,7 @@ check_type({Name, {maybe, Type}, MaxDigits}, Entry) ->
     check_type({Name, Type, MaxDigits}, Entry);
 check_type({Name, _, _}, []) ->
     meddatum:log(warning, "[warning]: empty value which is not optional: ~ts~n",
-              [hardcode_list_to_string(Name)]),
+                 [hardcode_list_to_string(Name)]),
     {warning, {Name, null}};
 check_type({Name, integer, _MaxDigits}, Entry) ->
     {ok, {Name, list_to_integer(Entry)}};

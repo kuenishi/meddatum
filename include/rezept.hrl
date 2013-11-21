@@ -4,13 +4,19 @@
 
 -type string_date() :: string().
 
+-record(recept, {
+          date          :: binary(),
+          patient_id    :: binary(),
+          hospital_id   :: binary(),
+          segments = [] :: list()
+         }).
+
 %% -define(TYPE_CONVERSION,
 %%         [{integer, "数字"},
 %%          {latin1, "英数"},
 %%          {unicode, "漢字"},
 %%          {date, "数字"} %% GMMYY
 %%         ]). %% or {maybe, Type}
-
 
 -define(RECORD_TYPES,
         [
