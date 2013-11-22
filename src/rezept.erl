@@ -132,14 +132,14 @@ put_record(C, Record0) ->
     end.
 
 set_2i(RiakObj0, Record0) ->
-    RiakObj1 = case proplists:get_value(<<"patient_id">>, Record0) of
+    RiakObj1 = case Record0#recept.patient_id of
                    undefined -> RiakObj0;
                    PatientID ->
                        MD0 = riakc_obj:get_update_metadata(RiakObj0),
                        MD1 = riakc_obj:set_secondary_index(MD0, {{binary_index, ssmix_importer:index_name(patient_id)}, [PatientID]}),
                        riakc_obj:update_metadata(RiakObj0, MD1)
                end,
-    Date = proplists:get_value(<<"date">>, Record0),
+    Date = Record0#recept.date,
     MD2 = riakc_obj:get_update_metadata(RiakObj1),
     MD3 = riakc_obj:set_secondary_index(MD2, {{binary_index, ssmix_importer:index_name(date)}, [Date]}),
     riakc_obj:update_metadata(RiakObj1, MD3).
