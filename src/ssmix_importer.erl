@@ -33,10 +33,10 @@ put_json(Client, Msg) ->
     ContentType = <<"application/json">>,
     Key = filename:basename(Msg#hl7msg.file),
     Data = hl7:to_json(Msg),
-    RiakObj0 = riakc_obj:new(<<"ssmix">>, Key, Data, ContentType),
-                          lager:info("inserting:~n", []),
+    RiakObj0 = meddatum:maybe_new_ro(Client, <<"ssmix">>, Key, Data, ContentType),
+
+    _ = meddatum:log(info, "inserting: ~p~n", [Key]),
     RiakObj = set_2i(RiakObj0, Msg#hl7msg.date, Msg#hl7msg.patient_id),
-                          lager:info("inserting:~n", []),
     case riakc_pb_socket:put(Client, RiakObj) of
       ok -> ok;
       Error -> meddatum:log(error, "error: ~p", [Error])

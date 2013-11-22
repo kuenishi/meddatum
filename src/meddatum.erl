@@ -16,7 +16,7 @@
 
 -module(meddatum).
 
--export([search/2, search/3, log/3]).
+-export([search/2, search/3, log/3, maybe_new_ro/5]).
 
 -include_lib("eunit/include/eunit.hrl").
 
@@ -97,4 +97,21 @@ print_doc(C, {B,K}) ->
             io:format("~n");
         Other ->
             io:format(standard_error, "unknown: ~p~n", [Other])
+    end.
+
+%% Maybe new Riak Object
+maybe_new_ro(Client, Bucket, Key, Data, ContentType) ->
+    case riakc_pb_socket:get(Client, Bucket, Key) of
+        {ok, RiakObj0} ->
+            case riakc_obj:value_count(RiakObj0) of
+                1 ->
+                    riakc_obj:update_value(RiakObj0, Data, ContentType);
+                N when N > 1 ->
+                    RiakObj = riakc_obj:new(Bucket, Key,
+                                            Data, ContentType),
+                    riakc_obj:set_vclock(RiakObj, riakc_obj:vclock(RiakObj0))
+            end;
+        {error, _E} ->
+            _ = meddatum:log(info, "inserting ~p/~p: ~p~n", [Bucket, Key, _E]),
+            riakc_obj:new(Bucket, Key, Data, ContentType)
     end.

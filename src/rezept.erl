@@ -113,8 +113,7 @@ put_record(C, Record0) ->
             %%ok = file:write_file("test.json", JSONRecords).
             ContentType = "application/json",
             Key = list_to_binary(integer_to_list(erlang:phash2(JSONRecords))),
-            RiakObj0 = riakc_obj:new(<<"rezept">>, Key,
-                                    JSONRecords, ContentType),
+            RiakObj0 = meddatum:maybe_new_ro(C, <<"rezept">>, Key, JSONRecords, ContentType),
 
             %% put indices to all member
             RiakObj = set_2i(RiakObj0, Record0),
