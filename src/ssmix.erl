@@ -16,11 +16,30 @@
 
 -module(ssmix).
 
--export([walk/1, walk/3]).
+-export([walk/1, walk/3, walk2/3]).
 -include_lib("eunit/include/eunit.hrl").
+-include_lib("meddatum/include/hl7.hrl").
 
 walk(Path) ->
     walk(Path, localhost, 8087).
+
+walk2(Path, Host, Port) ->
+    {ok,C}=ssmix_importer:connect(Host, Port),
+    F = fun(File, Acc0) ->
+                case hl7:parse(File, undefined) of
+                    {ok, HL7Msg0} ->
+                        HL7Msg = hl7:annotate(HL7Msg0#hl7msg{file=list_to_binary(File)}),
+                        try
+                            ok=ssmix_importer:put_json(C, HL7Msg)
+                        catch T:E ->
+                                lager:error("~p:~p", [T,E])
+                        end,
+                        Acc0;
+                    {error, _Reason} = R -> [_Reason|R]
+                end
+        end,
+    _ErrorFiles = filelib:fold_files(Path, "", true, F, []),
+    ok=ssmix_importer:disconnect(C).
 
 walk(Path, Host, Port) ->
     {ok, Pid} = ssmix_walker:start_link(Path),
