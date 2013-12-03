@@ -263,3 +263,17 @@ check_type({Name, gyymmdd, 7}, Entry) ->
 check_type({Name, jy_code, _}, Entry) when length(Entry) =:= 1 ->
     {ok, {Name, unicode:characters_to_binary(Entry)}}.
 
+
+-ifdef(TEST).
+
+%% TODO: write tests
+extract_hospital_test() ->
+    Col = [{<<"都道府県">>, 1}, {<<"医療機関コード">>, 1}],
+    PrefID = proplists:get_value(<<"都道府県">>, Col),
+    HospID = proplists:get_value(<<"医療機関コード">>, Col),
+    Str = re:replace(lists:flatten(io_lib:format("~.2w~.7w", [PrefID,HospID])),
+                     " ", "0", [{return,binary},global]),
+    ?assertEqual(<<"010000001">>, Str).
+
+
+-endif.
