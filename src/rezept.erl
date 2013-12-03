@@ -65,8 +65,13 @@ parse_file(Filename, _Info, InfoExtractor) when is_function(InfoExtractor) ->
 
 default_extractor(Record) -> Record.
 
-extract_date(Col) ->
-    case proplists:get_value(<<"請求年月">>, Col) of
+extract_date(Col) ->  extract_ir_date(Col).
+
+extract_ir_date(Col) ->  extract_date(Col, <<"請求年月">>).
+extract_re_date(Col) ->  extract_date(Col, <<"診療年月">>).
+
+extract_date(Col, Key) ->
+    case proplists:get_value(Key, Col) of
         undefined -> undefined;
         DateBin ->
             [P,Y0,Y1,M0,M1] = binary_to_list(DateBin),
@@ -191,13 +196,13 @@ parse_line(Line, {Recept, Records, ReceptTemplate}) ->
                     {ok, {undefined, [finalize_recept(Recept)|Records], #recept{}}};
                 {"IR", false} -> %% remember hospital ID
                     NewHospitalID = extract_hospital(Data),
-                    Date = list_to_binary(extract_date(Data)),
+                    Date = list_to_binary(extract_ir_date(Data)),
                     NewReceptTemplate = ReceptTemplate#recept{date=Date,
                                                               hospital_id=NewHospitalID},
                     {ok, {undefined, Records, NewReceptTemplate}};
                 {"IR", true} ->
                     NewHospitalID = extract_hospital(Data),
-                    Date = list_to_binary(extract_date(Data)),
+                    Date = list_to_binary(extract_ir_date(Data)),
                     NewReceptTemplate = ReceptTemplate#recept{date=Date,
                                                               hospital_id=NewHospitalID},
                     {ok, {undefined, [finalize_recept(Recept)|Records], NewReceptTemplate}};
@@ -206,10 +211,13 @@ parse_line(Line, {Recept, Records, ReceptTemplate}) ->
                 {"GO", false} -> %% End of file, buggy
                     {error, unexpected_eof};
                 {"RE", true} ->
-                    Recept2 = finalize_recept(append_to_recept(Recept, Data)),
+                    Date = list_to_binary(extract_re_date(Data)),
+                    Recept2 = finalize_recept(append_to_recept(Recept#recept{date=Date}, Data)),
                     {ok, {ReceptTemplate, [Recept2|Records], ReceptTemplate}};
                 {"RE", false} ->
-                    {ok, {append_to_recept(ReceptTemplate, Data), Records, ReceptTemplate}};
+                    Date = list_to_binary(extract_re_date(Data)),
+                    Recept2 = append_to_recept(ReceptTemplate#recept{date=Date}, Data),
+                    {ok, {Recept2, Records, ReceptTemplate}};
                 {_, true} ->
                     {ok, {append_to_recept(Recept, Data), Records, ReceptTemplate}};
                 {_, false} ->
