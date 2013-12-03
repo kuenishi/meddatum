@@ -206,9 +206,10 @@ parse_line(Line, {Recept, Records, ReceptTemplate}) ->
                 {"GO", false} -> %% End of file, buggy
                     {error, unexpected_eof};
                 {"RE", true} ->
-                    {ok, {ReceptTemplate, [finalize_recept(Recept)|Records], ReceptTemplate}};
+                    Recept2 = finalize_recept(append_to_recept(Recept, Data)),
+                    {ok, {ReceptTemplate, [Recept2|Records], ReceptTemplate}};
                 {"RE", false} ->
-                    {ok, {ReceptTemplate, Records, ReceptTemplate}};
+                    {ok, {append_to_recept(ReceptTemplate, Data), Records, ReceptTemplate}};
                 {_, true} ->
                     {ok, {append_to_recept(Recept, Data), Records, ReceptTemplate}};
                 {_, false} ->
