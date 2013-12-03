@@ -84,8 +84,12 @@ p2base($3) -> 1925; %% 昭和0年
 p2base($2) -> 1911; %% 大正0年
 p2base($1) -> 1971. %% 明治0年
 
+%% TODO: write tests
 extract_hospital(Col) ->
-    proplists:get_value(<<"医療機関コード">>, Col).
+    PrefID = proplists:get_value(<<"都道府県">>, Col),
+    HospID = proplists:get_value(<<"医療機関コード">>, Col),
+    re:replace(lists:flatten(io_lib:format("~.2w~.7w", [PrefID,HospID])),
+               " ", "0", [{return,binary},global]).
 
 encoder() ->
     jsonx:encoder([{recept, record_info(fields, recept)}],
