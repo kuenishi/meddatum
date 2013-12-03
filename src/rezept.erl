@@ -57,7 +57,7 @@ parse_file(Filename, _Info, InfoExtractor) when is_function(InfoExtractor) ->
                        NewList = lists:reverse(Recept#recept.segments),
                        [Recept#recept{segments=NewList}|Records0]
                end,
-    meddatum:log(info, "~p records.~n", [length(Records1)]),
+    _ = lager:info("~p records.~n", [length(Records1)]),
     case InfoExtractor of
         undefined -> Records1;
         _  -> lists:map(InfoExtractor, Records1)
@@ -106,10 +106,10 @@ to_json(Rezept) when is_record(Rezept, recept) > 0 ->
 
     case ?ENCODER(Rezept) of
         {error, A, B} ->
-            meddatum:log(error, " ~p, ~p~n", [A, B]),
+            _ = lager:error("to_json: ~p, ~p~n", [A, B]),
             {error, {A,B}};
         {no_match, _O} ->
-            meddatum:log(error, "~p~n", [Rezept]),
+            _ = lager:error("~p~n", [Rezept]),
             {error, no_match};
         JSONRecords when is_binary(JSONRecords) ->
             {ok, JSONRecords}
@@ -121,7 +121,7 @@ from_json(RezeptJson) ->
     ?DECODER(RezeptJson).
 
 put_record(C, Record0) ->
-    %% io:format("~p", [(Record0)]),
+
     case to_json(Record0) of
         {ok, JSONRecords} ->
             %%ok = file:write_file("test.json", JSONRecords).
@@ -159,7 +159,6 @@ set_2i(RiakObj0, Record0) ->
 
 %% how to make hardcoded "ほげほげ" printable:
 hardcode_list_to_string(S) ->
-    %%?debugVal(S),
     %%io:format(unicode:characters_to_list(list_to_binary(S))),
     unicode:characters_to_list(list_to_binary(S)).
 
@@ -168,13 +167,11 @@ hardcode_to_binary(S) ->
 
 parse_line(Line, {Recept, Records, ReceptTemplate}) ->
     [RecordID|_] = Line,
-    %% [_DataID, _, _, RecordID|_] = Line,
 
     case lists:keytake(RecordID, 1, ?RECORD_TYPES) of
         {value, {RecordID, Name, Cols0}, _} ->
-            meddatum:log(info, "[info]: '~s' ~ts~n",
-                         [RecordID,
-                          hardcode_list_to_string(Name)]),
+            RecordType = hardcode_list_to_string(Name),
+            _ = lager:debug("[~s] ~ts", [RecordID, RecordType]),
 
             ShortLen = erlang:min(length(Line), length(Cols0)),
             {Line1,_} = lists:split(ShortLen, Line),
@@ -184,8 +181,11 @@ parse_line(Line, {Recept, Records, ReceptTemplate}) ->
                                       case check_type(Col, Entry) of
                                           {ok, {K,V}} ->
                                               {hardcode_to_binary(K), V};
+                                          {warning, {K,null}} ->
+                                              _ = lager:warning("required value is empty at ~s: ~ts",
+                                                                [RecordID, hardcode_list_to_string(K)]),
+                                              {hardcode_to_binary(K), null};
                                           {warning, {K,V}} ->
-                                              %% meddatum:log(warning, "[warning]: ~s~n", [RecordID]),
                                               {hardcode_to_binary(K), V}
                                       end
                               end,
@@ -246,8 +246,7 @@ check_type({Name, {maybe, _}, _}, []) -> {ok, {Name, null}};
 check_type({Name, {maybe, Type}, MaxDigits}, Entry) ->
     check_type({Name, Type, MaxDigits}, Entry);
 check_type({Name, _, _}, []) ->
-    meddatum:log(warning, "[warning]: empty value which is not optional: ~ts~n",
-                 [hardcode_list_to_string(Name)]),
+    %% required field is null
     {warning, {Name, null}};
 check_type({Name, integer, _MaxDigits}, Entry) ->
     {ok, {Name, list_to_integer(Entry)}};

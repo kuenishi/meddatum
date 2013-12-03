@@ -44,21 +44,21 @@ walk2(Path, Host, Port) ->
 walk(Path, Host, Port) ->
     {ok, Pid} = ssmix_walker:start_link(Path),
     {ok,C}=ssmix_importer:connect(Host, Port),
-    meddatum:log(info, "connected.~p~n", [C]),
+    _ = lager:info("connected.~p~n", [C]),
     timer:sleep(100),
     wait_for_walker(Pid, C, 0).
 
 wait_for_walker(Pid, C, N) ->
     {Flag, HL7Msgs} = ssmix_walker:pop(Pid),
-    %?debugVal(Flag),
+
     lager:info("inserting ~p msgs..~n", [length(HL7Msgs)]),
     lists:foreach(fun(HL7Msg) ->
                           lager:info("inserting:~n", []),
 			  try
-			  ok=ssmix_importer:put_json(C, HL7Msg)
+                  ok=ssmix_importer:put_json(C, HL7Msg)
 			  catch T:E ->
-			  lager:error("~p:~p", [T,E])
-                          end,
+                      _ = lager:error("~p:~p", [T,E])
+              end,
                           lager:info("done.~n", [])
                   end, HL7Msgs),
     N2 = length(HL7Msgs) + N,

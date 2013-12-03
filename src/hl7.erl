@@ -92,7 +92,8 @@ get_all_lines(Port, Binary) ->
             FileContent = unicode:characters_to_list(Binary),
             Lines = string:tokens(FileContent, "\r"),
             {ok, Lines};
-        Other -> ?debugVal(Other)
+        Other ->
+            lager:error("~p", [Other])
     end.
              
 
@@ -122,7 +123,7 @@ parse_1(Msg, [Line|Lines] = _Lines, File) ->
             parse_1(NewMsg, Lines, File);
 
         _Other ->
-            meddatum:log(error, "unknown segment: ~s", [_Other]),
+            lager:error("unknown segment: ~ts", [_Other]),
             {error, badarg}
     end.
 
@@ -159,8 +160,8 @@ handle_segment_0(MsgType, Tokens0, Msg, File) ->
                                       to_json_object(Property, Type, Length, Col, 0);
 
                                  ({{Property, _Type, _Length, _Text}, ""}) ->
-                                      meddatum:log(warning, " empty property '~s' which isn't optional in ~s~n",
-                                                [Property, File]),
+                                      lager:warning("empty property '~s' which isn't optional in ~s~n",
+                                                    [Property, File]),
                                       {Property, null};
                                       
                                  ({{Property, Type, Length, _Text}, Col}) ->

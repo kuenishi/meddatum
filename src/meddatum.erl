@@ -16,14 +16,9 @@
 
 -module(meddatum).
 
--export([search/2, search/3, log/3, maybe_new_ro/5]).
+-export([search/2, search/3, maybe_new_ro/5]).
 
 -include_lib("eunit/include/eunit.hrl").
-
-log(standard_error, Format, Argv) -> log(warning, Format, Argv);
-log(_Level, Format, Argv) ->
-    lager:log(_Level, Format, Argv).
-%%    io:format(standard_error, Format, Argv).
 
 search(Server, Query) ->
     search(Server, Query,
@@ -37,17 +32,17 @@ search(Server, Query, DocRetriever) ->
     io:setopts([{encoding, unicode}]),
     Url = md_searcher:plain_query_url(Server, Query),
     {ok, {NumFound, BKs}} = md_searcher:run_query(Url, 0, DocRetriever),
-    meddatum:log(info, "sending query to ~p~n", [Url]),
+    _ = lager:info("sending query to ~p~n", [Url]),
     Pid ! {start, NumFound, BKs},
 
-    meddatum:log(info, "~p results found (~p).~n", [NumFound, length(BKs)]),
+    _ = lager:info("~p results found (~p).~n", [NumFound, length(BKs)]),
 
     pagenate(Url, NumFound, length(BKs), Pid, DocRetriever),
     
     ibrowse:stop(),
 
     receive done ->
-            meddatum:log(info, "all data yeilded.~n", [])
+            _ = lager:info("all data yeilded.~n")
     end.
 
 
@@ -112,6 +107,6 @@ maybe_new_ro(Client, Bucket, Key, Data, ContentType) ->
                     riakc_obj:set_vclock(RiakObj, riakc_obj:vclock(RiakObj0))
             end;
         {error, _E} ->
-            _ = meddatum:log(info, "inserting ~p/~p: ~p~n", [Bucket, Key, _E]),
+            _ = lager:debug("inserting ~p/~p: ~p~n", [Bucket, Key, _E]),
             riakc_obj:new(Bucket, Key, Data, ContentType)
     end.

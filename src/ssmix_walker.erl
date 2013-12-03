@@ -146,11 +146,11 @@ handle_info(timeout, #state{paths=[Path|Paths], hl7_objects=Objs0, kids=N} = Sta
             {noreply, State#state{paths=Paths, hl7_objects=Objs0, kids=N+1}, ?TIMEOUT};
 
         {error, _Reason} = E ->
-            meddatum:log(error, "can't open file (~p):~p~n", [E, Path]),
+            _ = lager:error("can't open file (~p):~p~n", [E, Path]),
             {noreply, State#state{paths=Paths}, ?TIMEOUT};
 
         Other ->
-            meddatum:log(fatal, "mmmmmm: ~p~n", [Other]),
+            lager:fatal("mmmmmm: ~p~n", [Other]),
             {noreply, State#state{paths=Paths}, ?TIMEOUT}
     end;
 handle_info({done, HL7Msg}, #state{hl7_objects=Objs0, kids=N} = State) ->

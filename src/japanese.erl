@@ -42,7 +42,8 @@ get_all_lines(Port, Binary) ->
             FileContent = unicode:characters_to_list(Binary),
             Lines = string:tokens(FileContent, "\r"),
             {ok, Lines};
-        Other -> ?debugVal(Other)
+        Other ->
+            _ = lager:error("~p", [Other])
     end.
 
 hankaku(UnicodeString) ->
