@@ -86,7 +86,12 @@ encoder() ->
     jsonx:encoder([{recept, record_info(fields, recept)}],
                   [{ignore, [null]}]).
 
+decoder() ->
+    jsonx:decoder([{recept, record_info(fields, recept)}],
+                  [{ignore, [null]}]).
+
 -define(ENCODER, (encoder())).
+-define(DECODER, (decoder())).
 
 to_json(Rezept) when is_record(Rezept, recept) > 0 ->
 
@@ -104,7 +109,7 @@ to_json(_R) ->
     {error, empty}.
 
 from_json(RezeptJson) ->
-    jsonx:decode(RezeptJson).
+    ?DECODER(RezeptJson).
 
 put_record(C, Record0) ->
     %% io:format("~p", [(Record0)]),
