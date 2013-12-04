@@ -42,14 +42,19 @@ parse_file(Filename, Info) ->
 parse_file(Filename, _Info, InfoExtractor) when is_function(InfoExtractor) ->
     {ok, Lines} = japanese:read_file(Filename),
     %% io:format("~p~n", [Lines]),
+    _ = lager:info(Filename),
+    {ok,Checksum} = checksum:file_md5(Filename),
+    BinChecksum = checksum:bin_to_hexbin(Checksum),
+    BinFilename = list_to_binary(lists:last(filename:split(Filename))),
 
     F = fun({newline, NewLine}, Ctx0) ->
                 {ok, Ctx} = parse_line(NewLine, Ctx0),
                 Ctx;
            (_, Ctx0) -> Ctx0
         end,
-    {ok, ResultCtx} = ecsv:process_csv_string_with(lists:flatten(Lines), F,
-                                                   {undefined, [], #recept{}}),
+
+    InitCtx = {undefined, [], #recept{file=BinFilename, checksum=BinChecksum}},
+    {ok, ResultCtx} = ecsv:process_csv_string_with(lists:flatten(Lines), F, InitCtx),
     {Recept, Records0, _} = ResultCtx,
 
     Records1 = case Recept of
@@ -60,16 +65,9 @@ parse_file(Filename, _Info, InfoExtractor) when is_function(InfoExtractor) ->
                end,
     _ = lager:info("~p records.~n", [length(Records1)]),
 
-    {ok,Checksum} = checksum:file_md5(Filename),
-    BinChecksum = checksum:bin_to_hexbin(Checksum),
-    BinFilename = list_to_binary(lists:last(filename:split(Filename))),
-    %%?debugVal(Checksum),
-    Records2 = [ Record#recept{file=BinFilename, checksum=BinChecksum}
-                 || Record <- Records1 ],
-
     case InfoExtractor of
-        undefined -> Records2;
-        _  ->        lists:map(InfoExtractor, Records2)
+        undefined -> Records1;
+        _  ->        lists:map(InfoExtractor, Records1)
     end.
 
 default_extractor(Record) -> Record.
@@ -111,6 +109,7 @@ decoder() ->
 -define(ENCODER, (encoder())).
 -define(DECODER, (decoder())).
 
+-spec to_json(#recept{}) -> {ok, binary()}.
 to_json(Rezept) when is_record(Rezept, recept) > 0 ->
 
     case ?ENCODER(Rezept) of
@@ -136,16 +135,16 @@ key( #recept{file=Filename, checksum=undefined} = Recept) ->
     {ok, Checksum} = checksum:file_md5(Filename),
     BinChecksum = checksum:bin_to_hexbin(Checksum),
     key(Recept#recept{checksum=BinChecksum});
-key( #recept{file=Filename, checksum=Checksum} = Recept) ->
-    BinFilename = list_to_binary(lists:last(filename:split(Filename))),
+key( #recept{file=BinFilename, checksum=Checksum} = Recept) ->
     Hash = integer_to_binary(erlang:phash2(Recept)),
     <<BinFilename/binary, "-", Checksum/binary, "-", Hash/binary>>.
 
 -spec key_prefix(filename:filename()) -> binary().
-key_prefix(Filename) ->
+key_prefix(Filename) when is_list(Filename) ->
     BinFilename = list_to_binary(lists:last(filename:split(Filename))),
     {ok,Checksum} = checksum:file_md5(Filename),
-    <<BinFilename/binary, "-", Checksum/binary>>.
+    BinChecksum = checksum:bin_to_hexbin(Checksum),
+    <<BinFilename/binary, "-", BinChecksum/binary>>.
 
 %% how to make hardcoded "ほげほげ" printable:
 hardcode_list_to_string(S) ->
@@ -187,7 +186,7 @@ parse_line(Line, {Recept, Records, ReceptTemplate}) ->
                 {"MN", false} -> %% skip
                     {ok, {undefined, Records, ReceptTemplate}};
                 {"MN", true} -> %% error
-                    {ok, {undefined, [finalize_recept(Recept)|Records], #recept{}}};
+                    {ok, {undefined, [finalize_recept(Recept)|Records], ReceptTemplate}};
                 {"IR", false} -> %% remember hospital ID
                     NewHospitalID = extract_hospital(Data),
                     Date = list_to_binary(extract_ir_date(Data)),

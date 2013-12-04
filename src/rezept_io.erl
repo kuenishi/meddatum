@@ -16,6 +16,8 @@
 
 -module(rezept_io).
 
+-include_lib("eunit/include/eunit.hrl").
+-include_lib("riakc/include/riakc.hrl").
 -include("rezept.hrl").
 
 -export([put_record/2, delete_from_file/2]).
@@ -62,6 +64,10 @@ delete_from_file(C, Filename) ->
     KeyPrefix = rezept:key_prefix(Filename),
     Start = KeyPrefix,
     End   = <<KeyPrefix/binary, 255>>,
-    io:format("~p", [End]),
-    {ok, Results} = riakc_pb_socket:get_index_range(C, <<"rezept">>, <<"$key">>, Start, End),
-    io:format("~p", [Results]).
+    case riakc_pb_socket:get_index_range(C, <<"rezept">>, <<"$key">>, Start, End) of
+        {ok, #index_results_v1{keys=Keys}} ->
+            {ok, lists:foldl(fun(ok, {OK,E}) -> {OK +1, E};
+                                (_,  {OK,E}) -> {OK, E+1 } end, {0, 0},
+                             [riakc_pb_socket:delete(C, <<"rezept">>, Key) || Key <- Keys])};
+        E -> E
+    end.

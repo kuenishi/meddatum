@@ -1,0 +1,16 @@
+#!/usr/bin/env escript
+
+
+main([File])->
+    {ok,Path} = file:get_cwd(),
+    code:add_pathz(Path ++ "/ebin"),
+    io:setopts([{encoding, unicode}]),
+    io:format("deleting: ~p~n", [File]),
+    {ok, C} = riakc_pb_socket:start_link(localhost, 8087),
+    case rezept_io:delete_from_file(C, File) of
+        {ok, {OK,E}} ->
+            io:format("~p records deleted (~p failed).", [OK, E]);
+        E ->
+            io:format("can't retrieve any keys from file ~p (~p)", [File, E])
+    end,
+    ok = riakc_pb_socket:stop(C).
