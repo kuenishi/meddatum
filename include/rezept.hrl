@@ -8,15 +8,17 @@
           date          :: binary(),
           patient_id    :: binary(),
           hospital_id   :: binary(),
-          segments = [] :: list()
+          segments = [] :: list(),
+          file          :: binary(), %% <- filename:filename()
+          checksum      :: binary()
          }).
 
-%% -define(TYPE_CONVERSION,
-%%         [{integer, "数字"},
-%%          {latin1, "英数"},
-%%          {unicode, "漢字"},
-%%          {date, "数字"} %% GMMYY
-%%         ]). %% or {maybe, Type}
+%% TYPE_CONVERSION:
+%%   {integer => "数字",
+%%    latin1  => "英数",
+%%    unicode => "漢字",
+%%    date    => "数字"} %% GMMYY
+%%   %% or {maybe, Type}
 
 -define(RECORD_TYPES,
         [

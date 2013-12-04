@@ -21,8 +21,9 @@
 
 -export([process_file/2, process_file/3,
          parse_file/2, parse_file/3,
-         put_record/2, default_extractor/1,
-         from_json/1, to_json/1
+         default_extractor/1,
+         from_json/1, to_json/1,
+         key/1, key_prefix/1
         ]).
 
 -spec process_file(filename:filename(), file:file_info()) -> {ok, [term()]}.
@@ -58,9 +59,17 @@ parse_file(Filename, _Info, InfoExtractor) when is_function(InfoExtractor) ->
                        [Recept#recept{segments=NewList}|Records0]
                end,
     _ = lager:info("~p records.~n", [length(Records1)]),
+
+    {ok,Checksum} = checksum:file_md5(Filename),
+    BinChecksum = checksum:bin_to_hexbin(Checksum),
+    BinFilename = list_to_binary(lists:last(filename:split(Filename))),
+    %%?debugVal(Checksum),
+    Records2 = [ Record#recept{file=BinFilename, checksum=BinChecksum}
+                 || Record <- Records1 ],
+
     case InfoExtractor of
-        undefined -> Records1;
-        _  -> lists:map(InfoExtractor, Records1)
+        undefined -> Records2;
+        _  ->        lists:map(InfoExtractor, Records2)
     end.
 
 default_extractor(Record) -> Record.
@@ -117,45 +126,26 @@ to_json(Rezept) when is_record(Rezept, recept) > 0 ->
 to_json(_R) ->
     {error, empty}.
 
+-spec from_json(JSON::binary()) -> #recept{}.
 from_json(RezeptJson) ->
     ?DECODER(RezeptJson).
 
-put_record(C, Record0) ->
+-spec key(#recept{}) -> binary().
+key(#recept{file=undefined}) ->   error(no_file_specified);
+key( #recept{file=Filename, checksum=undefined} = Recept) ->
+    {ok, Checksum} = checksum:file_md5(Filename),
+    BinChecksum = checksum:bin_to_hexbin(Checksum),
+    key(Recept#recept{checksum=BinChecksum});
+key( #recept{file=Filename, checksum=Checksum} = Recept) ->
+    BinFilename = list_to_binary(lists:last(filename:split(Filename))),
+    Hash = integer_to_binary(erlang:phash2(Recept)),
+    <<BinFilename/binary, "-", Checksum/binary, "-", Hash/binary>>.
 
-    case to_json(Record0) of
-        {ok, JSONRecords} ->
-            %%ok = file:write_file("test.json", JSONRecords).
-            ContentType = "application/json",
-            Key = list_to_binary(integer_to_list(erlang:phash2(JSONRecords))),
-            RiakObj0 = meddatum:maybe_new_ro(C, <<"rezept">>, Key, JSONRecords, ContentType),
-
-            %% put indices to all member
-            RiakObj = set_2i(RiakObj0, Record0),
-            riakc_pb_socket:put(C, RiakObj);
-        {error, empty} -> ok;
-        Other ->
-            %% TODO: insert probe code to find bad data format or spec.
-            %% lists:foreach(fun(R) ->
-            %%                       lists:foreach(fun(P) ->
-            %%                                             io:format("~n~p~n", [[P]]),
-            %%                                             {ok, _} = to_json([P])
-            %%                                     end, R)
-            %%               end, proplists:get_value(<<"segments">>, Record0)),
-            error(Other)
-    end.
-
-set_2i(RiakObj0, Record0) ->
-    RiakObj1 = case Record0#recept.patient_id of
-                   undefined -> RiakObj0;
-                   PatientID ->
-                       MD0 = riakc_obj:get_update_metadata(RiakObj0),
-                       MD1 = riakc_obj:set_secondary_index(MD0, {{binary_index, ssmix_importer:index_name(patient_id)}, [PatientID]}),
-                       riakc_obj:update_metadata(RiakObj0, MD1)
-               end,
-    Date = Record0#recept.date,
-    MD2 = riakc_obj:get_update_metadata(RiakObj1),
-    MD3 = riakc_obj:set_secondary_index(MD2, {{binary_index, ssmix_importer:index_name(date)}, [Date]}),
-    riakc_obj:update_metadata(RiakObj1, MD3).
+-spec key_prefix(filename:filename()) -> binary().
+key_prefix(Filename) ->
+    BinFilename = list_to_binary(lists:last(filename:split(Filename))),
+    {ok,Checksum} = checksum:file_md5(Filename),
+    <<BinFilename/binary, "-", Checksum/binary>>.
 
 %% how to make hardcoded "ほげほげ" printable:
 hardcode_list_to_string(S) ->
