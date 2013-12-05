@@ -72,10 +72,8 @@ parse_file(Filename, _Info, InfoExtractor) when is_function(InfoExtractor) ->
 
 default_extractor(Record) -> Record.
 
-extract_date(Col) ->  extract_ir_date(Col).
-
-extract_ir_date(Col) ->  extract_date(Col, <<"請求年月">>).
-extract_re_date(Col) ->  extract_date(Col, <<"診療年月">>).
+extract_ir_date(Col) ->  extract_date(Col, seiym).
+extract_re_date(Col) ->  extract_date(Col, shinym).
 
 extract_date(Col, Key) ->
     case proplists:get_value(Key, Col) of
@@ -93,8 +91,8 @@ p2base($1) -> 1971. %% 明治0年
 
 %% TODO: write tests
 extract_hospital(Col) ->
-    PrefID = proplists:get_value(<<"都道府県">>, Col),
-    HospID = proplists:get_value(<<"医療機関コード">>, Col),
+    PrefID = proplists:get_value(state, Col),
+    HospID = proplists:get_value(cocd, Col),
     re:replace(lists:flatten(io_lib:format("~.2w~.7w", [PrefID,HospID])),
                " ", "0", [{return,binary},global]).
 
@@ -108,6 +106,11 @@ decoder() ->
 
 -define(ENCODER, (encoder())).
 -define(DECODER, (decoder())).
+
+%% maybe_taken(0, List) -> List;
+%% maybe_taken(_, []) -> [];
+%% maybe_taken(N, List) ->
+%%     maybe_taken(N-1, tl(List)).
 
 -spec to_json(#recept{}) -> {ok, binary()}.
 to_json(Rezept) when is_record(Rezept, recept) > 0 ->
@@ -149,10 +152,8 @@ key_prefix(Filename) when is_list(Filename) ->
 %% how to make hardcoded "ほげほげ" printable:
 hardcode_list_to_string(S) ->
     %%io:format(unicode:characters_to_list(list_to_binary(S))),
-    unicode:characters_to_list(list_to_binary(S)).
-
-hardcode_to_binary(S) ->
-    list_to_binary(S).
+    S1 = list_to_binary(S),
+    unicode:characters_to_list(S1).
 
 parse_line(Line, {Recept, Records, ReceptTemplate}) ->
     [RecordID|_] = Line,
@@ -169,13 +170,13 @@ parse_line(Line, {Recept, Records, ReceptTemplate}) ->
                                       %%?debugVal({Col,Entry}),
                                       case check_type(Col, Entry) of
                                           {ok, {K,V}} ->
-                                              {hardcode_to_binary(K), V};
+                                              {K, V};
                                           {warning, {K,null}} ->
                                               _ = lager:warning("required value is empty at ~s: ~ts",
                                                                 [RecordID, hardcode_list_to_string(K)]),
-                                              {hardcode_to_binary(K), null};
+                                              {K, null};
                                           {warning, {K,V}} ->
-                                              {hardcode_to_binary(K), V}
+                                              {K, V}
                                       end
                               end,
                               lists:zip(Cols, Line1)),
@@ -229,7 +230,7 @@ finalize_recept(#recept{segments=List} = Recept) ->
     NewList = lists:reverse(List),
     Recept#recept{segments=NewList}.
 
--spec check_type({string(), atom()|{maybe,atom()}, integer()}, string())
+-spec check_type({atom(), atom()|{maybe,atom()}, integer()}, string())
                 -> {ok, {string(), null|binary()}}. %% unicode binary
 check_type({Name, {maybe, _}, _}, []) -> {ok, {Name, null}};
 check_type({Name, {maybe, Type}, MaxDigits}, Entry) ->
@@ -256,9 +257,9 @@ check_type({Name, jy_code, _}, Entry) when length(Entry) =:= 1 ->
 
 %% TODO: write tests
 extract_hospital_test() ->
-    Col = [{<<"都道府県">>, 1}, {<<"医療機関コード">>, 1}],
-    PrefID = proplists:get_value(<<"都道府県">>, Col),
-    HospID = proplists:get_value(<<"医療機関コード">>, Col),
+    Col = [{state, 1}, {cocd, 1}],
+    PrefID = proplists:get_value(state, Col),
+    HospID = proplists:get_value(cocd, Col),
     Str = re:replace(lists:flatten(io_lib:format("~.2w~.7w", [PrefID,HospID])),
                      " ", "0", [{return,binary},global]),
     ?assertEqual(<<"010000001">>, Str).
