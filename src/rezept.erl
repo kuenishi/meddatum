@@ -172,8 +172,8 @@ parse_line(Line, {Recept, Records, ReceptTemplate}) ->
                                           {ok, {K,V}} ->
                                               {K, V};
                                           {warning, {K,null}} ->
-                                              _ = lager:warning("required value is empty at ~s: ~ts",
-                                                                [RecordID, hardcode_list_to_string(K)]),
+                                              %% _ = lager:warning("required value is empty at ~s: ~ts",
+                                              %%                   [RecordID, hardcode_list_to_string(K)]),
                                               {K, null};
                                           {warning, {K,V}} ->
                                               {K, V}

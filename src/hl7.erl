@@ -30,8 +30,8 @@
 -include("hl7_types.hrl").
 
 -spec annotate(#hl7msg{}) -> #hl7msg{}.
-annotate(HL70 = #hl7msg{segments=Segs}) ->
-    {PatientID, HospitalID} = extract(Segs, {undefined, undefined}),
+annotate(HL70 = #hl7msg{segments=Segs, hospital_id=HospitalID0}) ->
+    {PatientID, HospitalID} = extract(Segs, {undefined, HospitalID0}),
     HL70#hl7msg{patient_id=PatientID, hospital_id=HospitalID}.
 
 extract([], Tuple) -> Tuple;
