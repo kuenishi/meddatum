@@ -396,7 +396,7 @@
          {"prb_life", {maybe,'CWE'}, 250, "プロブレムのライフサイクル状態"}, %% PRB-14 <Identifier (ST)> ^ <Text (ST)> ^ <Name of Coding System (IS)> ^ <Alternate Identifier (ST)> ^ <Alternate Text (ST)> ^ <Name of Alternate Coding System (IS)> ^ <Coding System Version ID (ST)> ^ <Alternate Coding System Version ID (ST)> ^ <Original Text (ST)>
          {"prb_life_date", {maybe,'TS'}, 26, "プロブレムのライフサイクル状態の日付／時刻"}, %% PRB-15 <Time (DTM)> ^ <DEPRECATED-Degree of Precision (ID)>
          {"prb_date", {maybe,'TS'}, 26, "プロブレムの発生日付"}, %% PRB-16 <Time (DTM)> ^ <DEPRECATED-Degree of Precision (ID)>
-         {"prb_txt", {maybe,'TS'}, 80, "プロブレムの発生テキスト"}, %% PRB-17 <Time (DTM)> ^ <DEPRECATED-Degree of Precision (ID)>
+         {"prb_txt", {maybe,'ST'}, 80, "プロブレムの発生テキスト"}, %% PRB-17 <Time (DTM)> ^ <DEPRECATED-Degree of Precision (ID)>
          {"prb_rank", {maybe,'CWE'}, 250, "プロブレムのランキング"}, %% PRB-18 <Identifier (ST)> ^ <Text (ST)> ^ <Name of Coding System (IS)> ^ <Alternate Identifier (ST)> ^ <Alternate Text (ST)> ^ <Name of Alternate Coding System (IS)> ^ <Coding System Version ID (ST)> ^ <Alternate Coding System Version ID (ST)> ^ <Original Text (ST)>
          {"prb_certainty", {maybe,'CWE'}, 250, "プロブレムの確実性"}, %% PRB-19 <Identifier (ST)> ^ <Text (ST)> ^ <Name of Coding System (IS)> ^ <Alternate Identifier (ST)> ^ <Alternate Text (ST)> ^ <Name of Alternate Coding System (IS)> ^ <Coding System Version ID (ST)> ^ <Alternate Coding System Version ID (ST)> ^ <Original Text (ST)>
          {"prb_probability", {maybe,'NM'}, 5, "プロブレムの確率（0-1）"}, %% PRB-20 -
