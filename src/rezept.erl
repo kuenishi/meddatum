@@ -47,14 +47,14 @@ parse_file(Filename, _Info, InfoExtractor) when is_function(InfoExtractor) ->
     BinChecksum = checksum:bin_to_hexbin(Checksum),
     BinFilename = list_to_binary(lists:last(filename:split(Filename))),
 
-    F = fun({newline, NewLine}, Ctx0) ->
-                {ok, Ctx} = parse_line(NewLine, Ctx0),
-                Ctx;
-           (_, Ctx0) -> Ctx0
+    F = fun({newline, NewLine}, {LineNo, Ctx0}) ->
+                {ok, Ctx} = parse_line(NewLine, LineNo, Ctx0),
+                {LineNo+1, Ctx};
+           (_, {LineNo, Ctx0}) -> {LineNo+1, Ctx0}
         end,
 
     InitCtx = {undefined, [], #recept{file=BinFilename, checksum=BinChecksum}},
-    {ok, ResultCtx} = ecsv:process_csv_string_with(lists:flatten(Lines), F, InitCtx),
+    {ok, {Total, ResultCtx}} = ecsv:process_csv_string_with(lists:flatten(Lines), F, {0, InitCtx}),
     {Recept, Records0, _} = ResultCtx,
 
     Records1 = case Recept of
@@ -63,7 +63,7 @@ parse_file(Filename, _Info, InfoExtractor) when is_function(InfoExtractor) ->
                        NewList = lists:reverse(Recept#recept.segments),
                        [Recept#recept{segments=NewList}|Records0]
                end,
-    _ = lager:info("~p records.~n", [length(Records1)]),
+    _ = lager:info("~p records for ~p lines.~n", [length(Records1), Total]),
 
     case InfoExtractor of
         undefined -> Records1;
@@ -76,13 +76,29 @@ extract_ir_date(Col) ->  extract_date(Col, seiym).
 extract_re_date(Col) ->  extract_date(Col, shinym).
 
 extract_date(Col, Key) ->
-    case proplists:get_value(Key, Col) of
-        undefined -> undefined;
-        DateBin ->
-            [P,Y0,Y1,M0,M1] = binary_to_list(DateBin),
-            Year = p2base(P) + list_to_integer([Y0,Y1]),
-            lists:flatten(integer_to_list(Year) ++ [M0,M1])
-    end.
+    proplists:get_value(Key, Col).
+    %% case proplists:get_value(Key, Col) of
+    %%     undefined -> undefined;
+    %%     DateBin ->   DateBin
+    %% end.
+
+gyymm2date(GYYMM) when is_binary(GYYMM) ->
+    gyymm2date(binary_to_list(GYYMM));
+gyymm2date([P,Y0,Y1,M0,M1]) ->
+    Year = p2base(P) + list_to_integer([Y0,Y1]),
+    {ok, lists:flatten(integer_to_list(Year) ++ [M0,M1])};
+gyymm2date(Other) ->
+    {error, {bad_gyymm, Other}}.
+
+
+gyymmdd2date(GYYMMDD) when is_binary(GYYMMDD) ->
+    gyymmdd2date(binary_to_list(GYYMMDD));
+gyymmdd2date([P,Y0,Y1,M0,M1,D0,D1]) ->
+    Year = p2base(P) + list_to_integer([Y0,Y1]),
+    {ok, lists:flatten(integer_to_list(Year) ++ [M0,M1,D0,D1])};
+gyymmdd2date(Other) ->
+    {error, {bad_gyymmdd, Other}}.
+
 
 p2base($4) -> 1988; %% 平成0年
 p2base($3) -> 1925; %% 昭和0年
@@ -155,7 +171,7 @@ hardcode_list_to_string(S) ->
     S1 = list_to_binary(S),
     unicode:characters_to_list(S1).
 
-parse_line(Line, {Recept, Records, ReceptTemplate}) ->
+parse_line(Line, LineNo, {Recept, Records, ReceptTemplate}) ->
     [RecordID|_] = Line,
 
     case lists:keytake(RecordID, 1, ?RECORD_TYPES) of
@@ -166,11 +182,23 @@ parse_line(Line, {Recept, Records, ReceptTemplate}) ->
             ShortLen = erlang:min(length(Line), length(Cols0)),
             {Line1,_} = lists:split(ShortLen, Line),
             {Cols, _} = lists:split(ShortLen, Cols0),
+            %% case LineNo of
+            %%     N when N < 1185 andalso N > 1180 ->
+            %%         ?debugFmt("~w", [lists:zip(Cols, Line1)]);
+            %%     N when N < 1181 -> ok;
+            %%     _ ->
+            %%         exit(normal)
+            %% end,
+
             Data0 = lists:map(fun({Col, Entry}) ->
                                       %%?debugVal({Col,Entry}),
                                       case check_type(Col, Entry) of
                                           {ok, {K,V}} ->
                                               {K, V};
+                                          {warning, {error, O}} ->
+                                              _ = lager:warning("Line ~p: ~p",[LineNo, O]),
+                                              {col, null};
+
                                           {warning, {K,null}} ->
                                               %% _ = lager:warning("required value is empty at ~s: ~ts",
                                               %%                   [RecordID, hardcode_list_to_string(K)]),
@@ -246,9 +274,17 @@ check_type({Name, unicode, _MaxDigits}, Entry) ->
     %% meddatum:log(">>>> => ~ts~n", [unicode:characters_to_binary(Entry, utf8)]),
     {ok, {Name, unicode:characters_to_binary(Entry, unicode)}};
 check_type({Name, gyymm, 5}, Entry) ->
-    {ok, {Name, list_to_binary(Entry)}};
+    case gyymm2date(Entry) of
+        {ok, Date} -> {ok, {Name, Date}};
+        {error, O} -> {warning, {error, O}}
+    end;
+
 check_type({Name, gyymmdd, 7}, Entry) ->
-    {ok, {Name, list_to_binary(Entry)}};
+    case gyymmdd2date(Entry) of
+        {ok, Date} -> {ok, {Name, Date}};
+        {error, O} -> {warning, {error, O}}
+    end;
+
 check_type({Name, jy_code, _}, Entry) when length(Entry) =:= 1 ->
     {ok, {Name, unicode:characters_to_binary(Entry)}}.
 
