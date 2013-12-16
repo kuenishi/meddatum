@@ -17,13 +17,6 @@
 -module(hl7).
 
 -export([parse/2, to_json/1, from_json/1, annotate/1, get_segment/2]).
--export_type(['ST'/0, 'TX'/0, 'FT'/0, 'NM'/0, 'IS'/0, 'ID'/0,
-              'HD'/0, 'CE'/0, 'CNE'/0, 'CWE'/0, 'DT'/0, 'TM'/0,
-              'DTM'/0,
-              'TS'/0, 'DR'/0, 'MSG'/0, 'PT'/0, 'VID'/0, 'XCN'/0,
-              'CX'/0, 'XPN'/0, 'XAD'/0, 'XTN'/0, 'XON'/0, 'PL'/0,
-              'EI'/0, 'RPT'/0, 'CQ'/0, 'LA2'/0, 'EIP'/0, 'SI'/0,
-              'JCC'/0, 'ZRD'/0]).
 
 -include_lib("eunit/include/eunit.hrl").
 -include("hl7.hrl").
@@ -208,6 +201,10 @@ to_json_object(Property, Type, _Len, Col, Depth) ->
     %% if length(Col) > Len ->
     %%         error({"too long text", Col, Len});
     %%    true ->
+    ?debugVal(Property),
+    ?debugVal(Type),
+    ?debugVal(Col),
+    ?debugVal(Depth),
     {list_to_binary(Property), to_json_object(Type, Col, Depth)}.
 %%end.
 
@@ -233,7 +230,9 @@ to_json_object('SPS', Col, _D)-> unicode:characters_to_binary(Col); %% undefined
 to_json_object('AUI', Col, _D)-> unicode:characters_to_binary(Col); %% undefined, maybe, and exists.
 to_json_object('XCN', Col, _D)-> unicode:characters_to_binary(Col); %% broken data exists and less important
 
-to_json_object(Name, Col, Depth)-> to_record(Name, Col, Depth).
+to_json_object(Name, Col, Depth)->
+    ?debugVal({Name, Col, Depth}),
+    to_record(Name, Col, Depth).
 
 get_separator(0) -> "[\\^]";
 get_separator(1) -> "[~]";
@@ -242,6 +241,7 @@ get_separator(3) -> "[&]".
 
 to_record(Name, Col, Depth) ->
     Tokens0 = re:split(Col, get_separator(Depth), [{return,list},unicode]),
+    ?debugVal(Name),
     case proplists:get_value(Name, ?HL7_PRIMITIVE_TYPES) of
         undefined ->
             error({unknown, Name});
@@ -251,6 +251,8 @@ to_record(Name, Col, Depth) ->
             {TypeDef, _} = lists:split(ShortLen, TypeDef0),
             {Tokens, _}  = lists:split(ShortLen, Tokens0),
 
+            ?debugVal(TypeDef),
+            ?debugVal(Tokens),
             Data0 = lists:map(fun({{Property, _Type}, []}) -> {Property, null};
                                  ({{Property, Type}, Tok}) ->
                                       {Property, to_json_object(Type, Tok, Depth+1)}

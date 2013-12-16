@@ -27,28 +27,30 @@ parse(Lines) ->
     io:format("-define(HL7_~s,~n        [~n", [Hd]),
     parse_0(tl(Lines)).
 
-
 parse_0([Line]) ->
     Data = parse_1(Line),
-    io:format("         {\"~s\", ~p, ~p, \"~s\"} %% ~s ~s~n", Data),
+    io:format("         {\"~s\", ~p, ~p, \"~ts\"} %% ~ts ~ts~n", Data),
+    %% io:format("         {\"~s\", ~p, ~p, \"~s\"} %% ~s ~s~n", Data),
     io:format("        ]).~n~n");
 
 parse_0([Line|Lines]) ->
     Data = parse_1(Line),
-    io:format("         {\"~s\", ~p, ~p, \"~s\"}, %% ~s ~s~n", Data),
+    io:format("         {\"~s\", ~p, ~p, \"~ts\"}, %% ~ts ~ts~n", Data),
     parse_0(Lines).
 
 parse_1(Line) ->
-    [Code, Name, MaxLen0, Property0, Desc, Type0, Desc2, Optional] = Line,
+    [Code, Name, MaxLen0, Property0, Desc, Type0, Desc2, Optional|_] = Line,
     %% Same type def as rezept
     MaxLen = list_to_integer(MaxLen0),
     Type = case Optional of
-               "TRUE"  -> {maybe, list_to_atom(Type0)};
-               "FALSE" -> list_to_atom(Type0)
+               "R" -> list_to_atom(Type0);
+               %% "TRUE"  -> {maybe, list_to_atom(Type0)};
+               %% "FALSE" -> list_to_atom(Type0)
+               _ -> {maybe, list_to_atom(Type0)}
            end,
     Property = case Property0 of
                    "" -> reform(Desc);
-                   _ -> Property0
+                   _ -> string:strip(Property0)
                end,
     %%?debugVal(Line),
     [Property, Type, MaxLen, Name, Code, Desc2].

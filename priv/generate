@@ -58,8 +58,4 @@ parse_line(Line,   {{processing, Lines}, Types}) ->
     {{processing, [Line|Lines]}, Types}.
 
 
-        
     
-    
-    
-
