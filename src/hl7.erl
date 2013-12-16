@@ -98,9 +98,8 @@ parse_0([Line|_Lines]) ->
         ["MSH"|_] = Tokens ->
             Msg = 'MSH'(Tokens),
             {ok, Msg};
-        _O ->
-            erlang:display(_O),
-            {error, bad_format}
+        O ->
+            {error, {bad_format, O}}
     end.
 
 
@@ -201,10 +200,6 @@ to_json_object(Property, Type, _Len, Col, Depth) ->
     %% if length(Col) > Len ->
     %%         error({"too long text", Col, Len});
     %%    true ->
-    ?debugVal(Property),
-    ?debugVal(Type),
-    ?debugVal(Col),
-    ?debugVal(Depth),
     {list_to_binary(Property), to_json_object(Type, Col, Depth)}.
 %%end.
 
@@ -231,7 +226,6 @@ to_json_object('AUI', Col, _D)-> unicode:characters_to_binary(Col); %% undefined
 to_json_object('XCN', Col, _D)-> unicode:characters_to_binary(Col); %% broken data exists and less important
 
 to_json_object(Name, Col, Depth)->
-    ?debugVal({Name, Col, Depth}),
     to_record(Name, Col, Depth).
 
 get_separator(0) -> "[\\^]";
@@ -241,7 +235,6 @@ get_separator(3) -> "[&]".
 
 to_record(Name, Col, Depth) ->
     Tokens0 = re:split(Col, get_separator(Depth), [{return,list},unicode]),
-    ?debugVal(Name),
     case proplists:get_value(Name, ?HL7_PRIMITIVE_TYPES) of
         undefined ->
             error({unknown, Name});
@@ -251,8 +244,6 @@ to_record(Name, Col, Depth) ->
             {TypeDef, _} = lists:split(ShortLen, TypeDef0),
             {Tokens, _}  = lists:split(ShortLen, Tokens0),
 
-            ?debugVal(TypeDef),
-            ?debugVal(Tokens),
             Data0 = lists:map(fun({{Property, _Type}, []}) -> {Property, null};
                                  ({{Property, Type}, Tok}) ->
                                       {Property, to_json_object(Type, Tok, Depth+1)}
