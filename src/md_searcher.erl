@@ -23,10 +23,15 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
-plain_query_url(Server, Query0) ->
+plain_query_url(Server, Query) ->
+    plain_query_url(Server, Query, undefined).
+
+plain_query_url(Server, Query0, undefined) ->
+    plain_query_url(Server, Query0, 1024);
+plain_query_url(Server, Query0, Rows) ->
     UrlBase = io_lib:format("http://~s:8098/", [Server]),
     Query = (re:replace(Query0, "[\s]", "%20", [unicode,{return,list},global])),
-    Params = "wt=json&"++Query,
+    Params = "wt=json&"++Query ++ "&rows=" ++ integer_to_list(Rows),
     lists:flatten(UrlBase ++ "search/md_index?"++Params).
 
 -spec run_query(Url::string(), non_neg_integer(),
