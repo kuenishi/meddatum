@@ -1,12 +1,13 @@
 #!/usr/bin/env escript
 
-
-main([File])->
+main([]) ->
+    io:format("usage: rezeptdeleter localhost|<ip_address>  dpc|med  <filename>");
+main([Host, Mode, File])->
     {ok,Path} = file:get_cwd(),
     code:add_pathz(Path ++ "/ebin"),
     io:setopts([{encoding, unicode}]),
     io:format("deleting: ~p~n", [File]),
-    {ok, C} = riakc_pb_socket:start_link(localhost, 8087),
+    {ok, C} = riakc_pb_socket:start_link(Host, 8087),
     case rezept_io:delete_from_file(C, File) of
         {ok, {OK,E}} ->
             io:format("~p records deleted (~p failed).", [OK, E]);
