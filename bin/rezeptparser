@@ -7,7 +7,8 @@ main(Files)->
     io:setopts([{encoding, unicode}]),
     io:format("~p~n", [Files]),
     lists:foreach(fun(Filename) ->
-                          {ok, Records} = rezept:process_file(Filename, info),
+                          {ok, Records} = rezept_parser:parse_file(Filename),
+                          
                           lists:foreach(fun({ok, JSON}) ->
                                                 io:format("~ts~n", [JSON]);
                                            ({error, E}) ->
