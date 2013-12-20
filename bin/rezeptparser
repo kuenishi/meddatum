@@ -1,18 +1,19 @@
 #!/usr/bin/env escript
 
 
-main(Files)->
+main([Mode, File])->
     {ok,Path} = file:get_cwd(),
     code:add_pathz(Path ++ "/ebin"),
     io:setopts([{encoding, unicode}]),
-    io:format("~p~n", [Files]),
-    lists:foreach(fun(Filename) ->
-                          {ok, Records} = rezept_parser:parse_file(Filename),
-                          
-                          lists:foreach(fun({ok, JSON}) ->
-                                                io:format("~ts~n", [JSON]);
-                                           ({error, E}) ->
-                                                io:format("error: ~p~n", [E])
-                                        end,
-                                        lists:map(fun rezept:to_json/1, Records))
-                  end, Files).
+    io:format("~p~n", [File]),
+    ModeAtom = case Mode of
+                   "dpc" -> dpc;
+                   "med" -> med
+               end,
+    {ok, Records} = rezept_parser:parse_file(File, ModeAtom),
+    lists:foreach(fun({ok, JSON}) ->
+                          io:format("~ts~n", [JSON]);
+                     ({error, E}) ->
+                          io:format("error: ~p~n", [E])
+                  end,
+                  lists:map(fun rezept:to_json/1, Records)).

@@ -22,15 +22,20 @@
 -include_lib("eunit/include/eunit.hrl").
 
 -export([
-         parse_file/2, parse_file/1,
+         parse_file/3, parse_file/2,
          default_extractor/1
         ]).
 
--spec parse_file(filename:filename(), file:file_info()) -> {ok, [term()]}.
-parse_file(Filename) ->
-    parse_file(Filename, fun ?MODULE:default_extractor/1).
+-record(state, {recept       :: #recept{},
+                records = [] :: list(),
+                template     :: #recept{},
+                mode         :: med | dpc}).
 
-parse_file(Filename, InfoExtractor) when is_function(InfoExtractor) ->
+-spec parse_file(filename:filename(), file:file_info()) -> {ok, [term()]}.
+parse_file(Filename, Mode) ->
+    parse_file(Filename, Mode, fun ?MODULE:default_extractor/1).
+
+parse_file(Filename, Mode, InfoExtractor) when is_function(InfoExtractor) ->
     {ok, Lines} = japanese:read_file(Filename),
     %% io:format("~p~n", [Lines]),
     _ = lager:info(Filename),
@@ -44,9 +49,10 @@ parse_file(Filename, InfoExtractor) when is_function(InfoExtractor) ->
            (_, {LineNo, Ctx0}) -> {LineNo+1, Ctx0}
         end,
 
-    InitCtx = {undefined, [], #recept{file=BinFilename, checksum=BinChecksum}},
+    InitCtx = #state{template = #recept{file=BinFilename, checksum=BinChecksum},
+                     mode = Mode},
     {ok, {Total, ResultCtx}} = ecsv:process_csv_string_with(lists:flatten(Lines), F, {0, InitCtx}),
-    {Recept, Records0, _} = ResultCtx,
+    #state{recept=Recept, records=Records0} = ResultCtx,
 
     Records1 = case Recept of
                    undefined -> Records0;
@@ -113,10 +119,16 @@ hardcode_list_to_string(S) ->
     S1 = list_to_binary(S),
     unicode:characters_to_list(S1).
 
-parse_line(Line, LineNo, {Recept, Records, ReceptTemplate}) ->
+parse_line(Line, LineNo, #state{recept=Recept, records=Records,
+                                mode = Mode, template=ReceptTemplate} = State) ->
     [RecordID|_] = Line,
 
-    case lists:keytake(RecordID, 1, ?RECORD_TYPES) of
+    Types = case Mode of
+                dpc -> ?DPC_RECORD_TYPES;
+                med -> ?MED_RECORD_TYPES
+            end,
+
+    case lists:keytake(RecordID, 1, Types) of
         {value, {RecordID, Name, Cols0}, _} ->
             RecordType = hardcode_list_to_string(Name),
             _ = lager:debug("[~s] ~ts", [RecordID, RecordType]),
@@ -155,39 +167,43 @@ parse_line(Line, LineNo, {Recept, Records, ReceptTemplate}) ->
 
             case {RecordID, is_record(Recept, recept)} of
                 {"MN", false} -> %% skip
-                    {ok, {undefined, Records, ReceptTemplate}};
+                    {ok, State#state{recept=undefined}};
                 {"MN", true} -> %% error
-                    {ok, {undefined, [rezept:finalize(Recept)|Records], ReceptTemplate}};
+                    {ok, State#state{recept=undefined,
+                                     records=[rezept:finalize(Recept)|Records]}};
                 {"IR", false} -> %% remember hospital ID
                     NewHospitalID = extract_hospital(Data),
                     Date = extract_ir_date(Data),
                     NewReceptTemplate = ReceptTemplate#recept{date=Date,
                                                               hospital_id=NewHospitalID},
-                    {ok, {undefined, Records, NewReceptTemplate}};
+                    {ok, State#state{recept=undefined, template=NewReceptTemplate}};
                 {"IR", true} ->
                     NewHospitalID = extract_hospital(Data),
                     Date = extract_ir_date(Data),
                     NewReceptTemplate = ReceptTemplate#recept{date=Date,
                                                               hospital_id=NewHospitalID},
-                    {ok, {undefined, [rezept:finalize(Recept)|Records], NewReceptTemplate}};
+                    {ok, State#state{recept=undefined,
+                                     records=[rezept:finalize(Recept)|Records],
+                                     template=NewReceptTemplate}};
                 {"GO", true} -> %% End of file
-                    {ok, {undefined, [rezept:finalize(Recept)|Records], ReceptTemplate}};
+                    {ok, State#state{recept=undefined,
+                                     records=[rezept:finalize(Recept)|Records]}};
                 {"GO", false} -> %% End of file, buggy
                     {error, unexpected_eof};
                 {"RE", true} ->
                     Date = extract_re_date(Data),
                     Recept2 = rezept:finalize(rezept:append_to_recept(Recept#recept{date=Date}, Data)),
                     NewRecept = ReceptTemplate#recept{patient_id=extract_patient_id(Data)},
-                    {ok, {NewRecept, [Recept2|Records], ReceptTemplate}};
+                    {ok, State#state{recept=NewRecept, records=[Recept2|Records]}};
                 {"RE", false} ->
                     Date = extract_re_date(Data),
                     NewRecept = rezept:append_to_recept(ReceptTemplate#recept{date=Date}, Data),
                     Recept2 = NewRecept#recept{patient_id=extract_patient_id(Data)},
-                    {ok, {Recept2, Records, ReceptTemplate}};
+                    {ok, State#state{recept=Recept2}};
                 {_, true} ->
-                    {ok, {rezept:append_to_recept(Recept, Data), Records, ReceptTemplate}};
+                    {ok, State#state{recept=rezept:append_to_recept(Recept, Data)}};
                 {_, false} ->
-                    {ok, {rezept:append_to_recept(ReceptTemplate, Data), Records, ReceptTemplate}}
+                    {ok, State#state{recept=rezept:append_to_recept(ReceptTemplate, Data)}}
             end;
         {value, _, _} ->
             {error, {not_yet, RecordID}};

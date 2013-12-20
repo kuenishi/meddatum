@@ -2,6 +2,69 @@
 %% オンライン又は光ディスク等による請求に係る記録条件仕様(DPC用)
 %% via http://www.ssk.or.jp/rezept/iryokikan/download/files/iryokikan_in_03.pdf
 
+-define(COLUMNS_DPC_RE,
+        [
+         {record_info, latin1, 2},
+         {recenum, integer, 6},
+         {recesyucd, integer, 4},
+         {shinym, gyymm, 5},
+         {nm, unicode, 20},
+         {sex, integer, 1},
+         {birthymd, gyymmdd, 7},
+         {benefit, {maybe, integer}, 3},
+         {nyuymd, {maybe, gyymmdd}, 7},
+         {wrdkb, {maybe, latin1}, 8},
+         {ftn_shokuji_kb, {maybe, integer}, 1},
+         {rece_tokki, {maybe, latin1}, 10},
+         {byoushou, {maybe, integer}, 4},
+         {kanjaid, {maybe, latin1}, 20},
+         {tentanka, {maybe, integer}, 2},
+         {yobi1, {maybe, integer}, 1},
+         {yobi2, {maybe, integer}, 1},
+         {kyu_shinka, {maybe, integer}, 2},
+         %% above are same as ?COLUMNS_MED_RE
+
+         %% レセプト総括区分	数字	1
+         {dpcrecekb, {maybe, integer}, 1},
+         %% 明細情報数	数字	2
+         {dpcreceno, {maybe, integer}, 2},
+
+         %% below are same as ?COLUMNS_MED_RE
+         {search_num, {maybe, integer}, 30},
+         {recorddate, {maybe, gyymm}, 5},
+         {seiinfo, {maybe, unicode}, 40},
+         {shinka1, {maybe, integer}, 2},
+         {bui1, {maybe, integer}, 3},
+         {sex1, {maybe, integer}, 3},
+         {procedure1, {maybe, integer}, 3},
+         {disease1, {maybe, integer}, 3}
+        ]).
+
+%% ウ レセプト情報 (ア) 保険者レコード
+-define(COLUMNS_DPC_HO,
+        [
+         {record_info, latin1, 2},
+         {hokno, latin1, 8},
+         {kigo, {maybe, unicode}, 40},
+         {bango, unicode, 40},
+         {hoknissu, integer, 2},
+         {hokten, integer, 8},
+         {yobi, {maybe, integer}, 5},
+         {kaisu, {maybe, integer}, 2},
+         {amount, {maybe, integer}, 8},
+         {shokjiyu, {maybe, integer}, 1},
+         {shomei_num, {maybe, integer}, 3},
+         {medical_hok, {maybe, integer}, 9},
+         {genmen_kb, {maybe, integer}, 1},
+         {gengakuwariai, {maybe, integer}, 3},
+         {gengakukingaku, {maybe, integer}, 6},
+         %% above are same as ?COLUMNS_MED_HO
+
+         %%標準負担額	数字	8
+         {standard_ftn, {maybe, integer}, 8}
+        ]).
+
+
 %% キ
 %% 診断群分類情報
 %% 診断群分類情報は、レセプトがDPCレセプト及び総括対象DPCレセプトの場合に記録する。
@@ -359,7 +422,7 @@
         ]).
 
 %% (イ) 公費レコード
--define(COLUMNS_KO,
+-define(COLUMNS_DPC_KO,
         [
          {record_info, latin1, 2},%  英数 2 固定“KO”を記録する。
           %%       公 費 負 担 医 療
@@ -413,3 +476,57 @@
          {standard_ftn, {maybe, integer}, 8}
         ]).
 
+
+-define(DPC_RECORD_TYPES,
+        [
+         {"IR", "医療機関情報レコード", ?COLUMNS_IR}, %% 保険医療機関単位データの先頭に記録必須
+         {"RE", "レセプト共通レコード", ?COLUMNS_DPC_RE}, %% レセプト単位データの先頭に記録必須
+         {"HO", "保険者レコード", ?COLUMNS_DPC_HO},       %% 医療保険レセプトの場合に記録
+         {"KO", "公費レコード", ?COLUMNS_DPC_KO},         %% 公費負担医療レセプトの場合に記録
+         {"KH", "国保連固有情報レコード", ?COLUMNS_KH},%% 国保連固有情報の場合に記録
+
+         %% from DPC
+         {"BU", "診断群分類レコード", ?COLUMNS_BU},   %% 診断群分類情報は、レセプトがDPCレセプト及び総括対象DPCレセプトの場合に記録。
+         {"SB", "傷病レコード", ?COLUMNS_SB}, %% レセプトがDPCレセプト及び総括対象DPCレセプトの場合に記録する。
+         {"KK", "患者基礎レコード", ?COLUMNS_KK},
+         {"SK", "診療関連レコード", ?COLUMNS_SK},
+         {"GA", "外泊レコード", ?COLUMNS_GA},
+         {"HH", "包括評価レコード", ?COLUMNS_HH},
+         {"GT", "合計調整レコード", ?COLUMNS_GT},
+         {"CD", "合計調整レコード", ?COLUMNS_CD},
+
+         {"SY", "傷病名レコード", ?COLUMNS_SY},       %% 傷病名を記録
+         {"SI", "診療行為レコード", ?COLUMNS_SI},     %% SI 診療行為を記録
+         {"IY", "医薬品レコード ", ?COLUMNS_IY},      %% IY 医薬品を記録
+         {"TO", "特定器材レコード", ?COLUMNS_TO},     %% TO 特定器材を記録
+         {"CO", "コメントレコード", ?COLUMNS_CO},     %% CO コメントを記録
+         {"NI", "日計表レコード", ?COLUMNS_NI},       %% NI 摘要情報の日毎の回数を記録
+         {"SJ", "症状詳記レコード", ?COLUMNS_SJ},     %% SJ 症状詳記を記録
+         {"TI", "臓器提供医療機関情報レコード", ?COLUMNS_TI},
+         %%  TI 臓器提供医療機関単位データの先頭に記録必須
+         {"TR", "臓器提供者レセプト情報レコード", ?COLUMNS_TR},
+         %%  TR 臓器提供者レセプト単位データの先頭に記録必須
+         {"TS", "臓器提供者請求情報レコード", ?COLUMNS_TS},
+         %%  TS 臓器提供者レセプトの請求情報として記録必須
+         {"GO", "診療報酬請求書レコード", ?COLUMNS_GO},%% GO 医療機関単位データの最後に記録必須
+
+         %% from rezept01.pdf
+         {"HI", "返戻医療機関レコード", ?COLUMNS_HI}, %% HI 保険医療機関単位データの先頭に記録必須
+         {"HR", "返戻理由レコード", ?COLUMNS_HR},     %% HR 返戻理由を記録
+         %% HR 履歴管理情報の付された返戻理由レコードを記録
+         %% 履歴請求データ RE等 履歴管理情報の付された※請求データを記録
+
+         {"RC", "レコード管理情報レコード", ?COLUMNS_RC},
+         %% RC 審査支払機関が当該レセプトを識別する情報を記録
+         {"HG", "返戻合計レコード", ?COLUMNS_HG},  %% HG 保険医療機関単位データの最後に記録必須
+         {"JY", "事由レコード", ?COLUMNS_JY},    %% JY 補正箇所と補正事由を記録
+         {"EX", "審査運用レコード", ?COLUMNS_EX},
+         %% EX 審査支払機関による運用で付加する情報を記録
+         {"MD", "再審査等申し出レコード", ?COLUMNS_MD}, %% MD 再審査等申し出理由を記録
+         {"RT", "理由対象レコード", ?COLUMNS_RT},     %% RT 申し出理由の対象を記録
+         {"JR", "レセプト縦覧レコード", ?COLUMNS_JR}, %% JR 関連するレセプトの検索番号等を記録
+         {"MK", "再審査等申し出結果レコード", ?COLUMNS_MK},
+         %% MK 審査支払機関での再審査等結果を記録
+         {"MN", "レセプト管理レコード", ?COLUMNS_MN} %% MN レセプト共通キーなどの情報を記録
+
+        ]).
