@@ -2,7 +2,7 @@
 
 main([]) ->
     io:format("usage: rezeptdeleter localhost|<ip_address>  dpc|med  <filename>");
-main([Host, Mode, File])->
+main([Host, _Mode, File])->
     {ok,Path} = file:get_cwd(),
     code:add_pathz(Path ++ "/ebin"),
     io:setopts([{encoding, unicode}]),
