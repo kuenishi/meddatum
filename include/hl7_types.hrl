@@ -263,7 +263,7 @@
          {"valuetype", 'ID', 2, "値型"}, %% OBX-2 -
          {"observation_identifier", 'CWE', 250, "検査項目"}, %% OBX-3 <Identifier (ST)> ^ <Text (ST)> ^ <Name of Coding System (IS)> ^ <Alternate Identifier (ST)> ^ <Alternate Text (ST)> ^ <Name of Alternate Coding System (IS)> ^ <Coding System Version ID (ST)> ^ <Alternate Coding System Version ID (ST)> ^ <Original Text (ST)>
          {"observation_subid", {maybe,'ST'}, 20, "検査副 ID"}, %% OBX-4 -
-         {"observation_value", '*', 65536, "検査値"}, %% OBX-5 OBX-2によって変わる
+         {"observation_value", {maybe, '*'}, 65536, "検査値"}, %% OBX-5 OBX-2によって変わる
          {"units", {maybe,'CWE'}, 250, "単位"}, %% OBX-6 <Identifier (ST)> ^ <Text (ST)> ^ <Name of Coding System (IS)> ^ <Alternate Identifier (ST)> ^ <Alternate Text (ST)> ^ <Name of Alternate Coding System (IS)> ^ <Coding System Version ID (ST)> ^ <Alternate Coding System Version ID (ST)> ^ <Original Text (ST)>
          {"references_range", {maybe,'ST'}, 60, "基準値範囲"}, %% OBX-7 -
          {"abnormal_flags", {maybe,'IS'}, 5, "異常フラグ"}, %% OBX-8 -
