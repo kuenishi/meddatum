@@ -40,6 +40,6 @@ curl -X DELETE http://${HOST}/buckets/test_bucket/keys/test
 curl -X DELETE http://${HOST}/buckets/test_bucket/props \
   -H 'Content-type:application/json' \
   -d '{"props":{"yz_index":"test_index"}}'
-curl -X DELETE http://${HOST}/yz/index/test_index
+curl -X DELETE http://${HOST}/search/index/test_index
 
 echo "\nAll tests ran successfully."
