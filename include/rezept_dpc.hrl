@@ -16,11 +16,11 @@
          {wrdkb, {maybe, latin1}, 8},
          {ftn_shokuji_kb, {maybe, integer}, 1},
          {rece_tokki, {maybe, latin1}, 10},
-         {byoushou, {maybe, integer}, 4},
+         {yobi1, {maybe, integer}, 4},
          {kanjaid, {maybe, latin1}, 20},
          {tentanka, {maybe, integer}, 2},
-         {yobi1, {maybe, integer}, 1},
          {yobi2, {maybe, integer}, 1},
+         {yobi3, {maybe, integer}, 1},
          {kyu_shinka, {maybe, integer}, 2},
          %% above are same as ?COLUMNS_MED_RE
 
@@ -68,7 +68,7 @@
 %% キ
 %% 診断群分類情報
 %% 診断群分類情報は、レセプトがDPCレセプト及び総括対象DPCレセプトの場合に記録する。
--define(COLUMNS_BU,
+-define(COLUMNS_DPC_BU,
         [
          {record_info, latin1, 2}, %% 英数 2 固定 BUを記録する。
          {dpc, latin1, 14}, %% 英数 14 固定 別に定める診断群分類番号を記録する。
@@ -95,7 +95,7 @@
 %% 傷病情報
 %% 傷病情報は、レセプトがDPCレセプト及び総括対象DPCレセプトの場合に記録する。
 %% 傷病レコード
--define(COLUMNS_SB,
+-define(COLUMNS_DPC_SB,
         [
          {record_info, latin1, 2}, %% 英数 2 固定 SBを記録する。
 
@@ -133,7 +133,7 @@
 %% 患者基礎情報
 %% 患者基礎情報は、レセプトがDPCレセプト及び総括対象DPCレセプトの場合に記録する。
 %% 患者基礎レコード
--define(COLUMNS_KK,
+-define(COLUMNS_DPC_KK,
         [
          {record_info, latin1, 2}, %% 固定 “KK”を記録する。
 
@@ -424,109 +424,38 @@
 %% (イ) 公費レコード
 -define(COLUMNS_DPC_KO,
         [
-         {record_info, latin1, 2},%  英数 2 固定“KO”を記録する。
-          %%       公 費 負 担 医 療
-         {futno, latin1, 8},%  英数 8 固定医療券等に記入されている公費負担者番号 8桁を記録する。
-         {jyukno, integer, 7},%  数字 7 可変
-          %% 1 医療券等に記入されている受給者番号7 桁を記録する。
-          %% 2 受給者番号が7桁に満たない場合は、先 頭から“0”を記録し、7桁で記録する。
-          %% 3 医療観察法(法別30)の場合は、記録 を省略する。
-
-         {kyufkb, {maybe, integer}, 1},%  数字 1 可変
-          %% 1 国民健康保険又は退職者医療の場合公費 負担者に任意給付があるときは、“1”を 記録する。
-          %% 2 その他の場合は、記録を省略する。
-
-         {hoknissu, integer, 2},%  数字 2 可変
-         %% 1 公費負担医療の診療実日数を記録する。
-         %% 2 有効桁数が2桁に満たない場合は、有効 桁までの記録としても差し支えない。
-
-         {hokten, integer, 8},%  数字 8 可変
-          %% 1 公費の合計点数を記録する。
-          %% 2 有効桁数が8桁に満たない場合は、有効 桁までの記録としても差し支えない。
-
-         {kohi, {maybe, integer},8},%  数字 8 可変
-         %% 1 医療券等に記入されている公費負担医療 に係る患者の負担額を記録する。
-         %% 2 有効桁数が8桁に満たない場合は、有効 桁までの記録としても差し支えない。
-         %% 3 公費負担医療に係る患者の負担額がない 場合は、記録を省略する。
-
-         %%   公費給付対象
-
-         {yobi1, {maybe, integer}, 6},%  数字 6 可変
-         %% {'外来一部負担金', {maybe, integer}, 6},%  数字 6 可変
-         %% 1 医療保険と公費負担医療併用又は後期高 齢者医療と公費負担医療併用であって、外 来一部負担金相当額を公費負担医療が給付 する場合において、当該外来一部負担金相 当額の一部を公費負担医療が給付するとき は、公費負担医療に係る給付対象額を記録 する。
-         %% 2 有効桁数が6桁に満たない場合は、有効 桁までの記録としても差し支えない。
-         %% 3 その他の場合は、記録を省略する。
-
-         {kohi_ftn, {maybe, integer}, 6},%   数字  6  可変
-          %%  1 医療保険と公費負担医療併用又は後期高 齢者医療と公費負担医療併用であって、入 院一部負担金相当額を公費負担医療が給付 する場合において、当該入院一部負担金相 当額の一部を公費負担医療が給付するとき は、公費負担医療に係る給付対象額を記録 する。
-          %% 2 有効桁数が6桁に満たない場合は、有効 桁までの記録としても差し支えない。
-          %% 3 その他の場合は、記録を省略する。
-
-         {yobi2, {maybe, integer}, 5},%  数字 5 可変記録を省略する。
-         {actcnt, {maybe, integer}, 2},%  数字 2 可変
-          %% 1 公費の食事療養及び生活療養の食事回数 を記録する。
-          %% 2 有効桁数が2桁に満たない場合は、有効 桁までの記録としても差し支えない。
-          %% 3 レセプト種別が入院外の場合は、記録を 省略する。
-
-         {amount, {maybe, integer}, 8},%   数字  8  可変
-          %%  1 公費の食事療養及び生活療養の合計金額 を記録する。
-          %% 2 有効桁数が8桁に満たない場合は、有効 桁までの記録としても差し支えない。
-          %% 3 レセプト種別が入院外の場合は、記録を 省略する。
+         {record_info, latin1, 2},
+         {futno, latin1, 8},
+         {jyukno, integer, 7},
+         {kyufkb, {maybe, integer}, 1},
+         {hoknissu, integer, 2},
+         {hokten, integer, 8},
+         {kohi, {maybe, integer},8},
+         {yobi1, {maybe, integer}, 6},
+         {kohi_ftn, {maybe, integer}, 6},
+         {yobi2, {maybe, integer}, 5},
+         {actcnt, {maybe, integer}, 2},
+         {amount, {maybe, integer}, 8},
+         %% ^ mostly same as COLUMNS_MED_KO except yobi1
 
          {standard_ftn, {maybe, integer}, 8}
+
+
         ]).
 
 
 -define(DPC_RECORD_TYPES,
         [
-         {"IR", "医療機関情報レコード", ?COLUMNS_IR}, %% 保険医療機関単位データの先頭に記録必須
          {"RE", "レセプト共通レコード", ?COLUMNS_DPC_RE}, %% レセプト単位データの先頭に記録必須
          {"HO", "保険者レコード", ?COLUMNS_DPC_HO},       %% 医療保険レセプトの場合に記録
          {"KO", "公費レコード", ?COLUMNS_DPC_KO},         %% 公費負担医療レセプトの場合に記録
-         {"KH", "国保連固有情報レコード", ?COLUMNS_KH},%% 国保連固有情報の場合に記録
-
-         %% from DPC
-         {"BU", "診断群分類レコード", ?COLUMNS_BU},   %% 診断群分類情報は、レセプトがDPCレセプト及び総括対象DPCレセプトの場合に記録。
-         {"SB", "傷病レコード", ?COLUMNS_SB}, %% レセプトがDPCレセプト及び総括対象DPCレセプトの場合に記録する。
-         {"KK", "患者基礎レコード", ?COLUMNS_KK},
+         {"BU", "診断群分類レコード", ?COLUMNS_DPC_BU},   %% 診断群分類情報は、レセプトがDPCレセプト及び総括対象DPCレセプトの場合に記録。
+         {"SB", "傷病レコード", ?COLUMNS_DPC_SB}, %% レセプトがDPCレセプト及び総括対象DPCレセプトの場合に記録する。
+         {"KK", "患者基礎レコード", ?COLUMNS_DPC_KK},
          {"SK", "診療関連レコード", ?COLUMNS_SK},
          {"GA", "外泊レコード", ?COLUMNS_GA},
          {"HH", "包括評価レコード", ?COLUMNS_HH},
          {"GT", "合計調整レコード", ?COLUMNS_GT},
-         {"CD", "合計調整レコード", ?COLUMNS_CD},
+         {"CD", "合計調整レコード", ?COLUMNS_CD}
 
-         {"SY", "傷病名レコード", ?COLUMNS_SY},       %% 傷病名を記録
-         {"SI", "診療行為レコード", ?COLUMNS_SI},     %% SI 診療行為を記録
-         {"IY", "医薬品レコード ", ?COLUMNS_IY},      %% IY 医薬品を記録
-         {"TO", "特定器材レコード", ?COLUMNS_TO},     %% TO 特定器材を記録
-         {"CO", "コメントレコード", ?COLUMNS_CO},     %% CO コメントを記録
-         {"NI", "日計表レコード", ?COLUMNS_NI},       %% NI 摘要情報の日毎の回数を記録
-         {"SJ", "症状詳記レコード", ?COLUMNS_SJ},     %% SJ 症状詳記を記録
-         {"TI", "臓器提供医療機関情報レコード", ?COLUMNS_TI},
-         %%  TI 臓器提供医療機関単位データの先頭に記録必須
-         {"TR", "臓器提供者レセプト情報レコード", ?COLUMNS_TR},
-         %%  TR 臓器提供者レセプト単位データの先頭に記録必須
-         {"TS", "臓器提供者請求情報レコード", ?COLUMNS_TS},
-         %%  TS 臓器提供者レセプトの請求情報として記録必須
-         {"GO", "診療報酬請求書レコード", ?COLUMNS_GO},%% GO 医療機関単位データの最後に記録必須
-
-         %% from rezept01.pdf
-         {"HI", "返戻医療機関レコード", ?COLUMNS_HI}, %% HI 保険医療機関単位データの先頭に記録必須
-         {"HR", "返戻理由レコード", ?COLUMNS_HR},     %% HR 返戻理由を記録
-         %% HR 履歴管理情報の付された返戻理由レコードを記録
-         %% 履歴請求データ RE等 履歴管理情報の付された※請求データを記録
-
-         {"RC", "レコード管理情報レコード", ?COLUMNS_RC},
-         %% RC 審査支払機関が当該レセプトを識別する情報を記録
-         {"HG", "返戻合計レコード", ?COLUMNS_HG},  %% HG 保険医療機関単位データの最後に記録必須
-         {"JY", "事由レコード", ?COLUMNS_JY},    %% JY 補正箇所と補正事由を記録
-         {"EX", "審査運用レコード", ?COLUMNS_EX},
-         %% EX 審査支払機関による運用で付加する情報を記録
-         {"MD", "再審査等申し出レコード", ?COLUMNS_MD}, %% MD 再審査等申し出理由を記録
-         {"RT", "理由対象レコード", ?COLUMNS_RT},     %% RT 申し出理由の対象を記録
-         {"JR", "レセプト縦覧レコード", ?COLUMNS_JR}, %% JR 関連するレセプトの検索番号等を記録
-         {"MK", "再審査等申し出結果レコード", ?COLUMNS_MK},
-         %% MK 審査支払機関での再審査等結果を記録
-         {"MN", "レセプト管理レコード", ?COLUMNS_MN} %% MN レセプト共通キーなどの情報を記録
-
-        ]).
+        ] ++ ?REZEPT_COMMON_RECORDS).

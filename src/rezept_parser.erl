@@ -31,7 +31,7 @@
                 template     :: #recept{},
                 mode         :: med | dpc}).
 
--spec parse_file(filename:filename(), file:file_info()) -> {ok, [term()]}.
+-spec parse_file(filename:filename(), med | dpc) -> {ok, [term()]}.
 parse_file(Filename, Mode) ->
     parse_file(Filename, Mode, fun ?MODULE:default_extractor/1).
 
