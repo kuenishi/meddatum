@@ -19,6 +19,7 @@
 -include_lib("eunit/include/eunit.hrl").
 -include_lib("riakc/include/riakc.hrl").
 -include("rezept.hrl").
+-include("meddatum.hrl").
 
 -export([put_record/2, delete_from_file/2]).
 
@@ -30,7 +31,8 @@ put_record(C, Record0) ->
             ContentType = "application/json",
             %% Key = list_to_binary(integer_to_list(erlang:phash2(JSONRecords))),
             Key = rezept:key(Record0),
-            RiakObj0 = meddatum:maybe_new_ro(C, <<"rezept">>, Key, JSONRecords, ContentType),
+            Bucket = meddatum:true_bucket_name(?RECEPT_BUCKET),
+            RiakObj0 = meddatum:maybe_new_ro(C, Bucket, Key, JSONRecords, ContentType),
 
             %% put indices to all member
             RiakObj = set_2i(RiakObj0, Record0),
@@ -64,10 +66,11 @@ delete_from_file(C, Filename) ->
     KeyPrefix = rezept:key_prefix(Filename),
     Start = KeyPrefix,
     End   = <<KeyPrefix/binary, 255>>,
-    case riakc_pb_socket:get_index_range(C, <<"rezept">>, <<"$key">>, Start, End) of
+    Bucket = meddatum:true_bucket_name(?RECEPT_BUCKET),
+    case riakc_pb_socket:get_index_range(C, Bucket, <<"$key">>, Start, End) of
         {ok, #index_results_v1{keys=Keys}} ->
             {ok, lists:foldl(fun(ok, {OK,E}) -> {OK +1, E};
                                 (_,  {OK,E}) -> {OK, E+1 } end, {0, 0},
-                             [riakc_pb_socket:delete(C, <<"rezept">>, Key) || Key <- Keys])};
+                             [riakc_pb_socket:delete(C, Bucket, Key) || Key <- Keys])};
         E -> E
     end.
