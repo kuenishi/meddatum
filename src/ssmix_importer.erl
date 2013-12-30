@@ -15,10 +15,11 @@
 %%
 
 -module(ssmix_importer).
-
 -export([connect/2, disconnect/1, put_json/2,
          index_name/1]).
+
 -include("hl7.hrl").
+-include("meddatum.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
 -spec connect(term(), inet:port_number()) -> {ok, pid()}.
@@ -33,7 +34,8 @@ put_json(Client, Msg) ->
     ContentType = <<"application/json">>,
     Key = filename:basename(Msg#hl7msg.file),
     Data = hl7:to_json(Msg),
-    RiakObj0 = meddatum:maybe_new_ro(Client, <<"ssmix">>, Key, Data, ContentType),
+    Bucket = meddatum:true_bucket_name(?SSMIX_BUCKET),
+    RiakObj0 = meddatum:maybe_new_ro(Client, Bucket, Key, Data, ContentType),
 
     _ = lager:debug("inserting: ~p~n", [Key]),
     RiakObj = set_2i(RiakObj0, Msg#hl7msg.date, Msg#hl7msg.patient_id),

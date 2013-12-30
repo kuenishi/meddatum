@@ -16,9 +16,11 @@
 
 -module(meddatum).
 
--export([search/2, search/3, maybe_new_ro/5]).
+-export([search/2, search/3, true_bucket_name/1, maybe_new_ro/5,
+         setup/2]).
 
 -include_lib("eunit/include/eunit.hrl").
+-include("meddatum.hrl").
 
 search(Server, Query) ->
     search(Server, Query,
@@ -94,6 +96,12 @@ print_doc(C, {B,K}) ->
             io:format(standard_error, "unknown: ~p~n", [Other])
     end.
 
+true_bucket_name(Bucket0) ->
+    case meddatum_config:use_bucket_types() of
+        true -> {?BUCKET_TYPE, Bucket0};
+        false -> Bucket0
+    end.
+
 %% Maybe new Riak Object
 maybe_new_ro(Client, Bucket, Key, Data, ContentType) ->
     case riakc_pb_socket:get(Client, Bucket, Key) of
@@ -110,3 +118,35 @@ maybe_new_ro(Client, Bucket, Key, Data, ContentType) ->
             _ = lager:debug("inserting ~p/~p: ~p~n", [Bucket, Key, _E]),
             riakc_obj:new(Bucket, Key, Data, ContentType)
     end.
+
+-define(RESULT(N, X), io:format("~s: ~p~n", [(N), (X)])).
+
+setup(Host, Port) ->
+    {ok, C} = riakc_pb_socket:start_link(Host, Port),
+    {ok, Indexes} = riakc_pb_socket:list_search_indexes(C),
+    ?RESULT("indexes", Indexes),
+
+    case riakc_pb_socket:get_search_index(C, ?INDEX_NAME) of
+        {ok, Result} -> ?RESULT("get search index", Result);
+        {error, _} ->
+            ?RESULT("create_search_index",
+                    riakc_pb_socket:create_search_index(C, ?INDEX_NAME))
+    end,
+
+    {B, K} = {{?BUCKET_TYPE, <<"b">>}, <<"k">>},
+    Obj0 = meddatum:maybe_new_ro(C, B, K,
+                                 <<"{\"test\":1}">>, "application/json"),
+    ?RESULT("get a test data", riakc_obj:get_contents(Obj0)),
+
+    ?RESULT("put a test data", riakc_pb_socket:put(C, Obj0)),
+    timer:sleep(100),
+    SO = [], %%[{rows,1024},{fl,<<"foobar">>}],
+    {ok, SearchResult} = riakc_pb_socket:search(C, ?INDEX_NAME, <<"*:*">>, SO),
+    ?RESULT("try a search", SearchResult),
+
+    ?RESULT("delete test data", riakc_pb_socket:delete(C, B, K)),
+    %% ?RESULT("delete search index", riakc_pb_socket:delete_search_index(C, <<"md_index">>)),
+    ?RESULT("get k/v", riakc_pb_socket:get(C, B, K)),
+
+    ok = riakc_pb_socket:stop(C).
+
