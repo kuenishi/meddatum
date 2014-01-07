@@ -1,11 +1,12 @@
 {application, meddatum,
  [
   {description, "SSMIX / Japanese Recept library"},
-  {vsn, "0.0.5"},
+  {vsn, "0.1.0"},
   {registered, []},
   {applications, [
                   kernel,
-                  stdlib
+                  stdlib,
+                  lager
                  ]},
   {mod, { hl7_app, []}},
   {env, []}
