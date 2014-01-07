@@ -82,7 +82,18 @@ key_prefix(Filename) when is_list(Filename) ->
 append_to_recept(#recept{segments=List} = Recept, Data) ->
     Recept#recept{segments=[Data|List]}.
 
+%% has_re(#recept{segments=List} = _Recept) ->
+%%     HasRE = fun(Segment) ->
+%%                    case proplists:get_value(record_info, Segment) of
+%%                        <<"RE">> -> true;
+%%                        _ -> false
+%%                    end
+%%              end,
+%%     lists:any(HasRE, List).
+
+
 finalize(#recept{segments=List} = Recept) ->
+    %% true = has_re(Recept),
     NewList = lists:reverse(List),
     Recept#recept{segments=NewList}.
 

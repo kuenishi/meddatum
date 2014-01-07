@@ -171,35 +171,32 @@ parse_line(Line, LineNo, #state{recept=Recept, records=Records,
                 {"MN", true} -> %% error
                     {ok, State#state{recept=undefined,
                                      records=[rezept:finalize(Recept)|Records]}};
-                {"IR", false} -> %% remember hospital ID
-                    NewHospitalID = extract_hospital(Data),
-                    Date = extract_ir_date(Data),
-                    NewReceptTemplate = ReceptTemplate#recept{date=Date,
-                                                              hospital_id=NewHospitalID},
-                    {ok, State#state{recept=undefined, template=NewReceptTemplate}};
-                {"IR", true} ->
+                {"IR", _} -> %% remember hospital ID
+                    NewRecords = case Recept of
+                                     undefined -> Records;
+                                     _ when is_record(Recept, recept) -> [rezept:finalize(Recept)|Records]
+                                 end,
                     NewHospitalID = extract_hospital(Data),
                     Date = extract_ir_date(Data),
                     NewReceptTemplate = ReceptTemplate#recept{date=Date,
                                                               hospital_id=NewHospitalID},
                     {ok, State#state{recept=undefined,
-                                     records=[rezept:finalize(Recept)|Records],
+                                     records=NewRecords,
                                      template=NewReceptTemplate}};
                 {"GO", true} -> %% End of file
                     {ok, State#state{recept=undefined,
                                      records=[rezept:finalize(Recept)|Records]}};
                 {"GO", false} -> %% End of file, buggy
                     {error, unexpected_eof};
-                {"RE", true} ->
-                    Date = extract_re_date(Data),
-                    Recept2 = rezept:finalize(rezept:append_to_recept(Recept#recept{date=Date}, Data)),
-                    NewRecept = ReceptTemplate#recept{patient_id=extract_patient_id(Data)},
-                    {ok, State#state{recept=NewRecept, records=[Recept2|Records]}};
-                {"RE", false} ->
-                    Date = extract_re_date(Data),
-                    NewRecept = rezept:append_to_recept(ReceptTemplate#recept{date=Date}, Data),
-                    Recept2 = NewRecept#recept{patient_id=extract_patient_id(Data)},
-                    {ok, State#state{recept=Recept2}};
+                {"RE", _} ->
+                    NewRecords = case Recept of
+                                     undefined -> Records;
+                                     _ when is_record(Recept, recept) -> [rezept:finalize(Recept)|Records]
+                                 end,
+                    NewRecept0 = ReceptTemplate#recept{patient_id=extract_patient_id(Data),
+                                                       date=extract_re_date(Data)},
+                    NewRecept = rezept:append_to_recept(NewRecept0, Data),
+                    {ok, State#state{recept=NewRecept, records=NewRecords}};
                 {_, true} ->
                     {ok, State#state{recept=rezept:append_to_recept(Recept, Data)}};
                 {_, false} ->
