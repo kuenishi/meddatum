@@ -46,20 +46,17 @@ parse_file(Filename, Mode, InfoExtractor) when is_function(InfoExtractor) ->
     F = fun({newline, NewLine}, {LineNo, Ctx0}) ->
                 {ok, Ctx} = parse_line(NewLine, LineNo, Ctx0),
                 {LineNo+1, Ctx};
+           ({eof}, {LineNo, Ctx0}) ->
+                {ok, Ctx} = handle_eof(LineNo, Ctx0),
+                {LineNo+1, Ctx};
            (_, {LineNo, Ctx0}) -> {LineNo+1, Ctx0}
         end,
 
     InitCtx = #state{template = #recept{file=BinFilename, checksum=BinChecksum},
                      mode = Mode},
     {ok, {Total, ResultCtx}} = ecsv:process_csv_string_with(lists:flatten(Lines), F, {0, InitCtx}),
-    #state{recept=Recept, records=Records0} = ResultCtx,
 
-    Records1 = case Recept of
-                   undefined -> Records0;
-                   _ when is_record(Recept, recept) ->
-                       NewList = lists:reverse(Recept#recept.segments),
-                       [Recept#recept{segments=NewList}|Records0]
-               end,
+    #state{records=Records1} = ResultCtx,
     _ = lager:info("~p records for ~p lines.~n", [length(Records1), Total]),
 
     case InfoExtractor of
@@ -207,6 +204,12 @@ parse_line(Line, LineNo, #state{recept=Recept, records=Records,
         false ->
             {error, {unknown_record, RecordID}}
     end.
+
+handle_eof(_LineNo, #state{recept=undefined} = Ctx0) ->
+    {ok, Ctx0};
+handle_eof(_LineNo, #state{recept=Recept0, records=Records} = Ctx0) ->
+    Recept = rezept:finalize(Recept0),
+    {ok, Ctx0#state{recept=undefined, records=[Recept|Records]}}.
 
 -spec check_type({atom(), atom()|{maybe,atom()}, integer()}, string())
                 -> {ok, {string(), null|binary()}}. %% unicode binary
