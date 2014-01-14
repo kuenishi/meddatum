@@ -23,21 +23,36 @@
 walk2(Path, HospitalID, Host, Port) ->
     {ok,C}=ssmix_importer:connect(Host, Port),
     F = fun(File, Acc0) ->
-                _ = lager:info("Processing ~p ~p", [File, HospitalID]),
-                case hl7:parse(File, undefined) of
-                    {ok, HL7Msg0} ->
-                        HL7Msg = hl7:annotate(HL7Msg0#hl7msg{file=list_to_binary(File),
-                                                             hospital_id=HospitalID}),
-                        try
-                            ok=ssmix_importer:put_json(C, HL7Msg)
-                        catch T:E ->
-                                lager:error("~p:~p", [T,E])
-                        end,
-                        Acc0;
-                    {error, _Reason} = R ->
-                        _ = lager:error("~p:~p", [File, R]),
-                        [_Reason|R]
+                case process_file(File, HospitalID, C) of
+                    ok -> Acc0;
+                    {error,_} when is_list(Acc0) ->
+                        [File|Acc0];
+                    {error,_} ->
+                        [File]
                 end
         end,
     _ErrorFiles = filelib:fold_files(Path, "", true, F, []),
     ok=ssmix_importer:disconnect(C).
+
+process_file(File, HospitalID, Riakc) ->
+    _ = lager:info("Processing ~p ~p", [File, HospitalID]),
+    case string:right(File, 2) of
+        "_1" ->
+            case hl7:parse(File, undefined) of
+                {ok, HL7Msg0} ->
+                    HL7Msg = hl7:annotate(HL7Msg0#hl7msg{file=list_to_binary(File),
+                                                         hospital_id=HospitalID}),
+                    try
+                        ok=ssmix_importer:put_json(Riakc, HL7Msg)
+                    catch T:E ->
+                            lager:error("~p:~p", [T,E])
+                    end;
+                {error, _Reason} = R ->
+                    _ = lager:error("~p:~p", [File, R]),
+                    R
+            end;
+        _End ->
+            _ = lager:warning("file ~s ignored because its suffix is not '_1'",
+                              [File]),
+            {error, {bad_suffix, File}}
+    end.
