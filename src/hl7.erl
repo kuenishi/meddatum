@@ -16,7 +16,9 @@
 
 -module(hl7).
 
--export([parse/2, to_json/1, from_json/1, annotate/1, get_segment/2]).
+-export([parse/2, to_json/1, from_json/1, annotate/1,
+         get_segment/2,
+         msg_type/1]).
 
 -include_lib("eunit/include/eunit.hrl").
 -include("hl7.hrl").
@@ -48,6 +50,10 @@ get_segment(#hl7msg{segments = Segments}, SegName) ->
                             _ -> Acc0
                         end
                 end, {error, not_found}, Segments).
+
+msg_type(#hl7msg{msg_type_s=MsgType}) when is_binary(MsgType) ->
+    binary_to_list(MsgType);
+msg_type(#hl7msg{msg_type_s=MsgType}) -> MsgType.
 
 -spec parse(filename:filename(), file:file_info()) -> ok | {error, any()}.
 parse(Filename, Info)->
