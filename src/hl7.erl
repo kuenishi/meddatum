@@ -149,7 +149,7 @@ handle_segment_0(MsgType, Tokens0, Msg, File) ->
                                       %% ok to skip
                                       {Property, null};
                                  ({{Property, {maybe, Type}, Length, _Text}, Col}) ->
-                                      to_json_object(Property, Type, Length, Col, 0);
+                                      to_json_object(Property, Type, Length, Col);
 
                                  ({{Property, _Type, _Length, _Text}, ""}) ->
                                       lager:warning("empty property '~s' which isn't optional in ~s~n",
@@ -158,7 +158,7 @@ handle_segment_0(MsgType, Tokens0, Msg, File) ->
                                       
                                  ({{Property, Type, Length, _Text}, Col}) ->
                                       %% ?debugVal({Property, Type}),
-                                      to_json_object(Property, Type, Length, Col, 0)
+                                      to_json_object(Property, Type, Length, Col)
                       end,
                       lists:zip(MsgDef, Tokens)),
             Data = lists:filter(fun({_,null}) -> false;
@@ -195,13 +195,22 @@ delete_valuetype(Data) ->
                      proplists:delete(<<"observation_value">>, Data)).
     
 
-to_json_object(Property, Type, _Len, Col, Depth) ->
+to_json_object(Property, Type, _Len, Col) ->
     %% DAMN NONSENSE GUARD
     %% if length(Col) > Len ->
     %%         error({"too long text", Col, Len});
     %%    true ->
-    {list_to_binary(Property), to_json_object(Type, Col, Depth)}.
-%%end.
+    %% split repeat
+    %% get_separator(1) -> "[~]";
+    BinProperty = list_to_binary(Property),
+    case re:split(Col, "[~]", [{return,list},unicode]) of
+        [] ->
+            {BinProperty, null};
+        [Token] ->
+            {BinProperty, to_json_object(Type, Token, 0)};
+        Tokens when is_list(Tokens) ->
+            {BinProperty, [to_json_object(Type, T, 0) || T <- Tokens]}
+    end.
 
 to_json_object('ST', Col, _D)-> unicode:characters_to_binary(Col);
 to_json_object('TX', Col, _D)-> unicode:characters_to_binary(Col);
@@ -219,19 +228,18 @@ to_json_object('SI', Col, _D)-> list_to_integer(Col);
 
 %% Work arounds
 to_json_object('*', Col, _) -> {'*', Col}; %% as it is and process later
-%to_json_object('FN', Col, _D)-> ?debugVal(Col), exit(1); %unicode:characters_to_binary(Col); %% undefined
+to_json_object('FN', Col, _D)->  unicode:characters_to_binary(Col); %% undefined
 to_json_object('SAD', Col, _D)-> unicode:characters_to_binary(Col); %% undefined
 to_json_object('SPS', Col, _D)-> unicode:characters_to_binary(Col); %% undefined, maybe, and exists.
 to_json_object('AUI', Col, _D)-> unicode:characters_to_binary(Col); %% undefined, maybe, and exists.
-to_json_object('XCN', Col, _D)-> unicode:characters_to_binary(Col); %% broken data exists and less important
+%% to_json_object('XCN', Col, _D)-> unicode:characters_to_binary(Col); %% broken data exists and less important
 
 to_json_object(Name, Col, Depth)->
     to_record(Name, Col, Depth).
 
 get_separator(0) -> "[\\^]";
-get_separator(1) -> "[~]";
-get_separator(2) -> "[\\\\]";
-get_separator(3) -> "[&]".
+get_separator(1) -> "[\\\\]";
+get_separator(2) -> "[&]".
 
 to_record(Name, Col, Depth) ->
     Tokens0 = re:split(Col, get_separator(Depth), [{return,list},unicode]),
@@ -283,7 +291,7 @@ from_json(Json) when is_binary(Json) ->
     D = decoder(),
     D(Json).
 
-to_json(#hl7msg{} = HL7Msg) ->
+to_json(#hl7msg{segments=_Segs} = HL7Msg) ->
     E = encoder(),
     case E(HL7Msg) of
         Bin when is_binary(Bin) -> Bin;
