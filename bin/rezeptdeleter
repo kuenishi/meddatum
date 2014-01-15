@@ -7,6 +7,7 @@ main([Host, _Mode, File])->
     code:add_pathz(Path ++ "/ebin"),
     io:setopts([{encoding, unicode}]),
     io:format("deleting: ~p~n", [File]),
+    application:set_env(meddatum, use_bucket_types, true),
     {ok, C} = riakc_pb_socket:start_link(Host, 8087),
     case rezept_io:delete_from_file(C, File) of
         {ok, {OK,E}} ->
