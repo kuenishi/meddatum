@@ -16,8 +16,8 @@
 
 -module(ssmix_importer).
 -export([connect/2, disconnect/1, put_json/2,
-         bucket_name/1,
-         index_name/1]).
+         bucket_name/1, index_name/1,
+         delete_all/2]).
 
 -include("hl7.hrl").
 -include("meddatum.hrl").
@@ -72,6 +72,60 @@ index_name(patient_id) ->
     "patient_id";
 index_name(date) ->
     "date".
+
+delete_all(Host, Port) ->
+    delete_all(Host, Port, ?SSMIX_BUCKET),
+    delete_all(Host, Port, ?SSMIX_PATIENTS_BUCKET).
+
+delete_all(Host, Port, Bucket) ->
+    Self = self(),
+    DeleterPid = spawn_link(fun() -> Self ! {self(), deleter(Host, Port, Bucket)} end),
+    _FetcherPid = spawn_link(fun() -> Self ! {self(), fetcher(Host, Port, DeleterPid, Bucket)} end),
+    
+    receive
+        {_, done} ->
+            receive
+                {_, done} -> ok
+            end
+    end.
+
+deleter(Host, Port, Bucket0) ->
+    {ok, C} = connect(Host, Port),
+    Bucket = meddatum:true_bucket_name(Bucket0),
+    Result = deleter_loop(C, Bucket, 0),
+    ok = disconnect(C),
+    io:format("~p deleter: ~p~n", [Bucket, Result]),
+    done.
+
+deleter_loop(C, Bucket, Count) ->
+    receive done -> {ok, Count};
+            Keys when is_list(Keys) ->
+            Fold = fun(Key, N) ->
+                           {ok, RiakObj} = riakc_pb_socket:get(C, Bucket, Key),
+                           ok = riakc_pb_socket:delete_obj(C, RiakObj, [{w,0}]),
+                           N+1
+                   end,
+            Deleted = lists:foldl(Fold, 0, Keys),
+            deleter_loop(C, Bucket, Deleted + Count)
+    end.
+
+fetcher(Host, Port, DeleterPid, Bucket0) ->
+    {ok, C} = connect(Host, Port),
+    Bucket = meddatum:true_bucket_name(Bucket0),
+    {ok, ReqID} = riakc_pb_socket:stream_list_keys(C, Bucket),
+    Result = fetcher_loop(C, ReqID, 0, DeleterPid),
+    ok = disconnect(C),
+    io:format("~p fetcher: ~p > ~p~n", [Bucket, ReqID, Result]),
+    DeleterPid ! done,
+    done.
+
+fetcher_loop(C, ReqID, Count, DeleterPid) ->
+    receive {ReqID, {keys, Keys}} ->
+            DeleterPid ! Keys,
+            fetcher_loop(C, ReqID, Count + length(Keys), DeleterPid);
+            {ReqID, done} -> {ok, Count};
+            {error, E} ->  io:format("~p", [E])
+    end.
 
 
 -ifdef(TEST).
