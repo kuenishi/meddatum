@@ -22,12 +22,12 @@
 -include("hl7.hrl").
 -include("hl7_types.hrl").
 
--spec parse(filename:filename(), file:file_info()) -> ok | {error, any()}.
+-spec parse(filename:filename(), file:file_info()) ->
+                   {ok, #hl7msg{}} | {error, any()}.
 parse(Filename, _Info)->
     parse_msg(Filename).
 
 parse_msg(File)->
-    %%?debugVal(File),
     case read_all_lines(File) of %% I NEED SIMPLE MAYBE MONAD
         {ok, Lines0} ->
             case parse_0(Lines0) of
