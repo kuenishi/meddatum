@@ -121,8 +121,8 @@ compensate(PrevSeg, [Seg|L], Acc) ->
         end,
     case TryCompensate of
         true ->
-            compensate(Seg, L,
-                       [compensate_shin_identifier(PrevSeg, Seg)|Acc]);
+            NewSeg = compensate_shin_identifier(PrevSeg, Seg),
+            compensate(NewSeg, L, [NewSeg|Acc]);
         false ->
             compensate(Seg, L, [Seg|Acc])
     end.
