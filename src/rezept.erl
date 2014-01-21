@@ -103,9 +103,10 @@ finalize(#recept{segments=List, file=File} = Recept) ->
 
     %% same as lists:reverse_map(F, List)
     NewList = [rezept_parser:postprocess(Seg, Recept)|| Seg <- List1],
+    %% Length = length(List) = length(List1) = length(NewList),
     Recept#recept{segments=NewList}.
 
-compensate(undefined, [H|L], Acc) -> compensate(H, L, Acc);
+compensate(undefined, [H|L], Acc) -> compensate(H, L, [H|Acc]);
 compensate(_, [], Acc) ->            lists:reverse(Acc);
 compensate(PrevSeg, [Seg|L], Acc) ->
     %% SI -> shin_identifier
