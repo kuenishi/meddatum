@@ -5,7 +5,7 @@ main([Mode, File])->
     {ok,Path} = file:get_cwd(),
     code:add_pathz(Path ++ "/ebin"),
     io:setopts([{encoding, unicode}]),
-    io:format("~p~n", [File]),
+    io:format(standard_error, "~p~n", [File]),
     ModeAtom = case Mode of
                    "dpc" -> dpc;
                    "med" -> med
@@ -16,4 +16,4 @@ main([Mode, File])->
                      ({error, E}) ->
                           io:format("error: ~p~n", [E])
                   end,
-                  lists:map(fun rezept:to_json/1, Records)).
+                  lists:map(fun rezept:to_json/1, lists:reverse(Records))).

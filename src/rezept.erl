@@ -82,19 +82,74 @@ key_prefix(Filename) when is_list(Filename) ->
 append_to_recept(#recept{segments=List} = Recept, Data) ->
     Recept#recept{segments=[Data|List]}.
 
-%% has_re(#recept{segments=List} = _Recept) ->
-%%     HasRE = fun(Segment) ->
-%%                    case proplists:get_value(record_info, Segment) of
-%%                        <<"RE">> -> true;
-%%                        _ -> false
-%%                    end
-%%              end,
-%%     lists:any(HasRE, List).
+has_re(#recept{segments=List} = _Recept) ->
+    HasRE = fun(Segment) ->
+                    case proplists:get_value(record_info, Segment) of
+                        <<"RE">> -> true;
+                        _ -> false
+                    end
+            end,
+    lists:any(HasRE, List).
 
+finalize(#recept{segments=List, file=File} = Recept) ->
+    case has_re(Recept) of
+        true -> ok;
+        false ->
+            _ = lager:warning("~p doesn't have RE record", [File])
+    end,
 
-finalize(#recept{segments=List} = Recept) ->
-    %% true = has_re(Recept),
-    NewList = lists:reverse(List),
+    %% compensate the omitted IY/SI/TOs
+    List1 = compensate(undefined, lists:reverse(List), []),
+
+    %% same as lists:reverse_map(F, List)
+    NewList = [rezept_parser:postprocess(Seg, Recept)|| Seg <- List1],
     Recept#recept{segments=NewList}.
+
+compensate(undefined, [H|L], Acc) -> compensate(H, L, Acc);
+compensate(_, [], Acc) ->            lists:reverse(Acc);
+compensate(PrevSeg, [Seg|L], Acc) ->
+    %% SI -> shin_identifier
+    %% IY -> shin_identifier
+    %% TO -> shin_identifier
+    TryCompensate =
+        case proplists:get_value(record_info, Seg) of
+            <<"SI">> -> true;
+            <<"IY">> -> true;
+            <<"TO">> -> true;
+            _ -> false
+        end,
+    case TryCompensate of
+        true ->
+            compensate(Seg, L,
+                       [compensate_shin_identifier(PrevSeg, Seg)|Acc]);
+        false ->
+            compensate(Seg, L, [Seg|Acc])
+    end.
+
+compensate_shin_identifier(PrevSeg, Seg) when is_list(PrevSeg) ->
+    case proplists:get_value(shin_identifier, Seg) of
+        I when is_integer(I) -> Seg;
+        _ ->
+            case proplists:get_value(shin_identifier, PrevSeg) of
+                J when is_integer(J) ->
+                    replace_prop(shin_identifier, J, Seg);
+                _ -> Seg
+            end
+    end.
+
+replace_prop(Key, Value, Proplist) ->
+    replace_prop(Key, Value, Proplist, []).
+
+replace_prop(Key, Value, [], Acc) ->
+    lists:reverse([{Key,Value}|Acc]);
+replace_prop(Key, Value, [{Key,_}|TL], Acc) ->
+    rev_append(Acc, [{Key,Value}|TL]);
+replace_prop(Key, Value, [HD|TL], Acc) ->
+    replace_prop(Key, Value, TL, [HD|Acc]).
+
+
+rev_append([], Right) -> Right;
+rev_append([HD|TL], Right) -> rev_append(TL, [HD|Right]).
+
 
 patient_id(#recept{patient_id=PatientID}) -> PatientID.

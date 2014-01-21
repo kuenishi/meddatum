@@ -23,7 +23,8 @@
 
 -export([
          parse_file/3, parse_file/2,
-         default_extractor/1
+         default_extractor/1,
+         postprocess/2
         ]).
 
 -record(state, {recept       :: #recept{},
@@ -159,8 +160,9 @@ parse_line(Line, LineNo, #state{recept=Recept, records=Records,
                                       end
                               end,
                               lists:zip(Cols, Line1)),
-            Data = lists:filter(fun({_,null}) -> false; (_) -> true end,
-                                Data0),
+            Data1 = lists:filter(fun({_,null}) -> false; (_) -> true end,
+                                 Data0),
+            Data = [{<<"_l">>,LineNo}|Data1],
 
             case {RecordID, is_record(Recept, recept)} of
                 {"MN", false} -> %% skip
@@ -240,6 +242,19 @@ check_type({Name, gyymmdd, 7}, Entry) ->
 
 check_type({Name, jy_code, _}, Entry) when length(Entry) =:= 1 ->
     {ok, {Name, unicode:characters_to_binary(Entry)}}.
+
+%% @doc actual postprocessor of each recept record
+postprocess(Seg, _Recept) ->
+%%     case proplists:get_value(record_info, Seg) of
+%%         <<"SI">> -> handle_30days(Seg);
+%%         <<"IY">> -> handle_30days(Seg);
+%%         <<"TO">> -> handle_30days(Seg);
+%%         _ -> Seg
+%%     end.
+    Seg.
+
+%% %% @private
+%% handle_30days(Seg) ->
 
 
 -ifdef(TEST).
