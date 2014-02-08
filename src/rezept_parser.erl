@@ -162,7 +162,7 @@ parse_line(Line, LineNo, #state{recept=Recept, records=Records,
                               lists:zip(Cols, Line1)),
             Data1 = lists:filter(fun({_,null}) -> false; (_) -> true end,
                                  Data0),
-            Data = [{<<"_l">>,LineNo}|Data1],
+            Data = [{<<"l">>,LineNo}|Data1],
 
             case {RecordID, is_record(Recept, recept)} of
                 {"MN", false} -> %% skip
