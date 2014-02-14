@@ -25,7 +25,21 @@
 -spec parse(filename:filename(), file:file_info()) ->
                    {ok, #hl7msg{}} | {error, any()}.
 parse(Filename, _Info)->
-    parse_msg(Filename).
+    {ok, HL7Msg0} = parse_msg(Filename),
+    Date = filename_to_date(Filename),
+    {ok, HL7Msg0#hl7msg{file=list_to_binary(Filename),
+                        date=Date}}.
+
+filename_to_date(Filename) when is_binary(Filename) ->
+    filename_to_date(binary_to_list(Filename));
+filename_to_date(Filename) when is_list(Filename) ->
+    Tokens = string:tokens(Filename, "_"),
+    case length(Tokens) of
+        L when L >= 2 ->
+            list_to_binary(lists:nth(2, Tokens));
+        _ ->
+            undefined
+    end.
 
 parse_msg(File)->
     case read_all_lines(File) of %% I NEED SIMPLE MAYBE MONAD
@@ -104,8 +118,7 @@ parse_1(Msg, [Line|Lines] = _Lines, File) ->
      "~ISO IR87", %% Charcode is fixed (but already translated to UTF8 :)
      _Lang,
      "ISO 2022-1994"|_] = Tokens,
-    #hl7msg{date = maybe_nth(7, Tokens),
-            msg_type_s = maybe_nth(9, Tokens),
+    #hl7msg{msg_type_s = maybe_nth(9, Tokens),
             msg_id = maybe_nth(10, Tokens)}.
 
 

@@ -17,16 +17,22 @@
 -module(hl7).
 
 -export([parse/2, to_json/1, from_json/1, annotate/1,
-         get_segment/2,
+         get_segment/2, update_hospital_id/2,
          msg_type/1]).
 
 -include_lib("eunit/include/eunit.hrl").
 -include("hl7.hrl").
 
 -spec annotate(#hl7msg{}) -> #hl7msg{}.
-annotate(HL70 = #hl7msg{segments=Segs, hospital_id=HospitalID0}) ->
-    {PatientID, HospitalID} = extract(Segs, {undefined, HospitalID0}),
+annotate(HL70 = #hl7msg{segments=Segs,
+                        hospital_id=HospitalID0}) ->
+    {PatientID, HospitalID} =
+        extract(Segs, {undefined, HospitalID0}),
+
     HL70#hl7msg{patient_id=PatientID, hospital_id=HospitalID}.
+
+update_hospital_id(HL7 = #hl7msg{}, HospitalID) ->
+    HL7#hl7msg{hospital_id=HospitalID}.
 
 extract([], Tuple) -> Tuple;
 extract([Seg|Segs], {P0, H0}) ->

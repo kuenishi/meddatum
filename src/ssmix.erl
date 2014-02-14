@@ -40,8 +40,7 @@ process_file(File, HospitalID, Riakc) ->
         "_1" ->
             case hl7:parse(File, undefined) of
                 {ok, HL7Msg0} ->
-                    HL7Msg = hl7:annotate(HL7Msg0#hl7msg{file=list_to_binary(File),
-                                                         hospital_id=HospitalID}),
+                    HL7Msg = hl7:annotate(HL7Msg0#hl7msg{hospital_id=HospitalID}),
                     try
                         ok=ssmix_importer:put_json(Riakc, HL7Msg)
                     catch T:E ->
