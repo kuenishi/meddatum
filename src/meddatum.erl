@@ -30,20 +30,26 @@ true_bucket_name(Bucket0) ->
     end.
 
 %% @private
+ssmix_bucket(HospitalID) when is_binary(HospitalID) ->
+    io:format("~p~n", [HospitalID]),
+    Bucket = <<?SSMIX_BUCKET/binary, ?BUCKET_NAME_SEPARATOR/binary, HospitalID/binary>>,
+    meddatum:true_bucket_name(Bucket);
 ssmix_bucket(HospitalID) ->
-    Bucket = <<?SSMIX_BUCKET/binary, ?BUCKET_NAME_SEPARATOR/binary, HospitalID>>,
-    meddatum:true_bucket_name(Bucket).
+    ssmix_bucket(iolist_to_binary(HospitalID)).
 
 %% @private
+recept_bucket(HospitalID) when is_binary(HospitalID) ->
+    Bucket = <<?RECEPT_BUCKET/binary, ?BUCKET_NAME_SEPARATOR/binary, HospitalID/binary>>,
+    meddatum:true_bucket_name(Bucket);
 recept_bucket(HospitalID) ->
-    Bucket = <<?RECEPT_BUCKET/binary, ?BUCKET_NAME_SEPARATOR/binary, HospitalID>>,
-    meddatum:true_bucket_name(Bucket).
+    recept_bucket(iolist_to_binary(HospitalID)).
 
 %% @private
+ssmix_patients_bucket(HospitalID) when is_binary(HospitalID) ->
+    Bucket = <<?SSMIX_PATIENTS_BUCKET/binary, ?BUCKET_NAME_SEPARATOR/binary, HospitalID/binary>>,
+    meddatum:true_bucket_name(Bucket);
 ssmix_patients_bucket(HospitalID) ->
-    Bucket = <<?SSMIX_PATIENTS_BUCKET/binary, ?BUCKET_NAME_SEPARATOR/binary, HospitalID>>,
-    meddatum:true_bucket_name(Bucket).
-
+    ssmix_patients_bucket(iolist_to_binary(HospitalID)).
 
 %% Maybe new Riak Object
 maybe_new_ro(Client, Bucket, Key, Data, ContentType) ->

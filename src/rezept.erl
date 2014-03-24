@@ -25,7 +25,7 @@
 -export([from_json/1, to_json/1,
          key/1, key_prefix/1,
          bucket/1,
-         patient_id/1,
+         patient_id/1, hospital_id/1,
          from_file/2, from_file/3]).
 
 -export([
@@ -173,3 +173,4 @@ rev_append([HD|TL], Right) -> rev_append(TL, [HD|Right]).
 
 
 patient_id(#recept{patient_id=PatientID}) -> PatientID.
+hospital_id(#recept{hospital_id=HospitalID}) -> HospitalID.

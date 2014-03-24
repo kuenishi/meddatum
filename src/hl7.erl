@@ -46,7 +46,7 @@ bucket(#hl7msg{msg_type_s=MsgType, hospital_id=HospitalID}) ->
                   false -> ?SSMIX_BUCKET
               end,
     Bucket1 = <<Bucket0/binary, ?BUCKET_NAME_SEPARATOR/binary, HospitalID/binary>>,
-    case meddatum:use_bucket_types() of
+    case meddatum_config:use_bucket_types() of
         true -> {?BUCKET_TYPE, Bucket1};
         false -> Bucket0
     end.
