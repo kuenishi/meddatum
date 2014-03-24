@@ -16,12 +16,44 @@
 
 -module(hl7).
 
--export([parse/2, to_json/1, from_json/1, annotate/1,
+-behaviour(md_record).
+
+-export([from_file/2, to_json/1, from_json/1,
+         key/1, bucket/1, patient_id/1]).
+
+-export([annotate/1,
          get_segment/2, update_hospital_id/2,
          msg_type/1]).
 
 -include_lib("eunit/include/eunit.hrl").
 -include("hl7.hrl").
+-include("meddatum.hrl").
+
+bucket(#hl7msg{msg_type_s=MsgType, hospital_id=HospitalID}) ->
+    IsStaticRecord =
+        case MsgType of
+            <<"ADT^A08", _/binary>> -> true; %% 患者基本情報の更新
+            <<"ADT^A23", _/binary>> -> true; %% 患者基本情報の削除
+            <<"ADT^A54", _/binary>> -> true; %% 担当医の変更
+            <<"ADT^A55", _/binary>> -> true; %% 担当医の取消
+            <<"ADT^A60", _/binary>> -> true; %% アレルギー情報の登録／更新
+            <<"PPR^ZD1", _/binary>> -> true; %% 病名(歴)情報の登録／更新
+            _B when is_binary(_B) -> false
+        end,
+    Bucket0 = case IsStaticRecord of
+                  true -> ?SSMIX_PATIENTS_BUCKET;
+                  false -> ?SSMIX_BUCKET
+              end,
+    Bucket1 = <<Bucket0/binary, ?BUCKET_NAME_SEPARATOR/binary, HospitalID/binary>>,
+    case meddatum:use_bucket_types() of
+        true -> {?BUCKET_TYPE, Bucket1};
+        false -> Bucket0
+    end.
+
+key(#hl7msg{file=File}) ->
+    filename:basename(File).
+
+patient_id(#hl7msg{patient_id=PatientID}) -> PatientID.
 
 -spec annotate(#hl7msg{}) -> #hl7msg{}.
 annotate(HL70 = #hl7msg{segments=Segs,
@@ -61,9 +93,12 @@ msg_type(#hl7msg{msg_type_s=MsgType}) when is_binary(MsgType) ->
     binary_to_list(MsgType);
 msg_type(#hl7msg{msg_type_s=MsgType}) -> MsgType.
 
--spec parse(filename:filename(), file:file_info()) -> ok | {error, any()}.
-parse(Filename, Info)->
+-spec from_file(filename:filename(), file:file_info()) -> ok | {error, any()}.
+from_file(Filename, Info)->
     hl7_parser:parse(Filename, Info).
+
+from_file(Filename, Info, PostProcessor)->
+    hl7_parser:parse(Filename, Info, PostProcessor).
 
 decoder() ->
     jsonx:decoder([{hl7msg, record_info(fields, hl7msg)}],

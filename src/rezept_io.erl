@@ -31,7 +31,7 @@ put_record(C, Record0) ->
             ContentType = "application/json",
             %% Key = list_to_binary(integer_to_list(erlang:phash2(JSONRecords))),
             Key = rezept:key(Record0),
-            Bucket = meddatum:true_bucket_name(?RECEPT_BUCKET),
+            Bucket = rezept:bucket(Record0),
             RiakObj0 = meddatum:maybe_new_ro(C, Bucket, Key, JSONRecords, ContentType),
 
             %% put indices to all member

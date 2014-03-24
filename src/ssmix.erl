@@ -38,7 +38,7 @@ process_file(File, HospitalID, Riakc) ->
     _ = lager:info("Processing ~p ~p", [File, HospitalID]),
     case string:right(File, 2) of
         "_1" ->
-            case hl7:parse(File, undefined) of
+            case hl7:from_file(File, undefined) of
                 {ok, HL7Msg0} ->
                     HL7Msg = hl7:annotate(HL7Msg0#hl7msg{hospital_id=HospitalID}),
                     try

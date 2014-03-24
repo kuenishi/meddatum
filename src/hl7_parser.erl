@@ -16,7 +16,7 @@
 
 -module(hl7_parser).
 
--export([parse/2]).
+-export([parse/2, parse/3]).
 
 -include_lib("eunit/include/eunit.hrl").
 -include("hl7.hrl").
@@ -29,6 +29,12 @@ parse(Filename, _Info)->
     Date = filename_to_date(Filename),
     {ok, HL7Msg0#hl7msg{file=list_to_binary(Filename),
                         date=Date}}.
+
+parse(Filename, Info, undefined)->
+    parse(Filename, Info);
+parse(Filename, Info, PostProcessor) when is_function(PostProcessor, 1) ->
+    {ok, HL7Msg0} = parse(Filename, Info),
+    {ok, PostProcessor(HL7Msg0)}.
 
 filename_to_date(Filename) when is_binary(Filename) ->
     filename_to_date(binary_to_list(Filename));

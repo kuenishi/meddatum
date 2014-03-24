@@ -16,14 +16,21 @@
 
 -module(rezept).
 
+-behaviour(md_record).
+
 -include_lib("eunit/include/eunit.hrl").
 -include("rezept.hrl").
+-include("meddatum.hrl").
 
 -export([from_json/1, to_json/1,
          key/1, key_prefix/1,
+         bucket/1,
+         patient_id/1,
+         from_file/2, from_file/3]).
+
+-export([
          append_to_recept/2,
-         finalize/1,
-         patient_id/1
+         finalize/1
         ]).
 
 encoder() ->
@@ -37,10 +44,12 @@ decoder() ->
 -define(ENCODER, (encoder())).
 -define(DECODER, (decoder())).
 
-%% maybe_taken(0, List) -> List;
-%% maybe_taken(_, []) -> [];
-%% maybe_taken(N, List) ->
-%%     maybe_taken(N-1, tl(List)).
+-spec from_file(filename:filename(), [med|dpc]) -> {ok, [#recept{}]}.
+from_file(Filename, [Mode]) when Mode =:= med orelse Mode =:= dpc ->
+    rezept_parser:parse_file(Filename, Mode).
+
+from_file(Filename, [Mode], PostProcessor) when Mode =:= med orelse Mode =:= dpc ->
+    rezept_parser:parse_file(Filename, Mode, PostProcessor).
 
 -spec to_json(#recept{}) -> {ok, binary()}.
 to_json(Rezept) when is_record(Rezept, recept) > 0 ->
@@ -78,6 +87,16 @@ key_prefix(Filename) when is_list(Filename) ->
     {ok,Checksum} = checksum:file_md5(Filename),
     BinChecksum = checksum:bin_to_hexbin(Checksum),
     <<BinFilename/binary, "-", BinChecksum/binary>>.
+
+-spec bucket(#recept{}) -> binary().
+bucket(#recept{hospital_id = HospitalID} = _Recept) ->
+    BucketName = <<?RECEPT_BUCKET/binary, ?BUCKET_NAME_SEPARATOR/binary, HospitalID/binary>>,
+    case meddatum_config:use_bucket_types() of
+        true ->
+            {?BUCKET_TYPE, BucketName};
+        false ->
+            ?RECEPT_BUCKET
+    end.
 
 append_to_recept(#recept{segments=List} = Recept, Data) ->
     Recept#recept{segments=[Data|List]}.
