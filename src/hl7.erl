@@ -18,8 +18,9 @@
 
 -behaviour(md_record).
 
--export([from_file/2, to_json/1, from_json/1,
-         key/1, bucket/1, patient_id/1]).
+-export([from_file/2, from_file/3,
+         to_json/1, from_json/1,
+         key/1, bucket/1, patient_id/1, hospital_id/1]).
 
 -export([annotate/1,
          get_segment/2, update_hospital_id/2,
@@ -62,6 +63,9 @@ annotate(HL70 = #hl7msg{segments=Segs,
         extract(Segs, {undefined, HospitalID0}),
 
     HL70#hl7msg{patient_id=PatientID, hospital_id=HospitalID}.
+
+hospital_id(#hl7msg{hospital_id=HospitalID}) ->
+    HospitalID.
 
 update_hospital_id(HL7 = #hl7msg{}, HospitalID) ->
     HL7#hl7msg{hospital_id=HospitalID}.

@@ -18,6 +18,9 @@
 
 -type md_record() :: tuple(). %% record data type
 
+-include("meddatum.hrl").
+-export([bucket2hospital_id/1]).
+
 %% note that the file is usually *NOT* JSON.
 -callback from_file(filename:filename(), list()) -> {ok, [md_record()]}.
 -callback from_file(filename:filename(), list(), PostProcessor::fun()) -> {ok, [md_record()]}.
@@ -27,3 +30,15 @@
 -callback key(md_record()) -> binary().
 -callback bucket(md_record()) -> binary().
 -callback patient_id(md_record()) -> binary().
+-callback hospital_id(md_record()) -> binary().
+
+bucket2hospital_id({_, Bucket}) -> bucket2hospital_id(Bucket);
+bucket2hospital_id(Bucket) when is_binary(Bucket) ->
+    case Bucket of
+        <<"ssmix:", HospitalID/binary>> ->
+            {ssmix, HospitalID};
+        <<"ssmix-patients:", HospitalID/binary>> ->
+            {ssmix_patients, HospitalID};
+        <<"recept:", HospitalID/binary>> ->
+            {recept, HospitalID}
+    end.

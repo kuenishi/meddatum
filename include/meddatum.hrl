@@ -1,4 +1,5 @@
 
+%% SEE md_record.erl when you're changing these names
 -define(SSMIX_BUCKET, <<"ssmix">>).
 -define(RECEPT_BUCKET, <<"recept">>).
 -define(BUCKET_NAME_SEPARATOR, <<":">>).

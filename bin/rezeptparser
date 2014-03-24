@@ -10,7 +10,7 @@ main([Mode, File])->
                    "dpc" -> dpc;
                    "med" -> med
                end,
-    {ok, Records} = rezept_parser:parse_file(File, ModeAtom),
+    {ok, Records} = rezept:from_file(File, ModeAtom),
     lists:foreach(fun({ok, JSON}) ->
                           io:format("~ts~n", [JSON]);
                      ({error, E}) ->

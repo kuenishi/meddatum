@@ -9,7 +9,7 @@ main(Paths)->
     {ok,Path} = file:get_cwd(),
     code:add_pathz(Path ++ "/ebin"),
     lists:foreach(fun(File) ->
-                          {ok, HL7Msg0} = hl7:parse(File, undefined),
+                          {ok, HL7Msg0} = hl7:from_file(File, undefined),
                           ok = io:format("~ts~n", [hl7:to_json(HL7Msg0)])
                   end, Paths).
                           %% HL7Msg = hl7:annotate(HL7Msg0#hl7msg{file=list_to_binary(File)}),
