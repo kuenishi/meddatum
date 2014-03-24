@@ -17,6 +17,7 @@
 -module(meddatum).
 
 -export([true_bucket_name/1, maybe_new_ro/5,
+         ssmix_bucket/1, recept_bucket/1, ssmix_patients_bucket/1,
          setup/2]).
 
 -include_lib("eunit/include/eunit.hrl").
@@ -27,6 +28,22 @@ true_bucket_name(Bucket0) ->
         true -> {?BUCKET_TYPE, Bucket0};
         false -> Bucket0
     end.
+
+%% @private
+ssmix_bucket(HospitalID) ->
+    Bucket = <<?SSMIX_BUCKET/binary, ?BUCKET_NAME_SEPARATOR/binary, HospitalID>>,
+    meddatum:true_bucket_name(Bucket).
+
+%% @private
+recept_bucket(HospitalID) ->
+    Bucket = <<?RECEPT_BUCKET/binary, ?BUCKET_NAME_SEPARATOR/binary, HospitalID>>,
+    meddatum:true_bucket_name(Bucket).
+
+%% @private
+ssmix_patients_bucket(HospitalID) ->
+    Bucket = <<?SSMIX_PATIENTS_BUCKET/binary, ?BUCKET_NAME_SEPARATOR/binary, HospitalID>>,
+    meddatum:true_bucket_name(Bucket).
+
 
 %% Maybe new Riak Object
 maybe_new_ro(Client, Bucket, Key, Data, ContentType) ->
