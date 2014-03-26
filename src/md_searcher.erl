@@ -16,7 +16,8 @@
 
 -module(md_searcher).
 
--export([plain_query_url/2, run_query/3, run_query0/2,
+-export([plain_query_url/2, plain_query_url/3,
+         run_query/3, run_query0/2,
          simple_doc_retriever/1,
          get_property/2,
          simple_offset_counter/2, simple_doc_mapper/1]).
