@@ -1,7 +1,7 @@
 {application, meddatum,
  [
   {description, "SSMIX / Japanese Recept library"},
-  {vsn, "0.1.5"},
+  {vsn, "0.1.6"},
   {registered, []},
   {applications, [
                   kernel,
