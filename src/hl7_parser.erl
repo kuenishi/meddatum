@@ -49,6 +49,8 @@ filename_to_date(Filename) when is_list(Filename) ->
 
 parse_msg(File)->
     case read_all_lines(File) of %% I NEED SIMPLE MAYBE MONAD
+        {ok, []} ->
+            {error, {empty, File}};
         {ok, Lines0} ->
             case parse_0(Lines0) of
                 {ok, Msg} ->
@@ -81,7 +83,6 @@ get_all_lines(Port, Binary) ->
             lager:error("~p", [Other])
     end.
              
-
 parse_0([Line|_Lines]) ->
     %% case binary:split(Line, <<"|">>, [global]) of
     %% case string:tokens(Line, "|") of
