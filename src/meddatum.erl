@@ -91,7 +91,7 @@ setup(Host, Port) ->
                     ?RESULT("bucket type already registered", ?INDEX_NAME);
                 undefined ->
                     NewProps = [{search_index, ?INDEX_NAME}|Props],
-                    R0 = riakc_pb_socket:set_bucket_type(C, NewProps),
+                    R0 = riakc_pb_socket:set_bucket_type(C, ?BUCKET_TYPE, NewProps),
                     ?RESULT("bucket type indexing is set", R0)
             end
     end,
