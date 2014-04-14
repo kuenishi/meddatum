@@ -82,6 +82,20 @@ setup(Host, Port) ->
                     riakc_pb_socket:create_search_index(C, ?INDEX_NAME))
     end,
 
+    case riakc_pb_socket:get_bucket_type(C, ?BUCKET_TYPE) of
+        {error, Reason} ->
+            ?RESULT("get_bucket_type failed", Reason);
+        {ok, Props} ->
+            case proplists:get_value(search_index, Props) of
+                ?INDEX_NAME ->
+                    ?RESULT("bucket type already registered", ?INDEX_NAME);
+                undefined ->
+                    NewProps = [{search_index, ?INDEX_NAME}|Props],
+                    R0 = riakc_pb_socket:set_bucket_type(C, NewProps),
+                    ?RESULT("bucket type indexing is set", R0)
+            end
+    end,
+
     {B, K} = {{?BUCKET_TYPE, <<"b">>}, <<"k">>},
     Obj0 = meddatum:maybe_new_ro(C, B, K,
                                  <<"{\"test\":1}">>, "application/json"),
