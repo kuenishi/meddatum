@@ -21,7 +21,8 @@
 -include_lib("meddatum/include/meddatum.hrl").
 -include_lib("meddatum/include/episode.hrl").
 
--export([new/4, save/6]).
+-export([new/4, save/5,
+         save_records/4]).
 
 -export([extract_date/1, extract_and_trim_date/1]).
 
@@ -90,7 +91,7 @@ extract_episode_(Start, End, [HL7orRecept|Rest], List)->
 
 
 
-%% @private
+%% @public
 save_records(PatientID, HospitalID, StaticRecords, Dir) ->
     DirPath = filename:join([Dir,
                              binary_to_list(HospitalID),
@@ -106,9 +107,7 @@ save_records(PatientID, HospitalID, StaticRecords, Dir) ->
 save(PatientID, Num,
      #episode{hl7_msgs = HL7Msgs, margin=Margin,
               start_date=Start0, end_date=End0},
-     Recepts,
-     StaticRecords,
-     Dir) ->
+     Recepts, Dir) ->
     Start = margin(Start0, Margin, add),
     End = margin(End0, Margin, sub),
     HospitalID = get_hospital_id(HL7Msgs, Recepts),
@@ -124,7 +123,6 @@ save(PatientID, Num,
     lists:foreach(fun(Recept) -> save_recept(Recept, DirPath, PatientID) end, Recepts),
     %% io:format("[info] ~p ssmix and ~p recept saved to ~s", [length(HL7Msgs), length(Recepts),
     %%                                                  DirPath]),
-    save_records(PatientID, HospitalID, StaticRecords, Dir),
 
     _ = lager:info("~p ssmix and ~p recept saved to ~s",
                    [length(HL7Msgs), length(Recepts), DirPath]).

@@ -75,9 +75,9 @@ process_a_patient(RiakKeys, Riakc, Margin, Dir) ->
             lager:info("~p episodes (~s) found on patient ~p",
                        [length(Episodes), Got, PatientID]),
 
-            %% TODO: Static Records must be output evene Episodes is empty
-            [ episode:save(PatientID, I, Episode, Recepts,
-                           StaticRecords, Dir)
+            episode:save_records(PatientID, HospitalID,
+                                 StaticRecords, Dir),
+            [ episode:save(PatientID, I, Episode, Recepts, Dir)
               || {I, Episode, Recepts} <- Episodes ]
     end.
 
