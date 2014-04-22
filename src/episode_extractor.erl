@@ -72,8 +72,9 @@ process_a_patient(RiakKeys, Riakc, Margin, Dir) ->
                                         HL7list,
                                         Receptlist, Margin),
 
-            lager:info("~p episodes (~s) found on patient ~p",
-                       [length(Episodes), Got, PatientID]),
+            lager:info("~p episodes (~s) found on patient ~p @ ~p",
+                       [length(Episodes), Got, PatientID,
+                        HospitalID]),
 
             episode:save_records(PatientID, HospitalID,
                                  StaticRecords, Dir),
@@ -322,7 +323,7 @@ strip_list(SingleEntryList) -> hd(SingleEntryList).
 %% @private
 -spec check_keys([{{binary(), binary()},binary(),binary()}]) -> {ok, {binary(), [{binary(),binary()}]}}.
 check_keys(RiakKeys) ->
-    {{HospitalID, PatientIDs}, B, K} = hd(RiakKeys),
+    {{[HospitalID|_], PatientIDs}, B, K} = hd(RiakKeys),
     {ok, Bkeys} =
         case meddatum_config:use_bucket_types() of
             true -> check_keys(tl(RiakKeys), [{{B,K}, undefined}], PatientIDs);
