@@ -21,6 +21,7 @@
 -include_lib("eunit/include/eunit.hrl").
 -include("rezept.hrl").
 -include("meddatum.hrl").
+-include("md_json.hrl").
 
 -export([from_json/1, to_json/1,
          key/1, key_prefix/1,
@@ -34,12 +35,14 @@
         ]).
 
 encoder() ->
-    jsonx:encoder([{recept, record_info(fields, recept)}],
-                  [{ignore, [null]}]).
+    ?JSON_RECORD_ENCODER(recept).
+    %% md_json:encoder([{recept, record_info(fields, recept)}],
+    %%                 [{ignore, [null]}]).
 
 decoder() ->
-    jsonx:decoder([{recept, record_info(fields, recept)}],
-                  [{ignore, [null]}]).
+    ?JSON_RECORD_DECODER(recept).
+    %% md_json:decoder([{recept, record_info(fields, recept)}],
+    %%                 [{ignore, [null]}]).
 
 -define(ENCODER, (encoder())).
 -define(DECODER, (decoder())).

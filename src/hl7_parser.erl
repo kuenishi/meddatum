@@ -158,7 +158,7 @@ handle_segment_0(MsgType, Tokens0, Msg, File) ->
 
             case get_observation_value(Data) of
                 undefined ->
-                    {ok, append_segment(Msg, Data)};
+                    {ok, append_segment(Msg, {Data})};
                 {'*', Col} -> %% special case for OBX-5
                     Data1 = case get_valuetype(Data) of
                                 undefined ->
@@ -167,7 +167,7 @@ handle_segment_0(MsgType, Tokens0, Msg, File) ->
                                     Value = to_json_object(binary_to_atom(ValueType, latin1), Col, 1),
                                     [{<<"observation_value">>, Value}|delete_valuetype(Data)]
                             end,
-                    {ok, append_segment(Msg, Data1)}
+                    {ok, append_segment(Msg, {Data1})}
             end
     end.
 
@@ -232,6 +232,11 @@ get_separator(0) -> "[\\^]";
 get_separator(1) -> "[\\\\]";
 get_separator(2) -> "[&]".
 
+maybe_binary(Atom) when is_atom(Atom) ->
+    atom_to_binary(Atom, utf8);
+maybe_binary(Binary) ->
+    Binary.
+
 to_record(Name, Col, Depth) ->
     Tokens0 = re:split(Col, get_separator(Depth), [{return,list},unicode]),
     case proplists:get_value(Name, ?HL7_PRIMITIVE_TYPES) of
@@ -243,14 +248,16 @@ to_record(Name, Col, Depth) ->
             {TypeDef, _} = lists:split(ShortLen, TypeDef0),
             {Tokens, _}  = lists:split(ShortLen, Tokens0),
 
-            Data0 = lists:map(fun({{Property, _Type}, []}) -> {Property, null};
+            Data0 = lists:map(fun({{Property, _Type}, []}) ->
+                                      {maybe_binary(Property), null};
                                  ({{Property, Type}, Tok}) ->
-                                      {Property, to_json_object(Type, Tok, Depth+1)}
+                                      {maybe_binary(Property),
+                                       to_json_object(Type, Tok, Depth+1)}
                               end,
                               lists:zip(TypeDef, Tokens)),
             Data = lists:filter(fun({_,null}) -> false;
                                    (_) -> true end, Data0),
-            Data
+            {Data} %% jsone requres {_} as JSON object
     end.
 
 append_segment(#hl7msg{segments = Segs} = Msg, Seg) ->

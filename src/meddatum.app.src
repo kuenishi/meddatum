@@ -6,7 +6,9 @@
   {applications, [
                   kernel,
                   stdlib,
-                  lager
+                  lager,
+                  ecsv,
+                  jsone
                  ]},
   {mod, { hl7_app, []}},
   {env, []}

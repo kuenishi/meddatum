@@ -114,7 +114,9 @@ fetcher_loop(C, ReqID, Count, DeleterPid) ->
 -ifdef(TEST).
 
 -define(assertBucketName(Exp, Val),
-        ?assertEqual(Exp, hl7:bucket(#hl7msg{msg_type_s= Val}))).
+        ?assertEqual(<<Exp/binary, ":dummyhospital">>,
+                     hl7:bucket(#hl7msg{msg_type_s= Val,
+                                        hospital_id= <<"dummyhospital">>}))).
 
 bucket_name_test() ->
     ?assertBucketName(?SSMIX_PATIENTS_BUCKET, <<"ADT^A60foorbaz">>),

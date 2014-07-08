@@ -149,7 +149,7 @@ get_all_keys(Riakc, BKs) ->
 extract_date_from_json(MapRedResults) ->
 
     GetDate = fun(JSON) ->
-                      {Proplist} = jsonx:decode(JSON),
+                      {Proplist} = jsone:decode(JSON),
                       Date = proplists:get_value(<<"date">>, Proplist),
                       Date
               end,
@@ -382,9 +382,9 @@ episode_extraction_from_recept_test() ->
     ReceptList = [build_recept(PatientID, <<"201205">>)],
     HitDates = [<<"201205">>] ++ [ Date || #hl7msg{date=Date} <- HL7List ],
     %% ?debugVal(HitDates),
-    Endpoints = healthb_episode_extractor:get_endpoints(HL7List),
+    Endpoints = episode_extractor:get_endpoints(HL7List),
     ?assert(length(Endpoints) > 0),
-    Episodes0 = healthb_episode_extractor:process_episodes(
+    Episodes0 = episode_extractor:process_episodes(
                  PatientID, HitDates, HL7List, ReceptList, ""),
     ?assert(length(Episodes0) > 0),
 
@@ -431,7 +431,7 @@ episode_extraction_test() ->
                    {<<"20120205">>, other}]),
 
     HitDates = [ Date || #hl7msg{date=Date} <- HL7List ],
-    Endpoints = healthb_episode_extractor:get_endpoints(HL7List),
+    Endpoints = episode_extractor:get_endpoints(HL7List),
     ?assert(length(Endpoints) > 0),
 
     %% この時、
@@ -450,7 +450,7 @@ episode_extraction_test() ->
                   {<<"20120118">>,<<"20120118">>},
                   {<<"20120118">>,<<"30001231">>}], Endpoints),
 
-    Episodes0 = healthb_episode_extractor:process_episodes(
+    Episodes0 = episode_extractor:process_episodes(
                  PatientID, HitDates, HL7List, [], ""),
     ?assert(length(Episodes0) > 0),
 

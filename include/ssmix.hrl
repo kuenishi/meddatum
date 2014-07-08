@@ -1,11 +1,3 @@
--record(ssmix_msg, {
-          hospital_id :: string(), %% hospital id
-          patient_id :: string(), %% patient id
-          date :: string(), %% YYYYMMDD
-          datatype :: string(), %% OML-11 or else
-          path :: filename:filename() %% path/to/the/file
-         }).
-
 %% From SS-MIX2 標準化ストレージ　構成の説明と構築ガイドライン
 %% Directory name (SS-MIX data type) to HL7 message type
 %%  1 ADT-00    ADT^A08

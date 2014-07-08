@@ -1,7 +1,7 @@
 # meddatum
 ==========
 
-hl7/e-rezept parser and importer to Riak database with search tools.
+hl7/e-rezept parser and importer to Riak database.
 
 Erlang/OTP library to handle [SS-MIX](http://www.hci-bc.com/ss-mix/ssmix/) data (Japanese local standard including HL7 format) and [electric rezepts](http://www.ssk.or.jp/rezept/). This toolkit includes:
 
@@ -11,14 +11,12 @@ Erlang/OTP library to handle [SS-MIX](http://www.hci-bc.com/ss-mix/ssmix/) data 
 - [x] forntend query tools
 - [ ] pluggable to other datastore like Mongo,MySQL,Hive,Solr,??
 
-This stores parsed JSON data into `/buckets/rezept` and `/buckets/ssmix`
-
 # Prequisites
 
 - NKF command should be in path
 - run Riak with Yokozuna enabled somewhere [install](https://github.com/basho/yokozuna/blob/master/docs/INSTALL.md)
 - make, gcc, erlang > R16B02 (download Erlang from [here](http://erlang-users.jp) )
-- rezept file's csv must have LF ('\n', or CRLF) at each end of line
+- recept file's csv must have LF ('\n', or CRLF) at each end of line
 
 # Compile
 
@@ -26,44 +24,19 @@ This stores parsed JSON data into `/buckets/rezept` and `/buckets/ssmix`
 $ make
 ```
 
-# How to use
-
-**Riak must listen on 8098 for http and on 8087 for pb.**
-
-## upload SS-MIX docs to Riak
-
-```sh
-$ ERL_LIBS=deps rel/hl7parser path/to/ssmixroot
-```
-
-TODO: set Riak place configurable...
-
-## upload e-rezept docs to Riak
-
-```sh
-$ ERL_LIBS=deps rel/rezeptparser path/to/11_REZEPTINFO_MED.CSV
-```
-
-## search docs in Riak
-
-```sh
-$ ERL_LIBS=deps rel/search localhost "*:*"
-```
-The search query is compatible with Solr [link](http://lucene.apache.org/core/2_9_4/queryparsersyntax.html). This command output the main json data to STDOUT, so typical usage is:
+# subcommands
 
 ```
-$ export ERL_LIBS=deps
-$ rel/search localhost "*:*" > data.json
+$ meddatum create-config
+$ meddatum check-config
+$ meddatum import-ssmix <hospital-id> <path/to/directory>
+$ meddatum import-recept <path/to/file>
+$ meddatum parse-ssmix <ssmix-file>
+$ meddatum parse-recept <recept-file>
+$ meddatum delete-all-ssmix <hospital-id>
+$ meddatum delete-recept <recept-file>
+$ meddatum [help]
 ```
-note: the JSON is just a concatination of several JSON Objects. Take care when parsing.
-
-# TODO
-
-- document data conversion spec (original -> JSON)
-- do we store original data? (or just point to the file)
-- test more on real data
-- parallel push
-- apply node_package installation scheme?
 
 # misc
 

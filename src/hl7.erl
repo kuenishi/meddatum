@@ -29,6 +29,7 @@
 -include_lib("eunit/include/eunit.hrl").
 -include("hl7.hrl").
 -include("meddatum.hrl").
+-include("md_json.hrl").
 
 bucket(#hl7msg{msg_type_s=MsgType, hospital_id=HospitalID}) ->
     IsStaticRecord =
@@ -45,11 +46,7 @@ bucket(#hl7msg{msg_type_s=MsgType, hospital_id=HospitalID}) ->
                   true -> ?SSMIX_PATIENTS_BUCKET;
                   false -> ?SSMIX_BUCKET
               end,
-    Bucket1 = <<Bucket0/binary, ?BUCKET_NAME_SEPARATOR/binary, HospitalID/binary>>,
-    case meddatum_config:use_bucket_types() of
-        true -> {?BUCKET_TYPE, Bucket1};
-        false -> Bucket0
-    end.
+    <<Bucket0/binary, ?BUCKET_NAME_SEPARATOR/binary, HospitalID/binary>>.
 
 key(#hl7msg{file=File}) ->
     filename:basename(File).
@@ -105,12 +102,14 @@ from_file(Filename, Info, PostProcessor)->
     hl7_parser:parse(Filename, Info, PostProcessor).
 
 decoder() ->
-    jsonx:decoder([{hl7msg, record_info(fields, hl7msg)}],
-                  [{ignore, [null]}]).
+    ?JSON_RECORD_DECODER(hl7msg).
+    %% md_json:decoder([{hl7msg, record_info(fields, hl7msg)}],
+    %%               [{ignore, [null]}]).
 
 encoder() ->
-    jsonx:encoder([{hl7msg, record_info(fields, hl7msg)}],
-                  [{ignore, [null]}]).
+    ?JSON_RECORD_ENCODER(hl7msg).
+    %% md_json:encoder([{hl7msg, record_info(fields, hl7msg)}],
+    %%               [{ignore, [null]}]).
 
 from_json(Json) when is_binary(Json) ->
     D = decoder(),

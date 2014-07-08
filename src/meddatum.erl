@@ -16,12 +16,36 @@
 
 -module(meddatum).
 
--export([true_bucket_name/1, maybe_new_ro/5,
+-export([main/1, help/0,
+         true_bucket_name/1, maybe_new_ro/5,
          ssmix_bucket/1, recept_bucket/1, ssmix_patients_bucket/1,
          setup/2]).
 
 -include_lib("eunit/include/eunit.hrl").
 -include("meddatum.hrl").
+
+main(["create-config"]) -> meddatum_console:create_config();
+main(["check-config"]) ->  meddatum_console:check_config();
+main(["import-ssmix"|Args]) ->  meddatum_console:import_ssmix(Args);
+main(["import-recept"|Args]) -> meddatum_console:import_recept(Args);
+main(["parse-ssmix"|Args]) ->   meddatum_console:parse_ssmix(Args);
+main(["parse-recept"|Args]) ->  meddatum_console:parse_recept(Args);
+main(["delete-all-ssmix"|Args]) -> meddatum_console:delete_all_ssmix(Args);
+main(["delete-recept"|Args]) ->    meddatum_console:delete_recept(Args);
+main(["help"]) -> help();
+main([]) -> help().
+
+help() ->
+    io:format("usage:~n"
+              "meddatum create-config (configuration file will be created at ~~/.meddatum~n"
+              "meddatum check-config (uses ~~/.meddatum)~n"
+              "meddatum import-ssmix <hospital-id> <path/to/directory>~n"
+              "meddatum import-recept <path/to/file>~n"
+              "meddatum parse-ssmix <ssmix-file> (test parsing ssmix file)~n"
+              "meddatum parse-recept <recept-file> (test parsing recept file)~n"
+              "meddatum delete-all-ssmix <hospital-id>~n"
+              "meddatum delete-recept <recept-file>~n"
+              "meddatum [help]~n").
 
 true_bucket_name(Bucket0) ->
     case meddatum_config:use_bucket_types() of
