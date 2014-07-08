@@ -49,17 +49,35 @@ parse_ssmix([Path]) ->
     _ErrorFiles = filelib:fold_files(Path, "", true, F, []);
 parse_ssmix(_) -> meddatum:help().
 
-parse_recept([Path]) -> io:format("TBD: ~s~n", [Path]);
+parse_recept([File]) ->
 parse_recept(_) -> meddatum:help().
-delete_all_ssmix(_) -> io:format("TBD~n").
-delete_recept(_) -> io:format("TBD~n").
 
+delete_all_ssmix(_) -> io:format("TBD~n").
+
+delete_recept([File]) ->
+    io:setopts([{encoding, unicode}]),
+    io:format("deleting: ~p~n", [File]),
+    {ok, {Host, Port}} = get_riak(),
+    %% If you use a riak&healthb younger than pre5 and 0.1.x
+    %% turn this boolean to false, will be not using bucket types
+    application:set_env(meddatum, use_bucket_types, true),
+    {ok, C} = riakc_pb_socket:start_link(Host, Port),
+    case rezept_io:delete_from_file(C, File) of
+        {ok, {OK,E}} ->
+            io:format("~p records deleted (~p failed).", [OK, E]);
+        E ->
+            io:format("can't retrieve any keys from file ~p (~p)", [File, E])
+    end,
+    ok = riakc_pb_socket:stop(C).
 
 %% === internal ===
-    %% {ok, Config} = get_config(),
-    %% Host = proplists:get_value(riak_ip, Config),
-    %% Port = proplists:get_value(riak_port, Config),
 
-%% get_config() ->
-%%     Filename = os:getenv("HOME")++"/.meddatum",
-%%     file:consult(Filename).    
+get_riak() ->
+    {ok, Config} = get_config(),
+    Host = proplists:get_value(riak_ip, Config),
+    Port = proplists:get_value(riak_port, Config),
+    {ok, {Host, Port}}.
+
+get_config() ->
+    Filename = os:getenv("HOME")++"/.meddatum",
+    file:consult(Filename).
