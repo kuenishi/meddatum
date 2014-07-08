@@ -49,7 +49,21 @@ parse_ssmix([Path]) ->
     _ErrorFiles = filelib:fold_files(Path, "", true, F, []);
 parse_ssmix(_) -> meddatum:help().
 
-parse_recept([File]) ->
+parse_recept([Mode, File]) ->
+    io:setopts([{encoding, unicode}]),
+    io:format(standard_error, "~p~n", [File]),
+    ModeAtom = case Mode of
+                   "dpc" -> dpc;
+                   "med" -> med
+               end,
+    {ok, Records} = rezept:from_file(File, [ModeAtom]),
+    lists:foreach(fun({ok, JSON}) ->
+                          io:format("~ts~n", [JSON]);
+                     ({error, E}) ->
+                          io:format("error: ~p~n", [E])
+                  end,
+                  lists:map(fun rezept:to_json/1, lists:reverse(Records)));
+
 parse_recept(_) -> meddatum:help().
 
 delete_all_ssmix(_) -> io:format("TBD~n").

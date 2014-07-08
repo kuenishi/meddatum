@@ -40,9 +40,9 @@ help() ->
               "meddatum create-config (configuration file will be created at ~~/.meddatum~n"
               "meddatum check-config (uses ~~/.meddatum)~n"
               "meddatum import-ssmix <hospital-id> <path/to/directory>~n"
-              "meddatum import-recept <path/to/file>~n"
+              "meddatum import-recept [dpc|med] <path/to/file>~n"
               "meddatum parse-ssmix <ssmix-file> (test parsing ssmix file)~n"
-              "meddatum parse-recept <recept-file> (test parsing recept file)~n"
+              "meddatum parse-recept [dpc|med] <recept-file> (test parsing recept file)~n"
               "meddatum delete-all-ssmix <hospital-id>~n"
               "meddatum delete-recept <recept-file>~n"
               "meddatum [help]~n").
