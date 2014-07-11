@@ -29,8 +29,39 @@ check_config() ->
             io:format("ok~n")
     end.
 
-import_ssmix(_) -> io:format("TBD~n").
-import_recept(_) -> io:format("TBD~n").
+import_ssmix([HospitalID, Path]) ->
+    {ok, {Host, Port}} = get_riak(),
+    try
+        ssmix:walk2(Path, HospitalID, Host, Port)
+    catch E:T ->
+            _ = lager:error("~p:~p @ ~s > ~p", [E, T, Path, erlang:get_stacktrace()])
+    end,
+    _ = lager:info("finished processing: ~p", [Path]);
+
+import_ssmix(_) -> meddatum:help().
+
+import_recept([Mode0, Filename]) ->
+    Mode = case Mode0 of
+               "dpc" -> dpc;
+               "med" -> med
+           end,
+    {ok, {Host, Port}} = get_riak(),
+    {ok, C} = riakc_pb_socket:start_link(Host, Port),
+    _ = lager:info("connecting to ~p:~p", [Host, Port]),
+    try
+        {ok, Records} = rezept:from_file(Filename, [Mode],
+                                         fun healthb_rezept:special_extractor/1),
+        _ = lager:debug("processing ~p finished and ~p records", [Filename, length(Records)]),
+        lists:foreach(fun(Record)->
+                              ok = rezept_io:put_record(C, Record)
+                      end, Records),
+        _ = lager:info("wrote ~p records from ~p", [length(Records), Filename])
+    catch E:T ->
+            _ = lager:info("~p:~p ~w", [E, T, erlang:get_stacktrace()])
+    after
+        ok = riakc_pb_socket:stop(C)
+    end;
+import_recept(_) -> meddatum:help().
 
 parse_ssmix([Path]) ->
     io:setopts([{encoding,utf8}]),
@@ -87,10 +118,21 @@ delete_recept([File]) ->
 %% === internal ===
 
 get_riak() ->
-    {ok, Config} = get_config(),
-    Host = proplists:get_value(riak_ip, Config),
-    Port = proplists:get_value(riak_port, Config),
-    {ok, {Host, Port}}.
+    case get_config() of
+        {ok, Config} ->
+            Host = proplists:get_value(riak_ip, Config),
+            Port = proplists:get_value(riak_port, Config),
+            {ok, {Host, Port}};
+        {error, enoent} = E ->
+            io:format("~~/.meddatum is required to run meddatum.~n"
+                      "run 'meddatum create-config' to create first template~n"
+                      "and then ocnfigure it.~n"),
+            E;
+        {error, _} = E ->
+            io:format("Error: ~p", [E]),
+            E
+    end.
+
 
 get_config() ->
     Filename = os:getenv("HOME")++"/.meddatum",
