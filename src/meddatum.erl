@@ -26,6 +26,7 @@
 
 main(["create-config"]) -> meddatum_console:create_config();
 main(["check-config"]) ->  meddatum_console:check_config();
+main(["setup-riak"]) ->    meddatum_console:setup_riak();
 main(["import-ssmix"|Args]) ->  meddatum_console:import_ssmix(Args);
 main(["import-recept"|Args]) -> meddatum_console:import_recept(Args);
 main(["parse-ssmix"|Args]) ->   meddatum_console:parse_ssmix(Args);
@@ -38,7 +39,8 @@ main([]) -> help().
 help() ->
     io:format("usage:~n"
               "meddatum create-config (configuration file will be created at ~~/.meddatum~n"
-              "meddatum check-config (uses ~~/.meddatum)~n"
+              "meddatum check-config (checks configuration file ~~/.meddatum)~n"
+              "meddatum setup-riak   (setup Riak Search for healthb)~n"
               "meddatum import-ssmix <hospital-id> <path/to/directory>~n"
               "meddatum import-recept [dpc|med] <path/to/file>~n"
               "meddatum parse-ssmix <ssmix-file> (test parsing ssmix file)~n"

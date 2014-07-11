@@ -1,6 +1,7 @@
 -module(meddatum_console).
 
 -export([create_config/0, check_config/0,
+         setup_riak/0,
          import_ssmix/1, import_recept/1,
          parse_ssmix/1, parse_recept/1,
          delete_all_ssmix/1, delete_recept/1]).
@@ -28,6 +29,10 @@ check_config() ->
         {ok, _} ->
             io:format("ok~n")
     end.
+
+setup_riak() ->
+    {ok, {Host, Port}} = get_riak(),
+    meddatum:setup(Host, Port).
 
 import_ssmix([HospitalID, Path]) ->
     {ok, {Host, Port}} = get_riak(),

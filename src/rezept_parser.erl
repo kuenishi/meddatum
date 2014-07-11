@@ -209,7 +209,7 @@ handle_split_line(LineNo, Cols, Line1, RecordID,
             NewRecept0 = ReceptTemplate#recept{patient_id=extract_patient_id(Data),
                                                date=extract_re_date(Data)},
             NewRecept = rezept:append_to_recept(NewRecept0, Data),
-            {ok, State#state{recept=NewRecept, records=NewRecords}};
+            {ok, State#state{recept=NewRecept, records=NewRecords, skipping=false}};
 
         {_, true} when Skipping ->
             {ok, State};
