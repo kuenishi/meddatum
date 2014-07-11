@@ -68,14 +68,14 @@ update_hospital_id(HL7 = #hl7msg{}, HospitalID) ->
     HL7#hl7msg{hospital_id=HospitalID}.
 
 extract([], Tuple) -> Tuple;
-extract([Seg|Segs], {P0, H0}) ->
+extract([{Seg}|Segs], {P0, H0}) ->
     case Seg of
         [{<<"segid">>, <<"PID">>}|Rest] ->
             case proplists:get_value(<<"idlist">>, Rest) of
                 undefined ->
                     extract(Segs, {P0, H0});
-                IDList ->
-                    ID = proplists:get_value(id, IDList),
+                {IDList} ->
+                    ID = proplists:get_value(<<"id">>, IDList),
                     {ID, H0}
             end;
         _ ->

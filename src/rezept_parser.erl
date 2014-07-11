@@ -70,8 +70,8 @@ parse_file(Filename, Mode, InfoExtractor) when is_function(InfoExtractor) ->
 
 default_extractor(Record) -> Record.
 
-extract_ir_date(Col) ->  extract_date(Col, seiym).
-extract_re_date(Col) ->  extract_date(Col, shinym).
+extract_ir_date(Col) ->  extract_date(Col, <<"seiym">>).
+extract_re_date(Col) ->  extract_date(Col, <<"shinym">>).
 
 extract_date(Col, Key) ->
     proplists:get_value(Key, Col).
@@ -106,13 +106,13 @@ p2base($1) -> 1971. %% 明治0年
 
 %% TODO: write tests
 extract_hospital(Col) ->
-    PrefID = proplists:get_value(state, Col),
-    HospID = proplists:get_value(cocd, Col),
+    PrefID = proplists:get_value(<<"state">>, Col),
+    HospID = proplists:get_value(<<"cocd">>, Col),
     re:replace(lists:flatten(io_lib:format("~.2w~.7w", [PrefID,HospID])),
                " ", "0", [{return,binary},global]).
 
 extract_patient_id(Col) ->
-    proplists:get_value(kanjaid, Col).
+    proplists:get_value(<<"kanjaid">>, Col).
 
 %% how to make hardcoded "ほげほげ" printable:
 hardcode_list_to_string(S) ->
@@ -156,24 +156,11 @@ handle_split_line(LineNo, Cols, Line1, RecordID,
                          skipping = Skipping} = State) ->
 
     Data0 = lists:map(fun({Col, Entry}) ->
-                              %%?debugVal({Col,Entry}),
-                              case check_type(Col, Entry) of
-                                  {ok, {K,V}} ->
-                                      {K, V};
-                                  {warning, {error, O}} ->
-                                      _ = lager:warning("Line ~p: ~p",[LineNo, O]),
-                                      {col, null};
-
-                                  {warning, {K,null}} ->
-                                      %% _ = lager:warning("required value is empty at ~s: ~ts",
-                                      %%                   [RecordID, hardcode_list_to_string(K)]),
-                                      {K, null};
-                                  {warning, {K,V}} ->
-                                      {K, V}
-                              end
+                              check_type(LineNo, Col, Entry)
                       end,
                       lists:zip(Cols, Line1)),
-    Data1 = lists:filter(fun({_,null}) -> false; (_) -> true end,
+    Data1 = lists:filter(fun({_,null}) -> false;
+                            (_) -> true end,
                          Data0),
     Data = [{<<"l">>,LineNo}|Data1],
 
@@ -226,6 +213,27 @@ handle_eof(_LineNo, #state{recept=Recept0, records=Records} = Ctx0) ->
     Recept = rezept:finalize(Recept0),
     {ok, Ctx0#state{recept=undefined, records=[Recept|Records]}}.
 
+-spec check_type(non_neg_integer(),
+                 {atom(), atom()|{maybe,atom()}, integer()},
+                 string())
+                -> {ok, {string(), null|binary()}}. %% unicode binary
+check_type(LineNo, Col, Entry) ->
+    case check_type(Col, Entry) of
+        {ok, {K,V}} ->
+            {klib:maybe_binary(K), V};
+        {warning, {error, O}} ->
+            _ = lager:warning("Line ~p: ~p",[LineNo, O]),
+            {col, null};
+        
+        {warning, {K,null}} ->
+            %% _ = lager:warning("required value is empty at ~s: ~ts",
+            %%                   [RecordID, hardcode_list_to_string(K)]),
+            {K, null};
+        {warning, {K,V}} ->
+            {klib:maybe_binary(K), V}
+    end.
+
+
 -spec check_type({atom(), atom()|{maybe,atom()}, integer()}, string())
                 -> {ok, {string(), null|binary()}}. %% unicode binary
 check_type({Name, {maybe, _}, _}, []) -> {ok, {Name, null}};
@@ -259,7 +267,7 @@ check_type({Name, jy_code, _}, Entry) when length(Entry) =:= 1 ->
 %% @doc actual postprocessor of each recept record
 postprocess(Seg, #recept{date=Date} = _Recept) ->
     <<YYYYMM:6/binary, _/binary>> = Date,
-    case proplists:get_value(record_info, Seg) of
+    case proplists:get_value(<<"record_info">>, Seg) of
          <<"SI">> -> handle_30days(Seg, YYYYMM);
          <<"IY">> -> handle_30days(Seg, YYYYMM);
          <<"TO">> -> handle_30days(Seg, YYYYMM);
@@ -269,44 +277,44 @@ postprocess(Seg, #recept{date=Date} = _Recept) ->
 %% @private
 handle_30days(Seg, Date) ->
     {NewSeg, History} = handle_30days(Seg, Date, [], []),
-    lists:reverse([{history,History}|NewSeg]).
+    lists:reverse([{<<"history">>, History}|NewSeg]).
 
 handle_30days([], _, NewSeg, History) -> {NewSeg, lists:reverse(History)};
-handle_30days([{info_1, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"01">>, V, Date)|History]);
-handle_30days([{info_2, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"02">>, V, Date)|History]);
-handle_30days([{info_3, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"03">>, V, Date)|History]);
-handle_30days([{info_4, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"04">>, V, Date)|History]);
-handle_30days([{info_5, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"05">>, V, Date)|History]);
-handle_30days([{info_6, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"06">>, V, Date)|History]);
-handle_30days([{info_7, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"07">>, V, Date)|History]);
-handle_30days([{info_8, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"08">>, V, Date)|History]);
-handle_30days([{info_9, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"09">>, V, Date)|History]);
-handle_30days([{info_10, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"10">>, V, Date)|History]);
-handle_30days([{info_11, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"11">>, V, Date)|History]);
-handle_30days([{info_12, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"12">>, V, Date)|History]);
-handle_30days([{info_13, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"13">>, V, Date)|History]);
-handle_30days([{info_14, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"14">>, V, Date)|History]);
-handle_30days([{info_15, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"15">>, V, Date)|History]);
-handle_30days([{info_16, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"16">>, V, Date)|History]);
-handle_30days([{info_17, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"17">>, V, Date)|History]);
-handle_30days([{info_18, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"18">>, V, Date)|History]);
-handle_30days([{info_19, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"19">>, V, Date)|History]);
-handle_30days([{info_20, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"20">>, V, Date)|History]);
-handle_30days([{info_21, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"21">>, V, Date)|History]);
-handle_30days([{info_22, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"22">>, V, Date)|History]);
-handle_30days([{info_23, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"23">>, V, Date)|History]);
-handle_30days([{info_24, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"24">>, V, Date)|History]);
-handle_30days([{info_25, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"25">>, V, Date)|History]);
-handle_30days([{info_26, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"26">>, V, Date)|History]);
-handle_30days([{info_27, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"27">>, V, Date)|History]);
-handle_30days([{info_28, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"28">>, V, Date)|History]);
-handle_30days([{info_29, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"29">>, V, Date)|History]);
-handle_30days([{info_30, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"30">>, V, Date)|History]);
-handle_30days([{info_31, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"31">>, V, Date)|History]);
+handle_30days([{<<"info_1">>, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"01">>, V, Date)|History]);
+handle_30days([{<<"info_2">>, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"02">>, V, Date)|History]);
+handle_30days([{<<"info_3">>, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"03">>, V, Date)|History]);
+handle_30days([{<<"info_4">>, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"04">>, V, Date)|History]);
+handle_30days([{<<"info_5">>, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"05">>, V, Date)|History]);
+handle_30days([{<<"info_6">>, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"06">>, V, Date)|History]);
+handle_30days([{<<"info_7">>, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"07">>, V, Date)|History]);
+handle_30days([{<<"info_8">>, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"08">>, V, Date)|History]);
+handle_30days([{<<"info_9">>, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"09">>, V, Date)|History]);
+handle_30days([{<<"info_10">>, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"10">>, V, Date)|History]);
+handle_30days([{<<"info_11">>, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"11">>, V, Date)|History]);
+handle_30days([{<<"info_12">>, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"12">>, V, Date)|History]);
+handle_30days([{<<"info_13">>, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"13">>, V, Date)|History]);
+handle_30days([{<<"info_14">>, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"14">>, V, Date)|History]);
+handle_30days([{<<"info_15">>, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"15">>, V, Date)|History]);
+handle_30days([{<<"info_16">>, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"16">>, V, Date)|History]);
+handle_30days([{<<"info_17">>, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"17">>, V, Date)|History]);
+handle_30days([{<<"info_18">>, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"18">>, V, Date)|History]);
+handle_30days([{<<"info_19">>, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"19">>, V, Date)|History]);
+handle_30days([{<<"info_20">>, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"20">>, V, Date)|History]);
+handle_30days([{<<"info_21">>, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"21">>, V, Date)|History]);
+handle_30days([{<<"info_22">>, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"22">>, V, Date)|History]);
+handle_30days([{<<"info_23">>, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"23">>, V, Date)|History]);
+handle_30days([{<<"info_24">>, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"24">>, V, Date)|History]);
+handle_30days([{<<"info_25">>, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"25">>, V, Date)|History]);
+handle_30days([{<<"info_26">>, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"26">>, V, Date)|History]);
+handle_30days([{<<"info_27">>, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"27">>, V, Date)|History]);
+handle_30days([{<<"info_28">>, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"28">>, V, Date)|History]);
+handle_30days([{<<"info_29">>, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"29">>, V, Date)|History]);
+handle_30days([{<<"info_30">>, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"30">>, V, Date)|History]);
+handle_30days([{<<"info_31">>, V}|TL], Date, NewSeg, History) -> handle_30days(TL, Date, NewSeg, [day(<<"31">>, V, Date)|History]);
 handle_30days([HD|TL], Date, NewSeg, History) -> handle_30days(TL, Date, [HD|NewSeg], History).
 
 day(Day, V, Date) ->
-    [{date, <<Date/binary, Day/binary>>}, {cnt, V}].
+    {[{<<"date">>, <<Date/binary, Day/binary>>}, {<<"cnt">>, V}]}.
 
 -ifdef(TEST).
 

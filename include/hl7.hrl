@@ -5,7 +5,7 @@
           date :: string(),
           msg_type_s :: string(),
           msg_id :: string(),
-          segments = []
+          segments = [] :: list({list()})
          }).
 
 %% define primary records here, type/specs are in hl7.erl

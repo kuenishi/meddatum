@@ -232,11 +232,6 @@ get_separator(0) -> "[\\^]";
 get_separator(1) -> "[\\\\]";
 get_separator(2) -> "[&]".
 
-maybe_binary(Atom) when is_atom(Atom) ->
-    atom_to_binary(Atom, utf8);
-maybe_binary(Binary) ->
-    Binary.
-
 to_record(Name, Col, Depth) ->
     Tokens0 = re:split(Col, get_separator(Depth), [{return,list},unicode]),
     case proplists:get_value(Name, ?HL7_PRIMITIVE_TYPES) of
@@ -249,9 +244,9 @@ to_record(Name, Col, Depth) ->
             {Tokens, _}  = lists:split(ShortLen, Tokens0),
 
             Data0 = lists:map(fun({{Property, _Type}, []}) ->
-                                      {maybe_binary(Property), null};
+                                      {klib:maybe_binary(Property), null};
                                  ({{Property, Type}, Tok}) ->
-                                      {maybe_binary(Property),
+                                      {klib:maybe_binary(Property),
                                        to_json_object(Type, Tok, Depth+1)}
                               end,
                               lists:zip(TypeDef, Tokens)),

@@ -123,8 +123,7 @@ finalize(#recept{segments=List, file=File} = Recept) ->
     %% compensate the omitted IY/SI/TOs
     List1 = compensate(undefined, lists:reverse(List), []),
 
-    %% same as lists:reverse_map(F, List)
-    NewList = [rezept_parser:postprocess(Seg, Recept)|| Seg <- List1],
+    NewList = [{rezept_parser:postprocess(Seg, Recept)}|| Seg <- List1],
     %% Length = length(List) = length(List1) = length(NewList),
     Recept#recept{segments=NewList}.
 
