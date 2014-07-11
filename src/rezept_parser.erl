@@ -30,7 +30,10 @@
 -record(state, {recept       :: #recept{},
                 records = [] :: list(),
                 template     :: #recept{},
-                mode         :: med | dpc}).
+                mode         :: med | dpc,
+                skipping = false :: boolean(),
+                filename     :: filename:filename()
+               }).
 
 -spec parse_file(filename:filename(), med | dpc) -> {ok, [term()]}.
 parse_file(Filename, Mode) ->
@@ -54,7 +57,7 @@ parse_file(Filename, Mode, InfoExtractor) when is_function(InfoExtractor) ->
         end,
 
     InitCtx = #state{template = #recept{file=BinFilename, checksum=BinChecksum},
-                     mode = Mode},
+                     filename = BinFilename, mode = Mode},
     {ok, {Total, ResultCtx}} = ecsv:process_csv_string_with(lists:flatten(Lines), F, {0, InitCtx}),
 
     #state{records=Records1} = ResultCtx,
@@ -117,10 +120,9 @@ hardcode_list_to_string(S) ->
     S1 = list_to_binary(S),
     unicode:characters_to_list(S1).
 
-parse_line(Line, LineNo, #state{recept=Recept, records=Records,
-                                mode = Mode, template=ReceptTemplate} = State) ->
-    [RecordID|_] = Line,
+parse_line(Line, LineNo, #state{mode = Mode, filename = Filename} = State) ->
 
+    [RecordID|_] = Line,
     Types = case Mode of
                 dpc -> ?DPC_RECORD_TYPES;
                 med -> ?MED_RECORD_TYPES
@@ -134,78 +136,89 @@ parse_line(Line, LineNo, #state{recept=Recept, records=Records,
             ShortLen = erlang:min(length(Line), length(Cols0)),
             {Line1,_} = lists:split(ShortLen, Line),
             {Cols, _} = lists:split(ShortLen, Cols0),
-            %% case LineNo of
-            %%     N when N < 1185 andalso N > 1180 ->
-            %%         ?debugFmt("~w", [lists:zip(Cols, Line1)]);
-            %%     N when N < 1181 -> ok;
-            %%     _ ->
-            %%         exit(normal)
-            %% end,
-
-            Data0 = lists:map(fun({Col, Entry}) ->
-                                      %%?debugVal({Col,Entry}),
-                                      case check_type(Col, Entry) of
-                                          {ok, {K,V}} ->
-                                              {K, V};
-                                          {warning, {error, O}} ->
-                                              _ = lager:warning("Line ~p: ~p",[LineNo, O]),
-                                              {col, null};
-
-                                          {warning, {K,null}} ->
-                                              %% _ = lager:warning("required value is empty at ~s: ~ts",
-                                              %%                   [RecordID, hardcode_list_to_string(K)]),
-                                              {K, null};
-                                          {warning, {K,V}} ->
-                                              {K, V}
-                                      end
-                              end,
-                              lists:zip(Cols, Line1)),
-            Data1 = lists:filter(fun({_,null}) -> false; (_) -> true end,
-                                 Data0),
-            Data = [{<<"l">>,LineNo}|Data1],
-
-            case {RecordID, is_record(Recept, recept)} of
-                {"MN", false} -> %% skip
-                    {ok, State#state{recept=undefined}};
-                {"MN", true} -> %% error
-                    {ok, State#state{recept=undefined,
-                                     records=[rezept:finalize(Recept)|Records]}};
-                {"IR", _} -> %% remember hospital ID
-                    NewRecords = case Recept of
-                                     undefined -> Records;
-                                     _ when is_record(Recept, recept) -> [rezept:finalize(Recept)|Records]
-                                 end,
-                    NewHospitalID = extract_hospital(Data),
-                    Date = extract_ir_date(Data),
-                    NewReceptTemplate = ReceptTemplate#recept{date=Date,
-                                                              hospital_id=NewHospitalID},
-                    {ok, State#state{recept=undefined,
-                                     records=NewRecords,
-                                     template=NewReceptTemplate}};
-                {"GO", true} -> %% End of file
-                    {ok, State#state{recept=undefined,
-                                     records=[rezept:finalize(Recept)|Records]}};
-                {"GO", false} -> %% End of file, buggy
-                    {error, unexpected_eof};
-                {"RE", _} ->
-                    NewRecords = case Recept of
-                                     undefined -> Records;
-                                     _ when is_record(Recept, recept) -> [rezept:finalize(Recept)|Records]
-                                 end,
-                    NewRecept0 = ReceptTemplate#recept{patient_id=extract_patient_id(Data),
-                                                       date=extract_re_date(Data)},
-                    NewRecept = rezept:append_to_recept(NewRecept0, Data),
-                    {ok, State#state{recept=NewRecept, records=NewRecords}};
-                {_, true} ->
-                    {ok, State#state{recept=rezept:append_to_recept(Recept, Data)}};
-                {_, false} ->
-                    {ok, State#state{recept=rezept:append_to_recept(ReceptTemplate, Data)}}
+            try
+                handle_split_line(LineNo, Cols, Line1, RecordID, State)
+            catch
+                T:E ->
+                    _ = lager:error("Parse error at ~p@~s (~p:~p). Skipping until next RE.",
+                                    [LineNo, Filename, T, E]),
+                    {ok, State#state{skipping=true}}
             end;
         {value, _, _} ->
             {error, {not_yet, RecordID}};
         false ->
             {error, {unknown_record, RecordID}}
     end.
+
+handle_split_line(LineNo, Cols, Line1, RecordID,
+                  #state{recept=Recept, records=Records,
+                         template=ReceptTemplate,
+                         skipping = Skipping} = State) ->
+
+    Data0 = lists:map(fun({Col, Entry}) ->
+                              %%?debugVal({Col,Entry}),
+                              case check_type(Col, Entry) of
+                                  {ok, {K,V}} ->
+                                      {K, V};
+                                  {warning, {error, O}} ->
+                                      _ = lager:warning("Line ~p: ~p",[LineNo, O]),
+                                      {col, null};
+
+                                  {warning, {K,null}} ->
+                                      %% _ = lager:warning("required value is empty at ~s: ~ts",
+                                      %%                   [RecordID, hardcode_list_to_string(K)]),
+                                      {K, null};
+                                  {warning, {K,V}} ->
+                                      {K, V}
+                              end
+                      end,
+                      lists:zip(Cols, Line1)),
+    Data1 = lists:filter(fun({_,null}) -> false; (_) -> true end,
+                         Data0),
+    Data = [{<<"l">>,LineNo}|Data1],
+
+    case {RecordID, is_record(Recept, recept)} of
+        {"MN", false} -> %% skip
+            {ok, State#state{recept=undefined}};
+        {"MN", true} -> %% error
+            {ok, State#state{recept=undefined,
+                             records=[rezept:finalize(Recept)|Records]}};
+        {"IR", _} -> %% remember hospital ID
+            NewRecords = case Recept of
+                             undefined -> Records;
+                             _ when is_record(Recept, recept) -> [rezept:finalize(Recept)|Records]
+                         end,
+            NewHospitalID = extract_hospital(Data),
+            Date = extract_ir_date(Data),
+            NewReceptTemplate = ReceptTemplate#recept{date=Date,
+                                                      hospital_id=NewHospitalID},
+            {ok, State#state{recept=undefined,
+                             records=NewRecords,
+                             template=NewReceptTemplate}};
+        {"GO", true} -> %% End of file
+            {ok, State#state{recept=undefined,
+                             records=[rezept:finalize(Recept)|Records]}};
+        {"GO", false} -> %% End of file, buggy
+            {error, unexpected_eof};
+        {"RE", _} ->
+            NewRecords = case Recept of
+                             undefined -> Records;
+                             _ when Skipping -> Records;
+                             _ when is_record(Recept, recept) -> [rezept:finalize(Recept)|Records]
+                         end,
+            NewRecept0 = ReceptTemplate#recept{patient_id=extract_patient_id(Data),
+                                               date=extract_re_date(Data)},
+            NewRecept = rezept:append_to_recept(NewRecept0, Data),
+            {ok, State#state{recept=NewRecept, records=NewRecords, skipping=false}};
+
+        {_, true} when Skipping ->
+            {ok, State};
+        {_, true} ->
+            {ok, State#state{recept=rezept:append_to_recept(Recept, Data)}};
+        {_, false} ->
+            {ok, State#state{recept=rezept:append_to_recept(ReceptTemplate, Data)}}
+    end.
+
 
 handle_eof(_LineNo, #state{recept=undefined} = Ctx0) ->
     {ok, Ctx0};
