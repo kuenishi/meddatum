@@ -11,8 +11,8 @@ create_config() ->
     case file:open(Filename, [write, exclusive]) of
         {ok, IoDevice} ->
             String =
-                "[{riak_ip, \"127.0.0.1\"},\n"
-                "{riak_port, 8087}].\n",
+                "{riak_ip, \"127.0.0.1\"}.\n"
+                "{riak_port, 8087}.\n",
             ok = file:write(IoDevice, String),
             ok = file:close(IoDevice),
             io:format("Created ~s~n", [Filename]);
@@ -27,15 +27,17 @@ check_config() ->
         {error, Reason} ->
             io:format("~p: ~s~n", [Filename, file:format_error(Reason)]);
         {ok, _} ->
+            true = meddatum_config:check_riak_connectivity(),
+            true = meddatum:check_setup(),
             io:format("ok~n")
     end.
 
 setup_riak() ->
-    {ok, {Host, Port}} = get_riak(),
+    {ok, {Host, Port}} = meddatum_config:get_riak(),
     meddatum:setup(Host, Port).
 
 import_ssmix([HospitalID, Path]) ->
-    {ok, {Host, Port}} = get_riak(),
+    {ok, {Host, Port}} = meddatum_config:get_riak(),
     try
         ssmix:walk2(Path, HospitalID, Host, Port)
     catch E:T ->
@@ -50,7 +52,7 @@ import_recept([Mode0, Filename]) ->
                "dpc" -> dpc;
                "med" -> med
            end,
-    {ok, {Host, Port}} = get_riak(),
+    {ok, {Host, Port}} = meddatum_config:get_riak(),
     {ok, C} = riakc_pb_socket:start_link(Host, Port),
     _ = lager:info("connecting to ~p:~p", [Host, Port]),
     try
@@ -107,7 +109,7 @@ delete_all_ssmix(_) -> io:format("TBD~n").
 delete_recept([File]) ->
     io:setopts([{encoding, unicode}]),
     io:format("deleting: ~p~n", [File]),
-    {ok, {Host, Port}} = get_riak(),
+    {ok, {Host, Port}} = meddatum_config:get_riak(),
     %% If you use a riak&healthb younger than pre5 and 0.1.x
     %% turn this boolean to false, will be not using bucket types
     application:set_env(meddatum, use_bucket_types, true),
@@ -122,23 +124,3 @@ delete_recept([File]) ->
 
 %% === internal ===
 
-get_riak() ->
-    case get_config() of
-        {ok, Config} ->
-            Host = proplists:get_value(riak_ip, Config),
-            Port = proplists:get_value(riak_port, Config),
-            {ok, {Host, Port}};
-        {error, enoent} = E ->
-            io:format("~~/.meddatum is required to run meddatum.~n"
-                      "run 'meddatum create-config' to create first template~n"
-                      "and then ocnfigure it.~n"),
-            E;
-        {error, _} = E ->
-            io:format("Error: ~p", [E]),
-            E
-    end.
-
-
-get_config() ->
-    Filename = os:getenv("HOME")++"/.meddatum",
-    file:consult(Filename).

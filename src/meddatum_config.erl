@@ -16,11 +16,39 @@
 
 -module(meddatum_config).
 
--export([use_bucket_types/0]).
+-export([use_bucket_types/0,
+         check_riak_connectivity/0,
+         get_riak/0,
+         get_config/0]).
 
 -spec use_bucket_types() -> boolean().
-use_bucket_types() ->
-    case application:get_env(meddatum, use_bucket_types) of
-        {ok, Boolean} -> Boolean;
-        undefined -> false
+use_bucket_types() -> true.
+
+-spec check_riak_connectivity() -> boolean().
+check_riak_connectivity() ->
+    {ok, {Host, Port}} = get_riak(),
+    {ok, Pid} = riakc_pb_socket:start_link(Host, Port),
+    {ok, _Indexes} = riakc_pb_socket:list_search_indexes(Pid),
+    ok = riakc_pb_socket:stop(Pid),
+    true.
+
+get_riak() ->
+    case get_config() of
+        {ok, Config} ->
+            Host = proplists:get_value(riak_ip, Config),
+            Port = proplists:get_value(riak_port, Config),
+            {ok, {Host, Port}};
+        {error, enoent} = E ->
+            io:format("~~/.meddatum is required to run meddatum.~n"
+                      "run 'meddatum create-config' to create first template~n"
+                      "and then ocnfigure it.~n"),
+            E;
+        {error, _} = E ->
+            io:format("Error: ~p", [E]),
+            E
     end.
+
+
+get_config() ->
+    Filename = os:getenv("HOME")++"/.meddatum",
+    file:consult(Filename).

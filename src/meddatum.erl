@@ -19,6 +19,7 @@
 -export([main/1, help/0,
          true_bucket_name/1, maybe_new_ro/5,
          ssmix_bucket/1, recept_bucket/1, ssmix_patients_bucket/1,
+         check_setup/0,
          setup/2]).
 
 -include_lib("eunit/include/eunit.hrl").
@@ -139,3 +140,15 @@ setup(Host, Port) ->
 
     ok = riakc_pb_socket:stop(C).
 
+%% TODO: pretty pring
+check_setup() ->
+    {ok, {Host, Port}} = meddatum_config:get_riak(),
+    {ok, Pid} = riakc_pb_socket:start_link(Host, Port),
+    {ok, Index} = riakc_pb_socket:get_search_index(Pid, ?INDEX_NAME),
+    <<"md_index">> = proplists:get_value(index, Index),
+    <<"_yz_default">> = proplists:get_value(schema, Index),
+    {ok, Props} = riakc_pb_socket:get_bucket_type(Pid, ?BUCKET_TYPE),
+    ?INDEX_NAME = proplists:get_value(search_index, Props),
+    ok = riakc_pb_socket:stop(Pid),
+    true.
+    
