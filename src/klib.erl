@@ -8,7 +8,9 @@
 %%%-------------------------------------------------------------------
 -module(klib).
 
--export([rev_map/2, maybe_binary/1]).
+-export([rev_map/2, maybe_binary/1, ensure_dir/1]).
+
+-include_lib("kernel/include/file.hrl").
 
 -spec rev_map(fun(), list()) -> list().
 rev_map(F, L) ->
@@ -20,3 +22,12 @@ maybe_binary(Atom) when is_atom(Atom) ->
 maybe_binary(Binary) ->
     Binary.
 
+ensure_dir(Dir) ->
+    case file:read_file_info(Dir) of
+        {ok, FileInfo} ->
+            case FileInfo#file_info.type of
+                directory -> ok;
+                _ -> {error, {not_dir, Dir}}
+            end;
+        E -> {error, {E, Dir}}
+    end.
