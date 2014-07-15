@@ -1,5 +1,5 @@
 %%
-%% Copyright (C) 2013-2013 UENISHI Kota
+%% Copyright (C) 2013-2014 UENISHI Kota
 %%
 %%    Licensed under the Apache License, Version 2.0 (the "License");
 %%    you may not use this file except in compliance with the License.
@@ -25,19 +25,20 @@
 -include_lib("eunit/include/eunit.hrl").
 -include("meddatum.hrl").
 
-main(["create-config"]) -> meddatum_console:create_config();
-main(["check-config"]) ->  meddatum_console:check_config();
-main(["setup-riak"]) ->    meddatum_console:setup_riak();
-main(["import-ssmix"|Args]) ->  meddatum_console:import_ssmix(Args);
-main(["import-recept"|Args]) -> meddatum_console:import_recept(Args);
-main(["parse-ssmix"|Args]) ->   meddatum_console:parse_ssmix(Args);
-main(["parse-recept"|Args]) ->  meddatum_console:parse_recept(Args);
-main(["delete-all-ssmix"|Args]) -> meddatum_console:delete_all_ssmix(Args);
-main(["delete-recept"|Args]) ->    meddatum_console:delete_recept(Args);
+main(["create-config"]) -> setup(), meddatum_console:create_config();
+main(["check-config"]) ->  setup(), meddatum_console:check_config();
+main(["setup-riak"]) ->    setup(), meddatum_console:setup_riak();
+main(["import-ssmix"|Args]) ->  setup(), meddatum_console:import_ssmix(Args);
+main(["import-recept"|Args]) -> setup(), meddatum_console:import_recept(Args);
+main(["parse-ssmix"|Args]) ->   setup(), meddatum_console:parse_ssmix(Args);
+main(["parse-recept"|Args]) ->  setup(), meddatum_console:parse_recept(Args);
+main(["delete-all-ssmix"|Args]) -> setup(), meddatum_console:delete_all_ssmix(Args);
+main(["delete-recept"|Args]) ->    setup(), meddatum_console:delete_recept(Args);
 main(["help"]) -> help();
 main([]) -> help().
 
 help() ->
+    setup(),
     io:format("usage:~n"
               "meddatum create-config (configuration file will be created at ~~/.meddatum~n"
               "meddatum check-config (checks configuration file ~~/.meddatum)~n"
@@ -49,6 +50,14 @@ help() ->
               "meddatum delete-all-ssmix <hospital-id>~n"
               "meddatum delete-recept <recept-file>~n"
               "meddatum [help]~n").
+
+setup() ->
+    ok = error_logger:tty(false),
+    {ok, Pid} = treehugger:start_link([{output, standard_io}]),
+    treehugger:log(Pid, "boom, ~p", [foo]),
+    treehugger:stop(Pid),
+
+    ok.
 
 true_bucket_name(Bucket0) ->
     case meddatum_config:use_bucket_types() of
