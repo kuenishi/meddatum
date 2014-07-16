@@ -321,26 +321,19 @@ strip_list(SingleEntryList) -> hd(SingleEntryList).
 
 %% @doc
 %% @private
--spec check_keys([{{binary(), binary()},binary(),binary()}]) -> {ok, {binary(), [{binary(),binary()}]}}.
+-spec check_keys([{{binary(), binary()},{binary(),binary()},binary()}]) -> {ok, {binary(), [{binary(),binary()}]}}.
 check_keys(RiakKeys) ->
-    {{[HospitalID|_], PatientIDs}, B, K} = hd(RiakKeys),
-    {ok, Bkeys} =
-        case meddatum_config:use_bucket_types() of
-            true -> check_keys(tl(RiakKeys), [{{B,K}, undefined}], PatientIDs);
-            false -> check_keys(tl(RiakKeys), [{B,K}], PatientIDs)
-        end,
-    {ok, {HospitalID, strip_list(PatientIDs), Bkeys}}.
+    {{HospitalID, PatientID}, B, K} = hd(RiakKeys),
+    {ok, Bkeys} = check_keys(tl(RiakKeys), [{{B,K}, undefined}], PatientID),
+    {ok, {HospitalID, PatientID, Bkeys}}.
 
 -spec check_keys([{binary(),binary(),binary()}],
                  [{binary(), binary()}], binary()) ->
                         {ok, {binary(), [{binary(),binary()}]}}.
 check_keys([], Bkeys, _) -> {ok, Bkeys};
-check_keys([{{_,PatientIDs},B,K}|TL], Bkeys, PatientIDs) ->
-    BK = case meddatum_config:use_bucket_types() of
-             true -> {{B,K}, undefined};
-             false -> {B,K}
-         end,
-    check_keys(TL, [BK|Bkeys], PatientIDs).
+check_keys([{{_,PatientID},B,K}|TL], Bkeys, PatientID) ->
+    BK = {{B,K}, undefined},
+    check_keys(TL, [BK|Bkeys], PatientID).
 
 -ifdef(TEST).
 
