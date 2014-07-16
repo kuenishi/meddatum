@@ -141,8 +141,8 @@ parse_line(Line, LineNo, #state{mode = Mode, filename = Filename, logger = Tree}
             catch
                 T:E ->
                     treehugger:hug(Tree, error,
-                                       "Parse error at ~p@~s (~p:~p). Skipping until next RE.",
-                                       [LineNo, Filename, T, E]),
+                                   "Parse error at ~p@~s (~p:~p). Skipping until next RE.",
+                                   [LineNo, Filename, T, E]),
 
                     {ok, State#state{skipping=true}}
             end;
