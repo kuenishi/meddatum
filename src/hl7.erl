@@ -46,7 +46,8 @@ bucket(#hl7msg{msg_type_s=MsgType, hospital_id=HospitalID}) ->
                   true -> ?SSMIX_PATIENTS_BUCKET;
                   false -> ?SSMIX_BUCKET
               end,
-    <<Bucket0/binary, ?BUCKET_NAME_SEPARATOR/binary, HospitalID/binary>>.
+    {?BUCKET_TYPE,
+     <<Bucket0/binary, ?BUCKET_NAME_SEPARATOR/binary, HospitalID/binary>>}.
 
 key(#hl7msg{file=File}) ->
     filename:basename(File).

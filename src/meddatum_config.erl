@@ -18,8 +18,7 @@
 
 -export([use_bucket_types/0,
          check_riak_connectivity/0,
-         get_riak/0,
-         get_config/0]).
+         get_riak/0, get_riak/1, get_config/0]).
 
 -spec use_bucket_types() -> boolean().
 use_bucket_types() -> true.
@@ -32,12 +31,15 @@ check_riak_connectivity() ->
     ok = riakc_pb_socket:stop(Pid),
     true.
 
+get_riak(Config) ->
+    Host = proplists:get_value(riak_ip, Config),
+    Port = proplists:get_value(riak_port, Config),
+    {ok, {Host, Port}}.
+
 get_riak() ->
     case get_config() of
         {ok, Config} ->
-            Host = proplists:get_value(riak_ip, Config),
-            Port = proplists:get_value(riak_port, Config),
-            {ok, {Host, Port}};
+            get_riak(Config);
         {error, enoent} = E ->
             io:format("~~/.meddatum is required to run meddatum.~n"
                       "run 'meddatum create-config' to create first template~n"

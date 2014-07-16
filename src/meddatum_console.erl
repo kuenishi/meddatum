@@ -16,11 +16,29 @@
 
 -module(meddatum_console).
 
+-include("meddatum.hrl").
+
+-export([setup/0, teardown/1]).
+
 -export([create_config/0, check_config/0,
          setup_riak/0,
          import_ssmix/1, import_recept/1,
          parse_ssmix/1, parse_recept/1,
          delete_all_ssmix/1, delete_recept/1]).
+
+setup() ->
+    %% ok = error_logger:tty(false),
+    {ok, Pid} = treehugger:start_link([{output, standard_io}]),
+    treehugger:log(Pid, "starting meddatum", []),
+    {ok, Config} = meddatum_config:get_config(),
+    {ok, {Host, Port}} = meddatum_config:get_riak(Config),
+    {ok, Riakc} = riakc_pb_socket:start_link(Host, Port),
+    {ok, #context{logger=Pid, riakc=Riakc, config=Config}}.
+
+teardown(#context{logger=Pid, riakc=Riakc} = _Ctx) ->
+    ok = riakc_pb_socket:stop(Riakc),
+    ok = treehugger:stop(Pid),
+    ok.
 
 create_config() ->
     Filename = os:getenv("HOME")++"/.meddatum",
@@ -49,17 +67,19 @@ check_config() ->
     end.
 
 setup_riak() ->
-    {ok, {Host, Port}} = meddatum_config:get_riak(),
+    {ok, {Host,Port}} = meddatum_config:get_riak(),
     meddatum:setup(Host, Port).
 
 import_ssmix([HospitalID, Path]) ->
-    {ok, {Host, Port}} = meddatum_config:get_riak(),
+    {ok, #context{logger=Logger} = Ctx} = setup(),
     try
-        ssmix:walk2(Path, HospitalID, Host, Port)
+        ssmix_importer:walk(Path, HospitalID, Ctx)
     catch E:T ->
-            _ = lager:error("~p:~p @ ~s > ~p", [E, T, Path, erlang:get_stacktrace()])
-    end,
-    _ = lager:info("finished processing: ~p", [Path]);
+            _ = treehugger:log(Logger, error, "~p:~p @ ~s > ~p", [E, T, Path, erlang:get_stacktrace()])
+    after
+        _ = treehugger:log(Logger, info, "finished processing: ~p", [Path]),
+        teardown(Ctx)
+    end;
 
 import_ssmix(_) -> meddatum:help().
 
@@ -68,27 +88,31 @@ import_recept([Mode0, Filename]) ->
                "dpc" -> dpc;
                "med" -> med
            end,
-    {ok, {Host, Port}} = meddatum_config:get_riak(),
-    {ok, C} = riakc_pb_socket:start_link(Host, Port),
-    _ = lager:info("connecting to ~p:~p", [Host, Port]),
+    {ok, #context{logger=Logger,
+                  riakc=C} = Context} = meddatum_console:setup(),
+    treehugger:log(Logger, info, "parsing ~s as ~s", [Filename, Mode]),
     try
-        {ok, Records} = rezept:from_file(Filename, [Mode],
-                                         fun healthb_rezept:special_extractor/1),
-        _ = lager:debug("processing ~p finished and ~p records", [Filename, length(Records)]),
+        {ok, Records} = rezept:from_file(Filename, [Mode]),
+        treehugger:log(Logger, info,
+                       "parsing ~p finished (~p records extracted)",
+                       [Filename, length(Records)]),
+
         lists:foreach(fun(Record)->
                               ok = rezept_io:put_record(C, Record)
                       end, Records),
-        _ = lager:info("wrote ~p records from ~p", [length(Records), Filename])
+
+        treehugger:log(Logger, info, "wrote ~p records into Riak.", [length(Records)])
     catch E:T ->
-            _ = lager:info("~p:~p ~w", [E, T, erlang:get_stacktrace()])
+            treehugger:log(Logger, error,
+                           "~p:~p ~w", [E, T, erlang:get_stacktrace()])
     after
-        ok = riakc_pb_socket:stop(C)
+        meddatum_console:teardown(Context)
     end;
 import_recept(_) -> meddatum:help().
 
 parse_ssmix([Path]) ->
     io:setopts([{encoding,utf8}]),
-    %% {ok,Path} = file:get_cwd(),
+
     F = fun(File, Acc0) ->
                 case hl7:from_file(File, undefined) of
                     {ok, HL7Msg0} ->

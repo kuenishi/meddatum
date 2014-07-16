@@ -15,7 +15,7 @@
 %%
 
 -module(ssmix_importer).
--export([connect/2, disconnect/1, put_json/2,
+-export([walk/3,
          index_name/1,
          delete_all/2]).
 
@@ -23,14 +23,22 @@
 -include("meddatum.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
--spec connect(term(), inet:port_number()) -> {ok, pid()}.
-connect(Host, Port) ->
-    riakc_pb_socket:start_link(Host, Port).
+walk(Path, HospitalID, Ctx) when is_list(HospitalID) ->
+    walk(Path, unicode:characters_to_binary(HospitalID), Ctx);
+walk(Path, HospitalID, Ctx) when is_binary(HospitalID) ->
+    F = fun(File, Acc0) ->
+                case process_file(File, HospitalID, Ctx) of
+                    ok -> Acc0;
+                    {error,_} when is_list(Acc0) ->
+                        [File|Acc0];
+                    {error,_} ->
+                        [File]
+                end
+        end,
+    _ErrorFiles = filelib:fold_files(Path, "", true, F, []),
+    ok.
 
-disconnect(Client) ->
-    riakc_pb_socket:stop(Client).
-
-put_json(Client, Msg) ->
+put_json(Client, Msg, Logger) ->
     %% TODO: Bucket, Key are to be extracted from msg
     ContentType = <<"application/json">>,
     Key = hl7:key(Msg),
@@ -38,11 +46,12 @@ put_json(Client, Msg) ->
     Bucket = hl7:bucket(Msg),
     RiakObj0 = meddatum:maybe_new_ro(Client, Bucket, Key, Data, ContentType),
 
-    _ = lager:debug("inserting: ~p~n", [Key]),
+    %%_ = lager:debug("inserting: ~p~n", [Key]),
+    treehugger:log(Logger, debug, "inserting ~p", [{Bucket,Key}]),
     RiakObj = set_2i(RiakObj0, Msg#hl7msg.date, Msg#hl7msg.patient_id),
     case riakc_pb_socket:put(Client, RiakObj) of
       ok -> ok;
-      Error -> _ = lager:error("error inserting ~p: ~p", [Key, Error])
+      Error -> treehugger:log(error, Logger, "error inserting ~p: ~p", [Key, Error])
     end.
 
 set_2i(RiakObj0, Date, PatientID) ->
@@ -73,10 +82,10 @@ delete_all(Host, Port, Bucket) ->
     end.
 
 deleter(Host, Port, Bucket0) ->
-    {ok, C} = connect(Host, Port),
+    {ok, C} = riakc_pb_socket:start_link(Host, Port),
     Bucket = meddatum:true_bucket_name(Bucket0),
     Result = deleter_loop(C, Bucket, 0),
-    ok = disconnect(C),
+    ok = riakc_pb_socket:stop(C),
     io:format("~p deleter: ~p~n", [Bucket, Result]),
     done.
 
@@ -93,11 +102,11 @@ deleter_loop(C, Bucket, Count) ->
     end.
 
 fetcher(Host, Port, DeleterPid, Bucket0) ->
-    {ok, C} = connect(Host, Port),
+    {ok, C} = riakc_pb_socket:start_link(Host, Port),
     Bucket = meddatum:true_bucket_name(Bucket0),
     {ok, ReqID} = riakc_pb_socket:stream_list_keys(C, Bucket),
     Result = fetcher_loop(C, ReqID, 0, DeleterPid),
-    ok = disconnect(C),
+    ok = riakc_pb_socket:stop(C),
     io:format("~p fetcher: ~p > ~p~n", [Bucket, ReqID, Result]),
     DeleterPid ! done,
     done.
@@ -110,6 +119,30 @@ fetcher_loop(C, ReqID, Count, DeleterPid) ->
             {error, E} ->  io:format("~p", [E])
     end.
 
+process_file(File, HospitalID, #context{riakc=Riakc, logger=Logger} = _Ctx) ->
+    treehugger:log(Logger, info, "Processing ~p ~p", [File, HospitalID]),
+    case string:right(File, 2) of
+        "_1" ->
+            case hl7:from_file(File, undefined) of
+                {ok, HL7Msg0} ->
+                    HL7Msg = hl7:annotate(HL7Msg0#hl7msg{hospital_id=HospitalID}),
+                    try
+                        ok=put_json(Riakc, HL7Msg, Logger)
+                    catch T:E ->
+                            treehugger:log(Logger, error, "~p:~p ~p",
+                                           [T,E, erlang:get_backtrace()])
+                    after
+                        treehugger:log(Logger, info, "Processed ~s", [File])
+                    end;
+                {error, _Reason} = R ->
+                    _ = treehugger:log(Logger, error, "~p:~p", [File, R]),
+                    R
+            end;
+        _End ->
+            treehugger:log(Logger, warning, "file ~s ignored because its suffix is not '_1'",
+                           [File]),
+            {error, {bad_suffix, File}}
+    end.
 
 -ifdef(TEST).
 

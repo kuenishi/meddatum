@@ -15,3 +15,11 @@
 %% - ADT^A60 アレルギー情報の登録／更新
 %% - PPR^ZD1 病名(歴)情報の登録／更新
 -define(SSMIX_PATIENTS_BUCKET, <<"ssmix-patients">>).
+
+%% meddatum context
+-record(context, {
+          logger :: pid(),
+          riakc :: pid(),
+          config = [] :: proplists:proplist()
+         }).
+
