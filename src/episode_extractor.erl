@@ -97,7 +97,7 @@ process_episodes(PatientID, HitDates, HL7list, Receptlist, Margin) ->
     %% If the search result includes any static SSMIX file,
     %% All episodes are to be exported.
     EpisodeEndpoints =
-        case lists:any(fun hl7:is_statidc/1, HL7list) of
+        case lists:any(fun hl7:is_static/1, HL7list) of
             true -> RawEndpoints;
             _    -> filter_endpoints(RawEndpoints, HitDates)
         end,
