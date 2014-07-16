@@ -23,7 +23,7 @@
 -include_lib("eunit/include/eunit.hrl").
 
 %% -export([connect/2, disconnect/1, put/2]).
--export([read_file/1, hankaku/1]).
+-export([read_file/1]).
 
 %% @doc read a Shift_JIS/EUC-JP files and convert them with nkf
 -spec read_file(filename:filename()) -> {ok, [string()]}.

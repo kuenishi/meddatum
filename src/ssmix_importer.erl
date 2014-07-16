@@ -130,7 +130,7 @@ process_file(File, HospitalID, #context{riakc=Riakc, logger=Logger} = _Ctx) ->
                         ok=put_json(Riakc, HL7Msg, Logger)
                     catch T:E ->
                             treehugger:log(Logger, error, "~p:~p ~p",
-                                           [T,E, erlang:get_backtrace()])
+                                           [T,E, erlang:get_stacktrace()])
                     after
                         treehugger:log(Logger, info, "Processed ~s", [File])
                     end;

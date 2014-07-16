@@ -22,8 +22,8 @@
 -export([bucket2hospital_id/1]).
 
 %% note that the file is usually *NOT* JSON.
--callback from_file(filename:filename(), list()) -> {ok, [md_record()]}.
--callback from_file(filename:filename(), list(), PostProcessor::fun()) -> {ok, [md_record()]}.
+-callback from_file(filename:filename(), list(), pid()) -> {ok, [md_record()]}.
+-callback from_file(filename:filename(), list(), pid(), PostProcessor::fun()) -> {ok, [md_record()]}.
 
 -callback to_json(md_record()) ->  {ok, JSON::binary()}.
 -callback from_json(JSON::binary()) -> md_record().

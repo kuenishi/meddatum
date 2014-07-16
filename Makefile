@@ -9,8 +9,11 @@ all:
 compile:
 	./rebar compile
 
-test: compile
-	./rebar eunit skip_deps=true
-
 clean:
 	./rebar clean
+
+DIALYZER_APPS = kernel stdlib sasl erts ssl tools os_mon runtime_tools crypto inets \
+	webtool eunit syntax_tools compiler
+PLT ?= $(HOME)/.meddatum_plt
+
+include tools.mk

@@ -24,7 +24,7 @@
 -export([new/4, save/5,
          save_records/4]).
 
--export([extract_date/1, extract_and_trim_date/1]).
+-export([extract_date/1]).
 
 
 -spec new(binary(), binary(), list(), string()) -> #episode{}.

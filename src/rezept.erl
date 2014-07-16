@@ -27,7 +27,7 @@
          key/1, key_prefix/1,
          bucket/1,
          patient_id/1, hospital_id/1,
-         from_file/2, from_file/3]).
+         from_file/3, from_file/4]).
 
 -export([
          append_to_recept/2,
@@ -47,12 +47,12 @@ decoder() ->
 -define(ENCODER, (encoder())).
 -define(DECODER, (decoder())).
 
--spec from_file(filename:filename(), [med|dpc]) -> {ok, [#recept{}]}.
-from_file(Filename, [Mode]) when Mode =:= med orelse Mode =:= dpc ->
-    rezept_parser:parse_file(Filename, Mode).
+-spec from_file(filename:filename(), [med|dpc], pid()) -> {ok, [#recept{}]}.
+from_file(Filename, [Mode], Logger) when Mode =:= med orelse Mode =:= dpc ->
+    rezept_parser:parse_file(Filename, Mode, Logger).
 
-from_file(Filename, [Mode], PostProcessor) when Mode =:= med orelse Mode =:= dpc ->
-    rezept_parser:parse_file(Filename, Mode, PostProcessor).
+from_file(Filename, [Mode], Logger, PostProcessor) when Mode =:= med orelse Mode =:= dpc ->
+    rezept_parser:parse_file(Filename, Mode, Logger, PostProcessor).
 
 -spec to_json(#recept{}) -> {ok, binary()}.
 to_json(Rezept) when is_record(Rezept, recept) > 0 ->
@@ -113,7 +113,7 @@ has_re(#recept{segments=List} = _Recept) ->
             end,
     lists:any(HasRE, List).
 
-finalize(#recept{segments=List, file=File} = Recept) ->
+finalize(#recept{segments=List, file=_File} = Recept) ->
     case has_re(Recept) of
         true -> ok;
         false -> pass
