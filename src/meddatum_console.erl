@@ -92,7 +92,7 @@ import_recept([Mode0, Filename]) ->
                   riakc=C} = Context} = meddatum_console:setup(),
     treehugger:log(Logger, info, "parsing ~s as ~s", [Filename, Mode]),
     try
-        {ok, Records} = rezept:from_file(Filename, [Mode]),
+        {ok, Records} = rezept:from_file(Filename, [Mode], Logger),
         treehugger:log(Logger, info,
                        "parsing ~p finished (~p records extracted)",
                        [Filename, length(Records)]),
@@ -114,7 +114,7 @@ parse_ssmix([Path]) ->
     io:setopts([{encoding,utf8}]),
 
     F = fun(File, Acc0) ->
-                case hl7:from_file(File, undefined) of
+                case hl7:from_file(File, lager) of
                     {ok, HL7Msg0} ->
                         io:format("~ts:~n", [File]),
                         io:format("~ts~n", [hl7:to_json(HL7Msg0)]);
@@ -134,7 +134,7 @@ parse_recept([Mode, File]) ->
                    "dpc" -> dpc;
                    "med" -> med
                end,
-    {ok, Records} = rezept:from_file(File, [ModeAtom]),
+    {ok, Records} = rezept:from_file(File, [ModeAtom], lager),
     lists:foreach(fun({ok, JSON}) ->
                           io:format("~ts~n", [JSON]);
                      ({error, E}) ->

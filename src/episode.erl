@@ -79,7 +79,6 @@ extract_and_trim_date(HL7orRecept) ->
 %% @private hl7 message from ssmix bucket
 extract_episode_(_, _, [], List) -> lists:reverse(List);
 extract_episode_(Start, End, [HL7orRecept|Rest], List)->
-    %% _ = lager:info("~w", [HL7orRecept]),
     case extract_and_trim_date(HL7orRecept) of
         Date when Date < Start-> %% left
             extract_episode_(Start, End, Rest, List);

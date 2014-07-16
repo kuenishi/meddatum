@@ -88,7 +88,6 @@ maybe_new_ro(Client, Bucket, Key, Data, ContentType) ->
                     riakc_obj:set_vclock(RiakObj, riakc_obj:vclock(RiakObj0))
             end;
         {error, _E} ->
-            _ = lager:debug("inserting ~p/~p: ~p~n", [Bucket, Key, _E]),
             riakc_obj:new(Bucket, Key, Data, ContentType)
     end.
 

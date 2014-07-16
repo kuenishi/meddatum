@@ -29,12 +29,15 @@
 
 -define(SERVER, ?MODULE).
 
--export([log/3, log/4, stop/1]).
+-export([log/3, log/4, hug/3, hug/4, stop/1]).
 
 -record(state, {
           sink = lager :: lager | file:io_device(),
           zone = "" :: string()
          }).
+
+hug(Tree0, Tree1, Tree2) -> log(Tree0, Tree1, Tree2).
+hug(Tree0, Tree1, Tree2, Tree3) -> log(Tree0, Tree1, Tree2, Tree3).
 
 -spec log(pid(), string(), list(term())) -> ok.
 log(Pid, Msg, Term) ->

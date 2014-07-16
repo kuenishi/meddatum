@@ -22,7 +22,7 @@
 -include_lib("eunit/include/eunit.hrl").
 
 -export([
-         parse_file/3, parse_file/2,
+         parse_file/4, parse_file/3,
          default_extractor/1,
          postprocess/2
         ]).
@@ -32,17 +32,16 @@
                 template     :: #recept{},
                 mode         :: med | dpc,
                 skipping = false :: boolean(),
-                filename     :: filename:filename()
+                filename     :: filename:filename(),
+                logger       :: lager | pid()
                }).
 
--spec parse_file(filename:filename(), med | dpc) -> {ok, [term()]}.
-parse_file(Filename, Mode) ->
-    parse_file(Filename, Mode, fun ?MODULE:default_extractor/1).
+-spec parse_file(filename:filename(), med | dpc, pid()) -> {ok, [term()]}.
+parse_file(Filename, Mode, Logger) ->
+    parse_file(Filename, Mode, Logger, fun ?MODULE:default_extractor/1).
 
-parse_file(Filename, Mode, InfoExtractor) when is_function(InfoExtractor) ->
+parse_file(Filename, Mode, Logger, InfoExtractor) when is_function(InfoExtractor) ->
     {ok, Lines} = japanese:read_file(Filename),
-    %% io:format("~p~n", [Lines]),
-    _ = lager:info(Filename),
     {ok,Checksum} = checksum:file_md5(Filename),
     BinChecksum = checksum:bin_to_hexbin(Checksum),
     BinFilename = list_to_binary(lists:last(filename:split(Filename))),
@@ -57,11 +56,13 @@ parse_file(Filename, Mode, InfoExtractor) when is_function(InfoExtractor) ->
         end,
 
     InitCtx = #state{template = #recept{file=BinFilename, checksum=BinChecksum},
-                     filename = BinFilename, mode = Mode},
+                     filename = BinFilename, mode = Mode,
+                     logger=Logger},
     {ok, {Total, ResultCtx}} = ecsv:process_csv_string_with(lists:flatten(Lines), F, {0, InitCtx}),
 
     #state{records=Records1} = ResultCtx,
-    _ = lager:info("~p records for ~p lines.~n", [length(Records1), Total]),
+
+    treehugger:hug(Logger, debug, "~p lines processed and ~p records found.", [Total, length(Records1)]),
 
     case InfoExtractor of
         undefined -> {ok, Records1};
@@ -120,7 +121,7 @@ hardcode_list_to_string(S) ->
     S1 = list_to_binary(S),
     unicode:characters_to_list(S1).
 
-parse_line(Line, LineNo, #state{mode = Mode, filename = Filename} = State) ->
+parse_line(Line, LineNo, #state{mode = Mode, filename = Filename, logger = Tree} = State) ->
 
     [RecordID|_] = Line,
     Types = case Mode of
@@ -130,8 +131,7 @@ parse_line(Line, LineNo, #state{mode = Mode, filename = Filename} = State) ->
 
     case lists:keytake(RecordID, 1, Types) of
         {value, {RecordID, Name, Cols0}, _} ->
-            RecordType = hardcode_list_to_string(Name),
-            _ = lager:debug("[~s] ~ts", [RecordID, RecordType]),
+            _RecordType = hardcode_list_to_string(Name),
 
             ShortLen = erlang:min(length(Line), length(Cols0)),
             {Line1,_} = lists:split(ShortLen, Line),
@@ -140,8 +140,10 @@ parse_line(Line, LineNo, #state{mode = Mode, filename = Filename} = State) ->
                 handle_split_line(LineNo, Cols, Line1, RecordID, State)
             catch
                 T:E ->
-                    _ = lager:error("Parse error at ~p@~s (~p:~p). Skipping until next RE.",
-                                    [LineNo, Filename, T, E]),
+                    treehugger:hug(Tree, error,
+                                       "Parse error at ~p@~s (~p:~p). Skipping until next RE.",
+                                       [LineNo, Filename, T, E]),
+
                     {ok, State#state{skipping=true}}
             end;
         {value, _, _} ->
@@ -153,10 +155,11 @@ parse_line(Line, LineNo, #state{mode = Mode, filename = Filename} = State) ->
 handle_split_line(LineNo, Cols, Line1, RecordID,
                   #state{recept=Recept, records=Records,
                          template=ReceptTemplate,
-                         skipping = Skipping} = State) ->
+                         skipping = Skipping,
+                         logger = Tree} = State) ->
 
     Data0 = lists:map(fun({Col, Entry}) ->
-                              check_type(LineNo, Col, Entry)
+                              check_type(LineNo, Col, Entry, Tree)
                       end,
                       lists:zip(Cols, Line1)),
     Data1 = lists:filter(fun({_,null}) -> false;
@@ -215,14 +218,14 @@ handle_eof(_LineNo, #state{recept=Recept0, records=Records} = Ctx0) ->
 
 -spec check_type(non_neg_integer(),
                  {atom(), atom()|{maybe,atom()}, integer()},
-                 string())
+                 string(), pid())
                 -> {ok, {string(), null|binary()}}. %% unicode binary
-check_type(LineNo, Col, Entry) ->
+check_type(LineNo, Col, Entry, Tree) ->
     case check_type(Col, Entry) of
         {ok, {K,V}} ->
             {klib:maybe_binary(K), V};
         {warning, {error, O}} ->
-            _ = lager:warning("Line ~p: ~p",[LineNo, O]),
+            treehugger:hug(Tree, warning, "Line ~p: ~p",[LineNo, O]),
             {col, null};
         
         {warning, {K,null}} ->

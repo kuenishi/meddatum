@@ -95,12 +95,12 @@ msg_type(#hl7msg{msg_type_s=MsgType}) when is_binary(MsgType) ->
     binary_to_list(MsgType);
 msg_type(#hl7msg{msg_type_s=MsgType}) -> MsgType.
 
--spec from_file(filename:filename(), file:file_info()) -> ok | {error, any()}.
-from_file(Filename, Info)->
-    hl7_parser:parse(Filename, Info).
+-spec from_file(filename:filename(), term()) -> ok | {error, any()}.
+from_file(Filename, Tree)->
+    hl7_parser:parse(Filename, Tree).
 
-from_file(Filename, Info, PostProcessor)->
-    hl7_parser:parse(Filename, Info, PostProcessor).
+from_file(Filename, Tree, PostProcessor)->
+    hl7_parser:parse(Filename, Tree, PostProcessor).
 
 decoder() ->
     ?JSON_RECORD_DECODER(hl7msg).

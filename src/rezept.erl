@@ -59,10 +59,10 @@ to_json(Rezept) when is_record(Rezept, recept) > 0 ->
 
     case ?ENCODER(Rezept) of
         {error, A, B} ->
-            _ = lager:error("to_json: ~p, ~p~n", [A, B]),
+            %% _ = lager:error("to_json: ~p, ~p~n", [A, B]),
             {error, {A,B}};
         {no_match, _O} ->
-            _ = lager:error("~p~n", [Rezept]),
+            %% _ = lager:error("~p~n", [Rezept]),
             {error, no_match};
         JSONRecords when is_binary(JSONRecords) ->
             {ok, JSONRecords}
@@ -116,8 +116,8 @@ has_re(#recept{segments=List} = _Recept) ->
 finalize(#recept{segments=List, file=File} = Recept) ->
     case has_re(Recept) of
         true -> ok;
-        false ->
-            _ = lager:warning("~p doesn't have RE record", [File])
+        false -> pass
+            %% _ = lager:warning("~p doesn't have RE record", [File])
     end,
 
     %% compensate the omitted IY/SI/TOs

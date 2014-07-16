@@ -24,16 +24,16 @@
 
 -spec parse(filename:filename(), file:file_info()) ->
                    {ok, #hl7msg{}} | {error, any()}.
-parse(Filename, _Info)->
-    {ok, HL7Msg0} = parse_msg(Filename),
+parse(Filename, Logger)->
+    {ok, HL7Msg0} = parse_msg(Filename, Logger),
     Date = filename_to_date(Filename),
     {ok, HL7Msg0#hl7msg{file=list_to_binary(Filename),
                         date=Date}}.
 
-parse(Filename, Info, undefined)->
-    parse(Filename, Info);
-parse(Filename, Info, PostProcessor) when is_function(PostProcessor, 1) ->
-    {ok, HL7Msg0} = parse(Filename, Info),
+parse(Filename, Logger, undefined)->
+    parse(Filename, Logger);
+parse(Filename, Tree, PostProcessor) when is_function(PostProcessor, 1) ->
+    {ok, HL7Msg0} = parse(Filename, Tree),
     {ok, PostProcessor(HL7Msg0)}.
 
 filename_to_date(Filename) when is_binary(Filename) ->
@@ -47,14 +47,14 @@ filename_to_date(Filename) when is_list(Filename) ->
             undefined
     end.
 
-parse_msg(File)->
+parse_msg(File, Tree)->
     case read_all_lines(File) of %% I NEED SIMPLE MAYBE MONAD
         {ok, []} ->
             {error, {empty, File}};
         {ok, Lines0} ->
             case parse_0(Lines0) of
                 {ok, Msg} ->
-                    parse_1(Msg, tl(Lines0), File);
+                    parse_1(Msg, tl(Lines0), File, Tree);
                 {error, _} = E ->
                     %% TODO: output log here
                     E
@@ -78,9 +78,7 @@ get_all_lines(Port, Binary) ->
         {Port, eof} ->
             FileContent = unicode:characters_to_list(Binary),
             Lines = string:tokens(FileContent, "\r"),
-            {ok, Lines};
-        Other ->
-            lager:error("~p", [Other])
+            {ok, Lines}
     end.
              
 parse_0([Line|_Lines]) ->
@@ -97,18 +95,18 @@ parse_0([Line|_Lines]) ->
 
 
 %%     [ 日本語どうでしたっけ？いける！！
-parse_1(#hl7msg{segments=Segs} = Msg, [], _) ->
+parse_1(#hl7msg{segments=Segs} = Msg, [], _, _) ->
     {ok, Msg#hl7msg{segments=lists:reverse(Segs)}};
 
-parse_1(Msg, [Line|Lines] = _Lines, File) ->
+parse_1(Msg, [Line|Lines] = _Lines, File, Tree) ->
     Tokens = re:split(Line, "[|]", [{return,list},unicode]),
     case hd(Tokens) of
         Segment when is_list(Segment) ->
-            {ok, NewMsg} = handle_segment_0(Segment, Tokens, Msg, File),
-            parse_1(NewMsg, Lines, File);
+            {ok, NewMsg} = handle_segment_0(Segment, Tokens, Msg, File, Tree),
+            parse_1(NewMsg, Lines, File, Tree);
 
         _Other ->
-            lager:error("unknown segment: ~ts", [_Other]),
+            treehugger:hug(Tree, error, "unknown segment: ~ts", [_Other]),
             {error, badarg}
     end.
 
@@ -129,7 +127,7 @@ parse_1(Msg, [Line|Lines] = _Lines, File) ->
             msg_id = maybe_nth(10, Tokens)}.
 
 
-handle_segment_0(MsgType, Tokens0, Msg, File) ->
+handle_segment_0(MsgType, Tokens0, Msg, File, Tree) ->
     case proplists:get_value(MsgType, ?HL7_TYPES) of
         undefined -> {ok, Msg};
         MsgDef0 ->
@@ -144,7 +142,8 @@ handle_segment_0(MsgType, Tokens0, Msg, File) ->
                                       to_json_object(Property, Type, Length, Col);
 
                                  ({{Property, _Type, _Length, _Text}, ""}) ->
-                                      lager:warning("empty property '~s' which isn't optional in ~s~n",
+                                      treehugger:hug(Tree, warning,
+                                                     "empty property '~s' which isn't optional in ~s~n",
                                                     [Property, File]),
                                       {Property, null};
                                       
