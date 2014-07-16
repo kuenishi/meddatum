@@ -93,7 +93,14 @@ process_episodes(PatientID, HitDates, HL7list, Receptlist, Margin) ->
 
     RawEndpoints = get_endpoints(HL7list),
     lager:debug("RawEndpoints: ~p", [RawEndpoints]),
-    EpisodeEndpoints = filter_endpoints(RawEndpoints, HitDates),
+
+    %% If the search result includes any static SSMIX file,
+    %% All episodes are to be exported.
+    EpisodeEndpoints =
+        case lists:any(fun hl7:is_statidc/1, HL7list) of
+            true -> RawEndpoints;
+            _    -> filter_endpoints(RawEndpoints, HitDates)
+        end,
     lager:debug("FilterdEndpoints: ~p (~p)", [EpisodeEndpoints, HitDates]),
 
     io:format("[info] ~p episode endpoints found on patient ~p.~n",

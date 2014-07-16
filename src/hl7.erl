@@ -22,7 +22,7 @@
          to_json/1, from_json/1,
          key/1, bucket/1, patient_id/1, hospital_id/1]).
 
--export([annotate/1,
+-export([annotate/1, is_static/1,
          get_segment/2, update_hospital_id/2,
          msg_type/1]).
 
@@ -31,18 +31,19 @@
 -include("meddatum.hrl").
 -include("md_json.hrl").
 
-bucket(#hl7msg{msg_type_s=MsgType, hospital_id=HospitalID}) ->
-    IsStaticRecord =
-        case MsgType of
-            <<"ADT^A08", _/binary>> -> true; %% 患者基本情報の更新
-            <<"ADT^A23", _/binary>> -> true; %% 患者基本情報の削除
-            <<"ADT^A54", _/binary>> -> true; %% 担当医の変更
-            <<"ADT^A55", _/binary>> -> true; %% 担当医の取消
-            <<"ADT^A60", _/binary>> -> true; %% アレルギー情報の登録／更新
-            <<"PPR^ZD1", _/binary>> -> true; %% 病名(歴)情報の登録／更新
-            _B when is_binary(_B) -> false
-        end,
-    Bucket0 = case IsStaticRecord of
+is_static(#hl7msg{msg_type_s=MsgType}) ->
+    case MsgType of
+        <<"ADT^A08", _/binary>> -> true; %% 患者基本情報の更新
+        <<"ADT^A23", _/binary>> -> true; %% 患者基本情報の削除
+        <<"ADT^A54", _/binary>> -> true; %% 担当医の変更
+        <<"ADT^A55", _/binary>> -> true; %% 担当医の取消
+        <<"ADT^A60", _/binary>> -> true; %% アレルギー情報の登録／更新
+        <<"PPR^ZD1", _/binary>> -> true; %% 病名(歴)情報の登録／更新
+        _B when is_binary(_B) -> false
+    end.
+
+bucket(#hl7msg{hospital_id=HospitalID} = HL7Msg) ->
+    Bucket0 = case is_static(HL7Msg) of
                   true -> ?SSMIX_PATIENTS_BUCKET;
                   false -> ?SSMIX_BUCKET
               end,
