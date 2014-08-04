@@ -127,7 +127,7 @@ parse_ssmix([Path]) ->
     F = fun(File, Acc0) ->
                 case hl7:from_file(File, Logger) of
                     {ok, HL7Msg0} ->
-                        io:format("~ts:~n", [File]),
+                        io:format(standard_error, "~ts:~n", [File]),
                         io:format("~ts~n", [hl7:to_json(HL7Msg0)]);
                     {error,_} when is_list(Acc0) ->
                         [File|Acc0];

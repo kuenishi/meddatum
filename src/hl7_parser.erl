@@ -228,8 +228,7 @@ to_json_object(Name, Col, Depth)->
     to_record(Name, Col, Depth).
 
 get_separator(0) -> "[\\^]";
-get_separator(1) -> "[\\\\]";
-get_separator(2) -> "[&]".
+get_separator(1) -> "[&]".
 
 to_record(Name, Col, Depth) ->
     Tokens0 = re:split(Col, get_separator(Depth), [{return,list},unicode]),
