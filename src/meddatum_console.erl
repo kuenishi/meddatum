@@ -1,5 +1,5 @@
 %%
-%% Copyright (C) 2013-2013 UENISHI Kota
+%% Copyright (C) 2013-2014 UENISHI Kota
 %%
 %%    Licensed under the Apache License, Version 2.0 (the "License");
 %%    you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@
 
 -include("meddatum.hrl").
 
--export([setup/0, teardown/1]).
+-export([setup/0, setup/1, teardown/1]).
 
 -export([create_config/0, check_config/0,
          setup_riak/0,
@@ -27,12 +27,21 @@
          delete_all_ssmix/1, delete_recept/1]).
 
 setup() ->
+    setup(true).
+
+setup(NeedRiak) when is_boolean(NeedRiak) ->
+
     %% ok = error_logger:tty(false),
     {ok, Pid} = treehugger:start_link([{output, standard_io}]),
     treehugger:log(Pid, "starting meddatum", []),
     {ok, Config} = meddatum_config:get_config(),
+
     {ok, {Host, Port}} = meddatum_config:get_riak(Config),
-    {ok, Riakc} = riakc_pb_socket:start_link(Host, Port),
+    {ok, Riakc} =
+        case NeedRiak of
+            true -> riakc_pb_socket:start_link(Host, Port);
+            false -> {ok, undefined}
+        end,
     {ok, #context{logger=Pid, riakc=Riakc, config=Config}}.
 
 teardown(#context{logger=Pid, riakc=Riakc} = _Ctx) ->
@@ -113,10 +122,12 @@ import_recept(_) -> meddatum:help().
 parse_ssmix([Path]) ->
     io:setopts([{encoding,utf8}]),
 
+    {ok, #context{logger=Logger}} = meddatum_console:setup(false),
+
     F = fun(File, Acc0) ->
-                case hl7:from_file(File, lager) of
+                case hl7:from_file(File, Logger) of
                     {ok, HL7Msg0} ->
-                        io:format("~ts:~n", [File]),
+                        io:format(standard_error, "~ts:~n", [File]),
                         io:format("~ts~n", [hl7:to_json(HL7Msg0)]);
                     {error,_} when is_list(Acc0) ->
                         [File|Acc0];
@@ -134,7 +145,10 @@ parse_recept([Mode, File]) ->
                    "dpc" -> dpc;
                    "med" -> med
                end,
-    {ok, Records} = rezept:from_file(File, [ModeAtom], lager),
+
+    {ok, #context{logger=Logger}} = meddatum_console:setup(false),
+
+    {ok, Records} = rezept:from_file(File, [ModeAtom], Logger),
     lists:foreach(fun({ok, JSON}) ->
                           io:format("~ts~n", [JSON]);
                      ({error, E}) ->
@@ -163,4 +177,3 @@ delete_recept([File]) ->
     ok = riakc_pb_socket:stop(C).
 
 %% === internal ===
-
