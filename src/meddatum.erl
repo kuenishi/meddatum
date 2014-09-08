@@ -44,7 +44,7 @@ help() ->
               "meddatum setup-riak   (setup Riak Search for healthb)~n"
               "meddatum import-ssmix <hospital-id> <path/to/directory>~n"
               "meddatum import-recept [dpc|med] <path/to/file>~n"
-              "meddatum parse-ssmix <ssmix-file> (test parsing ssmix file)~n"
+              "meddatum parse-ssmix <ssmix-file or ssmix-dir> (test parsing ssmix file)~n"
               "meddatum parse-recept [dpc|med] <recept-file> (test parsing recept file)~n"
               "meddatum delete-all-ssmix <hospital-id>~n"
               "meddatum delete-recept <recept-file>~n"

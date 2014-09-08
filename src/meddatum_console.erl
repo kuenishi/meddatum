@@ -135,7 +135,18 @@ parse_ssmix([Path]) ->
                         [File]
                 end
         end,
-    _ErrorFiles = filelib:fold_files(Path, "", true, F, []);
+    case filelib:is_dir(Path) of
+        true ->
+            _ErrorFiles = filelib:fold_files(Path, "", true, F, []);
+        false ->
+            case filelib:is_file(Path) of
+                true ->
+                    F(Path, []);
+                false ->
+                    treehugger:log(Logger, error, "No file found:~p", [Path])
+            end
+    end;
+
 parse_ssmix(_) -> meddatum:help().
 
 parse_recept([Mode, File]) ->
