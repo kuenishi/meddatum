@@ -7,7 +7,7 @@
                 Values = tl(tuple_to_list(Record)),
                 List = [{F,V} || {F,V} <- lists:zip(Fields, Values),
                                  V =/= undefined, V =/= null],
-                jsone:encode({List})
+                jsone:encode({List}, [native_utf8])
         end).
 
 -define(JSON_RECORD_DECODER(RecordName),
