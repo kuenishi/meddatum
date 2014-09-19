@@ -17,6 +17,7 @@
 -module(meddatum_console).
 
 -include("meddatum.hrl").
+-include_lib("riakc/include/riakc.hrl").
 
 -export([setup/0, setup/1, teardown/1]).
 
@@ -24,7 +25,8 @@
          setup_riak/0,
          import_ssmix/1, import_recept/1,
          parse_ssmix/1, parse_recept/1,
-         delete_all_ssmix/1, delete_recept/1]).
+         delete_all_ssmix/1, delete_recept/1,
+         search/1]).
 
 setup() ->
     setup(true).
@@ -186,5 +188,32 @@ delete_recept([File]) ->
             io:format("can't retrieve any keys from file ~p (~p)", [File, E])
     end,
     ok = riakc_pb_socket:stop(C).
+
+search([Query]) ->
+    {ok, {Host, Port}} = meddatum_config:get_riak(),
+    {ok, C} = riakc_pb_socket:start_link(Host, Port),
+    case riakc_pb_socket:search(C, ?INDEX_NAME, Query) of
+        {ok, #search_results{docs=Docs, num_found=Found} = _SearchResults} ->
+            io:format("~p docs found:~n", [Found]),
+            [ format_doc(Doc) || Doc <- Docs];
+        E ->
+            io:format("can't search with query ~s: ~p", [Query, E])
+    end,
+    ok = riakc_pb_socket:stop(C).
+
+format_doc({?INDEX_NAME, Data}) ->
+    T = proplists:get_value(<<"_yz_rt">>, Data),
+    B = proplists:get_value(<<"_yz_rb">>, Data),
+    K = proplists:get_value(<<"_yz_rk">>, Data),
+    io:format("types/~s/buckets/~s/keys/~s: ", [T,B,K]),
+    Result = chopper([<<"_yz_rt">>, <<"_yz_rb">>, <<"_yz_rk">>,
+                      <<"_yz_id">>, <<"score">>], Data),
+    io:format("~p~n", [Result]);
+format_doc(U) ->
+    io:format(standard_error, "unknown: ~p~n", [U]).
+
+chopper([], Proplist) -> Proplist;
+chopper([H|L], Proplist) ->
+    chopper(L, proplists:delete(H, Proplist)).
 
 %% === internal ===

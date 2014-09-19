@@ -34,6 +34,7 @@ main(["parse-ssmix"|Args]) ->   meddatum_console:parse_ssmix(Args);
 main(["parse-recept"|Args]) ->  meddatum_console:parse_recept(Args);
 main(["delete-all-ssmix"|Args]) -> meddatum_console:delete_all_ssmix(Args);
 main(["delete-recept"|Args]) ->    meddatum_console:delete_recept(Args);
+main(["search"|Args]) ->    meddatum_console:search(Args);
 main(["help"]) -> help();
 main([]) -> help().
 
@@ -48,6 +49,7 @@ help() ->
               "meddatum parse-recept [dpc|med] <recept-file> (test parsing recept file)~n"
               "meddatum delete-all-ssmix <hospital-id>~n"
               "meddatum delete-recept <recept-file>~n"
+              "meddatum search <keyword> (prints all keys matched)~n"
               "meddatum [help]~n").
 
 
