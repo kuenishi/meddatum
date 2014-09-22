@@ -97,6 +97,19 @@ maybe_new_ro(Client, Bucket, Key, Data, ContentType) ->
 
 setup(Host, Port) ->
     {ok, C} = riakc_pb_socket:start_link(Host, Port),
+
+    %% maybe setup schema
+    SchemaName = ?SCHEMA_NAME,
+    case riakc_pb_socket:get_search_schema(C, SchemaName) of
+        {ok, Schema} ->
+            ?RESULT("schema", Schema);
+        {error, E} ->
+            ?RESULT("schema not found", E),
+            Binary = meddatum_catch_all_schema:binary(),
+            %% io:format("~s", [Binary]),
+            ok = riakc_pb_socket:create_search_schema(C, SchemaName, Binary)
+    end,
+
     {ok, Indexes} = riakc_pb_socket:list_search_indexes(C),
     ?RESULT("indexes", Indexes),
 
@@ -104,7 +117,7 @@ setup(Host, Port) ->
         {ok, Result} -> ?RESULT("get search index", Result);
         {error, _} ->
             ?RESULT("create_search_index",
-                    riakc_pb_socket:create_search_index(C, ?INDEX_NAME))
+                    riakc_pb_socket:create_search_index(C, ?INDEX_NAME, SchemaName, []))
     end,
 
     case riakc_pb_socket:get_bucket_type(C, ?BUCKET_TYPE) of
@@ -138,15 +151,31 @@ setup(Host, Port) ->
 
     ok = riakc_pb_socket:stop(C).
 
-%% TODO: pretty pring
+-define(msg(Name), io:format("checking ~s ...", [Name])).
+-define(res(Argv), io:format("ok: ~p.~n", [Argv])).
+
 check_setup() ->
     {ok, {Host, Port}} = meddatum_config:get_riak(),
     {ok, Pid} = riakc_pb_socket:start_link(Host, Port),
+    ?msg("schema name"),
+    {ok, Schema} = riakc_pb_socket:get_search_schema(Pid, ?SCHEMA_NAME),
+    ?SCHEMA_NAME = proplists:get_value(name, Schema),
+    ?res(?SCHEMA_NAME),
+    SchemaBin = meddatum_catch_all_schema:binary(),
+    ?msg("schema content"),
+    SchemaBin = proplists:get_value(content, Schema),
+    ?res(match),
     {ok, Index} = riakc_pb_socket:get_search_index(Pid, ?INDEX_NAME),
+    ?msg("index created"),
     <<"md_index">> = proplists:get_value(index, Index),
-    <<"_yz_default">> = proplists:get_value(schema, Index),
+    ?res(yes),
+    %% <<"_yz_default">> = proplists:get_value(schema, Index),
+    ?msg("valid schema for index"),
+    ?SCHEMA_NAME = proplists:get_value(schema, Index),
+    ?res(proplists:get_value(schema, Index)),
     {ok, Props} = riakc_pb_socket:get_bucket_type(Pid, ?BUCKET_TYPE),
+    ?msg("valid index for bucket type"),
     ?INDEX_NAME = proplists:get_value(search_index, Props),
+    ?res(?INDEX_NAME),
     ok = riakc_pb_socket:stop(Pid),
     true.
-    

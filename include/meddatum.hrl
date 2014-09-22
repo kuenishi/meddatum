@@ -4,6 +4,7 @@
 -define(RECEPT_BUCKET, <<"recept">>).
 -define(BUCKET_NAME_SEPARATOR, <<":">>).
 -define(BUCKET_TYPE, <<"md">>).
+-define(SCHEMA_NAME, <<"md_schema">>).
 -define(INDEX_NAME, <<"md_index">>).
 
 %% a bucket to store date-independent ssmix records
