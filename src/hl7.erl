@@ -133,6 +133,6 @@ columns() ->
      [{name, file},        {type, 'STRING'}, {index, true}],
      [{name, date},        {type, 'STRING'}, {index, true}],
      [{name, msg_type_s},  {type, 'STRING'}, {index, true}],
-     [{name, msg_id},      {type, 'STRING'}, {index, true}],
-     [{name, segments},    {type, 'STRING'}, {index, true}]
+     [{name, msg_id},      {type, 'STRING'}, {index, true}]
+     %% [{name, segments},    {type, 'STRING'}, {index, true}]
     ].

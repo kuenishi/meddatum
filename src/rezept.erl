@@ -185,7 +185,7 @@ columns() ->
      [{name, date},        {type, 'STRING'}, {index, true}],
      [{name, patient_id},  {type, 'STRING'}, {index, true}],
      [{name, hospital_id}, {type, 'STRING'}, {index, true}],
-     [{name, segments},    {type, 'STRING'}, {index, true}],
+     %%[{name, segments},    {type, 'STRING'}, {index, true}],
      [{name, file},        {type, 'STRING'}, {index, true}],
      [{name, checksum},    {type, 'STRING'}, {index, true}]
     ].
