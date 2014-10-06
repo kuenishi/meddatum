@@ -58,7 +58,7 @@ atom_to_binary({Obj}) ->
                end, Obj)}.
 
 -define(PRESTO_SCHEMA_BUCKET, <<"__presto_schema">>).
--define(PRESTO_SCHEMA_KEY, <<"default">>).
+-define(PRESTO_SCHEMA_KEY, <<"__schema">>).
 
 check_default_schema(C, Logger, Buckets0) ->
     {ok, RiakObj} = riakc_pb_socket:get(C, ?PRESTO_SCHEMA_BUCKET, ?PRESTO_SCHEMA_KEY),
