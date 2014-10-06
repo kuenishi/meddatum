@@ -36,6 +36,10 @@
          finalize/1
         ]).
 
+-type recept() :: #recept{}.
+-export_type([recept/0]).
+
+-spec encoder() -> {error, any(), any()}|{no_match, term()}|binary().
 encoder() ->
     ?JSON_RECORD_ENCODER(recept).
     %% md_json:encoder([{recept, record_info(fields, recept)}],
@@ -56,7 +60,7 @@ from_file(Filename, [Mode], Logger) when Mode =:= med orelse Mode =:= dpc ->
 from_file(Filename, [Mode], Logger, PostProcessor) when Mode =:= med orelse Mode =:= dpc ->
     rezept_parser:parse_file(Filename, Mode, Logger, PostProcessor).
 
--spec to_json(#recept{}) -> {ok, binary()}.
+-spec to_json(#recept{}) -> {ok, binary()} | {error, term()}.
 to_json(Rezept) when is_record(Rezept, recept) > 0 ->
 
     case ?ENCODER(Rezept) of
@@ -96,12 +100,7 @@ key_prefix(Filename) when is_list(Filename) ->
 -spec bucket(#recept{}) -> binary().
 bucket(#recept{hospital_id = HospitalID} = _Recept) ->
     BucketName = <<?RECEPT_BUCKET/binary, ?BUCKET_NAME_SEPARATOR/binary, HospitalID/binary>>,
-    case meddatum_config:use_bucket_types() of
-        true ->
-            {?BUCKET_TYPE, BucketName};
-        false ->
-            ?RECEPT_BUCKET
-    end.
+    {?BUCKET_TYPE, BucketName}.
 
 append_to_recept(#recept{segments=List} = Recept, Data) ->
     Recept#recept{segments=[Data|List]}.

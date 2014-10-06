@@ -16,12 +16,9 @@
 
 -module(meddatum_config).
 
--export([use_bucket_types/0,
+-export([
          check_riak_connectivity/0,
          get_riak/0, get_riak/1, get_config/0]).
-
--spec use_bucket_types() -> boolean().
-use_bucket_types() -> true.
 
 -spec check_riak_connectivity() -> boolean().
 check_riak_connectivity() ->

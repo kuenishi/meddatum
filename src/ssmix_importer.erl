@@ -38,6 +38,7 @@ walk(Path, HospitalID, Ctx) when is_binary(HospitalID) ->
     _ErrorFiles = filelib:fold_files(Path, "", true, F, []),
     ok.
 
+-spec put_json(pid(), #hl7msg{}, pid()) -> ok | no_return().
 put_json(Client, Msg, Logger) ->
     %% TODO: Bucket, Key are to be extracted from msg
     ContentType = <<"application/json">>,
@@ -89,9 +90,11 @@ deleter(Host, Port, Bucket0) ->
     io:format("~p deleter: ~p~n", [Bucket, Result]),
     done.
 
+-spec deleter_loop(pid(), binary(), non_neg_integer()) -> {ok, non_neg_integer()}.
 deleter_loop(C, Bucket, Count) ->
-    receive done -> {ok, Count};
-            Keys when is_list(Keys) ->
+    receive
+        done -> {ok, Count};
+        Keys when is_list(Keys) ->
             Fold = fun(Key, N) ->
                            {ok, RiakObj} = riakc_pb_socket:get(C, Bucket, Key),
                            ok = riakc_pb_socket:delete_obj(C, RiakObj, [{w,0}]),
@@ -101,6 +104,7 @@ deleter_loop(C, Bucket, Count) ->
             deleter_loop(C, Bucket, Deleted + Count)
     end.
 
+-spec fetcher(atom(), inet:port_number(), pid(), binary()) -> done.
 fetcher(Host, Port, DeleterPid, Bucket0) ->
     {ok, C} = riakc_pb_socket:start_link(Host, Port),
     Bucket = meddatum:true_bucket_name(Bucket0),
@@ -111,14 +115,17 @@ fetcher(Host, Port, DeleterPid, Bucket0) ->
     DeleterPid ! done,
     done.
 
+-spec fetcher_loop(pid(), term(), non_neg_integer(), pid()) -> {ok, non_neg_integer()} | no_return().
 fetcher_loop(C, ReqID, Count, DeleterPid) ->
-    receive {ReqID, {keys, Keys}} ->
+    receive
+        {ReqID, {keys, Keys}} ->
             DeleterPid ! Keys,
             fetcher_loop(C, ReqID, Count + length(Keys), DeleterPid);
-            {ReqID, done} -> {ok, Count};
-            {error, E} ->  io:format("~p", [E])
+        {ReqID, done} -> {ok, Count};
+        {error, E} ->  io:format("~p", [E])
     end.
 
+-spec process_file(filename:filename(), binary(), #context{}) ->  ok | {error, term()}.
 process_file(File, HospitalID, #context{riakc=Riakc, logger=Logger} = _Ctx) ->
     treehugger:log(Logger, info, "Processing ~p ~p", [File, HospitalID]),
     case string:right(File, 2) of

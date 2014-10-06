@@ -133,6 +133,7 @@ get_hospital_id([], [#recept{hospital_id=HospitalID} = _Recept|_]
                ) when is_binary(HospitalID) -> HospitalID.
 
 %% @private
+-spec save_hl7(#hl7msg{}, filename:filename(), binary()) -> no_return().
 save_hl7(#hl7msg{file=Path} = HL7Msg, DirPath, PatientID) ->
     Filename0 = lists:last(filename:split(binary_to_list(Path))),
     Filename = filename:join([DirPath, Filename0]) ++ ".json",
@@ -142,6 +143,7 @@ save_hl7(#hl7msg{file=Path} = HL7Msg, DirPath, PatientID) ->
     %% io:format("[debug] ~p saved to ~s~n", [PatientID, Filename]).
 
 %% @private
+-spec save_recept(rezept:recept(), filanem:filename(), binary()) -> no_return().
 save_recept(Recept, DirPath, PatientID) ->
     Filename0 = binary_to_list(extract_date(Recept)) ++ "_recept_",
     MD5 = binary_to_list(checksum:bin_to_hexbin(erlang:md5(term_to_binary(Recept)))),
