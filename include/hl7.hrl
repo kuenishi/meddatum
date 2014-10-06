@@ -1,3 +1,5 @@
+%% @doc when changing this record, make sure that you're also editing
+%% hl7:schema/0.
 -record(hl7msg, {
           hospital_id  :: binary(),
           patient_id  :: binary(),

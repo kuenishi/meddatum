@@ -31,6 +31,7 @@
 -callback bucket(md_record()) -> binary().
 -callback patient_id(md_record()) -> binary().
 -callback hospital_id(md_record()) -> binary().
+-callback columns() -> JSON::binary().
 
 bucket2hospital_id({_, Bucket}) -> bucket2hospital_id(Bucket);
 bucket2hospital_id(Bucket) when is_binary(Bucket) ->

@@ -27,7 +27,9 @@
          key/1, key_prefix/1,
          bucket/1,
          patient_id/1, hospital_id/1,
-         from_file/3, from_file/4]).
+         columns/0,
+         from_file/3, from_file/4
+         ]).
 
 -export([
          append_to_recept/2,
@@ -176,3 +178,14 @@ rev_append([HD|TL], Right) -> rev_append(TL, [HD|Right]).
 
 patient_id(#recept{patient_id=PatientID}) -> PatientID.
 hospital_id(#recept{hospital_id=HospitalID}) -> HospitalID.
+
+
+columns() ->
+    [
+     [{name, date},        {type, 'STRING'}, {index, true}],
+     [{name, patient_id},  {type, 'STRING'}, {index, true}],
+     [{name, hospital_id}, {type, 'STRING'}, {index, true}],
+     [{name, segments},    {type, 'STRING'}, {index, true}],
+     [{name, file},        {type, 'STRING'}, {index, true}],
+     [{name, checksum},    {type, 'STRING'}, {index, true}]
+    ].

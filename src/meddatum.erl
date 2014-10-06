@@ -35,6 +35,9 @@ main(["parse-recept"|Args]) ->  meddatum_console:parse_recept(Args);
 main(["delete-all-ssmix"|Args]) -> meddatum_console:delete_all_ssmix(Args);
 main(["delete-recept"|Args]) ->    meddatum_console:delete_recept(Args);
 main(["search"|Args]) ->    meddatum_console:search(Args);
+main(["create-schema"]) -> meddatum_sql_schema:create();
+main(["check-schema"]) -> meddatum_sql_schema:check();
+main(["setup-schema"]) -> meddatum_sql_schema:setup();
 main(["help"]) -> help();
 main([]) -> help().
 
@@ -50,7 +53,12 @@ help() ->
               "meddatum delete-all-ssmix <hospital-id>~n"
               "meddatum delete-recept <recept-file>~n"
               "meddatum search <keyword> (prints all keys matched)~n"
-              "meddatum [help]~n").
+              "meddatum [help]~n"
+              "experimental:~n"
+              "meddatum create-schema (prints out supposed schema)~n"
+              "meddatum ckeck-schema~n"
+              "meddatum setup-schema~n"
+             ).
 
 
 true_bucket_name(Bucket0) ->

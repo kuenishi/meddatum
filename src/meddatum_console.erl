@@ -201,6 +201,8 @@ search([Query]) ->
     end,
     ok = riakc_pb_socket:stop(C).
 
+%% === internal ===
+
 format_doc({?INDEX_NAME, Data}) ->
     T = proplists:get_value(<<"_yz_rt">>, Data),
     B = proplists:get_value(<<"_yz_rb">>, Data),
@@ -215,5 +217,3 @@ format_doc(U) ->
 chopper([], Proplist) -> Proplist;
 chopper([H|L], Proplist) ->
     chopper(L, proplists:delete(H, Proplist)).
-
-%% === internal ===
