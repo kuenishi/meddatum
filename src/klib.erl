@@ -16,7 +16,8 @@
 
 -module(klib).
 
--export([rev_map/2, maybe_binary/1, ensure_dir/1]).
+-export([rev_map/2, maybe_binary/1,
+         maybe_a2b/1, ensure_dir/1]).
 
 -include_lib("kernel/include/file.hrl").
 
@@ -29,6 +30,11 @@ maybe_binary(Atom) when is_atom(Atom) ->
     atom_to_binary(Atom, utf8);
 maybe_binary(Binary) ->
     Binary.
+
+maybe_a2b(true) -> true;
+maybe_a2b(false) -> false;
+maybe_a2b(null) -> null;
+maybe_a2b(Atom) -> maybe_binary(Atom).
 
 ensure_dir(Dir) ->
     case file:read_file_info(Dir) of

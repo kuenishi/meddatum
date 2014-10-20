@@ -20,7 +20,8 @@
 
 -export([from_file/2, from_file/3,
          to_json/1, from_json/1,
-         key/1, bucket/1, patient_id/1, hospital_id/1]).
+         key/1, bucket/1, patient_id/1, hospital_id/1,
+         columns/0]).
 
 -export([annotate/1, is_static/1,
          get_segment/2, update_hospital_id/2,
@@ -123,3 +124,15 @@ to_json(#hl7msg{segments=_Segs} = HL7Msg) ->
         Bin when is_binary(Bin) -> Bin;
         Other -> error(Other)
     end.
+
+%% @doc return schema for presto-riak. The format is JSON.
+columns() ->
+    [
+     [{name, hospital_id}, {type, 'STRING'}, {index, false}],
+     [{name, patient_id},  {type, 'STRING'}, {index, true}],
+     [{name, file},        {type, 'STRING'}, {index, false}],
+     [{name, date},        {type, 'STRING'}, {index, true}],
+     [{name, msg_type_s},  {type, 'STRING'}, {index, false}],
+     [{name, msg_id},      {type, 'STRING'}, {index, false}]
+     %% [{name, segments},    {type, 'STRING'}, {index, true}]
+    ].

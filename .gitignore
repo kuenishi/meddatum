@@ -6,3 +6,6 @@ deps
 *.o
 *.beam
 ebin
+src/meddatum_catch_all_schema.erl
+meddatum
+.local_dialyzer_plt

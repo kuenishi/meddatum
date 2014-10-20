@@ -35,6 +35,9 @@ main(["parse-recept"|Args]) ->  meddatum_console:parse_recept(Args);
 main(["delete-all-ssmix"|Args]) -> meddatum_console:delete_all_ssmix(Args);
 main(["delete-recept"|Args]) ->    meddatum_console:delete_recept(Args);
 main(["search"|Args]) ->    meddatum_console:search(Args);
+main(["create-schema"]) -> meddatum_sql_schema:create();
+main(["check-schema"]) -> meddatum_sql_schema:check();
+main(["setup-schema"]) -> meddatum_sql_schema:setup();
 main(["help"]) -> help();
 main([]) -> help().
 
@@ -50,7 +53,12 @@ help() ->
               "meddatum delete-all-ssmix <hospital-id>~n"
               "meddatum delete-recept <recept-file>~n"
               "meddatum search <keyword> (prints all keys matched)~n"
-              "meddatum [help]~n").
+              "meddatum [help]~n"
+              "experimental:~n"
+              "meddatum create-schema (prints out supposed schema)~n"
+              "meddatum ckeck-schema~n"
+              "meddatum setup-schema~n"
+             ).
 
 
 true_bucket_name(Bucket0) ->
@@ -157,17 +165,17 @@ setup(Host, Port) ->
 check_setup() ->
     {ok, {Host, Port}} = meddatum_config:get_riak(),
     {ok, Pid} = riakc_pb_socket:start_link(Host, Port),
-    ?msg("schema name"),
+    ?msg("search schema name"),
     {ok, Schema} = riakc_pb_socket:get_search_schema(Pid, ?SCHEMA_NAME),
     ?SCHEMA_NAME = proplists:get_value(name, Schema),
     ?res(?SCHEMA_NAME),
     SchemaBin = meddatum_catch_all_schema:binary(),
-    ?msg("schema content"),
+    ?msg("search schema content"),
     SchemaBin = proplists:get_value(content, Schema),
     ?res(match),
     {ok, Index} = riakc_pb_socket:get_search_index(Pid, ?INDEX_NAME),
-    ?msg("index created"),
-    <<"md_index">> = proplists:get_value(index, Index),
+    ?msg("search index created"),
+    ?INDEX_NAME = proplists:get_value(index, Index),
     ?res(yes),
     %% <<"_yz_default">> = proplists:get_value(schema, Index),
     ?msg("valid schema for index"),
@@ -177,5 +185,7 @@ check_setup() ->
     ?msg("valid index for bucket type"),
     ?INDEX_NAME = proplists:get_value(search_index, Props),
     ?res(?INDEX_NAME),
+    ?msg("presto enabled"),
+    ?res(proplists:get_value(presto_enabled, Props)),
     ok = riakc_pb_socket:stop(Pid),
     true.

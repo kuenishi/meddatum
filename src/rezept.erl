@@ -27,13 +27,19 @@
          key/1, key_prefix/1,
          bucket/1,
          patient_id/1, hospital_id/1,
-         from_file/3, from_file/4]).
+         columns/0,
+         from_file/3, from_file/4
+         ]).
 
 -export([
          append_to_recept/2,
          finalize/1
         ]).
 
+-type recept() :: #recept{}.
+-export_type([recept/0]).
+
+-spec encoder() -> {error, any(), any()}|{no_match, term()}|binary().
 encoder() ->
     ?JSON_RECORD_ENCODER(recept).
     %% md_json:encoder([{recept, record_info(fields, recept)}],
@@ -54,7 +60,7 @@ from_file(Filename, [Mode], Logger) when Mode =:= med orelse Mode =:= dpc ->
 from_file(Filename, [Mode], Logger, PostProcessor) when Mode =:= med orelse Mode =:= dpc ->
     rezept_parser:parse_file(Filename, Mode, Logger, PostProcessor).
 
--spec to_json(#recept{}) -> {ok, binary()}.
+-spec to_json(#recept{}) -> {ok, binary()} | {error, term()}.
 to_json(Rezept) when is_record(Rezept, recept) > 0 ->
 
     case ?ENCODER(Rezept) of
@@ -94,12 +100,7 @@ key_prefix(Filename) when is_list(Filename) ->
 -spec bucket(#recept{}) -> binary().
 bucket(#recept{hospital_id = HospitalID} = _Recept) ->
     BucketName = <<?RECEPT_BUCKET/binary, ?BUCKET_NAME_SEPARATOR/binary, HospitalID/binary>>,
-    case meddatum_config:use_bucket_types() of
-        true ->
-            {?BUCKET_TYPE, BucketName};
-        false ->
-            ?RECEPT_BUCKET
-    end.
+    {?BUCKET_TYPE, BucketName}.
 
 append_to_recept(#recept{segments=List} = Recept, Data) ->
     Recept#recept{segments=[Data|List]}.
@@ -176,3 +177,14 @@ rev_append([HD|TL], Right) -> rev_append(TL, [HD|Right]).
 
 patient_id(#recept{patient_id=PatientID}) -> PatientID.
 hospital_id(#recept{hospital_id=HospitalID}) -> HospitalID.
+
+
+columns() ->
+    [
+     [{name, date},        {type, 'STRING'}, {index, true}],
+     [{name, patient_id},  {type, 'STRING'}, {index, true}],
+     [{name, hospital_id}, {type, 'STRING'}, {index, false}],
+     %%[{name, segments},    {type, 'STRING'}, {index, true}],
+     [{name, file},        {type, 'STRING'}, {index, false}],
+     [{name, checksum},    {type, 'STRING'}, {index, false}]
+    ].
