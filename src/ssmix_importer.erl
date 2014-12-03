@@ -154,7 +154,7 @@ process_file(File, HospitalID, #context{riakc=Riakc, logger=Logger} = _Ctx) ->
 -ifdef(TEST).
 
 -define(assertBucketName(Exp, Val),
-        ?assertEqual(<<Exp/binary, ":dummyhospital">>,
+        ?assertEqual({<<"md">>, <<Exp/binary, ":dummyhospital">>},
                      hl7:bucket(#hl7msg{msg_type_s= Val,
                                         hospital_id= <<"dummyhospital">>}))).
 
