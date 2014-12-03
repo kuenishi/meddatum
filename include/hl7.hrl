@@ -168,7 +168,7 @@
 
 %% XAD	拡張住所	<Street Address (SAD)> ^ <Other Designation (ST)> ^ <City (ST)> ^ <State or Province (ST)> ^ <Zip or Postal Code (ST)> ^ <Country (ID)> ^ <Address Type (ID)> ^ <Other eographic Designation (ST)> ^ <County/Parish Code (IS)> ^ <Census Tract (IS)> ^ <Address Representation Code (ID)> ^ <Address Validity Range (DR)> ^ <Effective Date(TS)> ^ <Expiration Date (TS)>
 -define(HL7_XAD, [
-          {street_address , 'SAD'}, %% TODO: not defined
+          {street_address , 'SAD'}, %% string()
           {other_design   , 'ST'},
           {city           , 'ST'},
           {state          , 'ST'},
@@ -305,12 +305,112 @@
           {film_part_number , 'NM'}
          ]).
 
+%% DLN	運転免許証番号 	<License Number (ST)> ^ <Issuing State, Province, Country (IS)> ^ <Expiration Date (DT)>
+-define(HL7_DLN, [{licence_no, 'ST'},
+                  {issuing, 'IS'},
+                  {exp_date, 'DT'}]).
+%% FC	保険種別	<Financial Class Code (IS)> ^ <Effective Date (TS)>
+-define(HL7_FC, [{finance_cd, 'IS'},
+                 {effect_date, 'TS'}]).
+%% DLD	退院先と日付	<Discharge Location (IS)> ^ <Effective Date (TS)>
+-define(HL7_DLD, [{dist_loc, 'IS'},
+                  {effect_date, 'TS'}]).
+%% AUI	権限情報 	<Authorization Number (ST)> ^ <Date (DT)> ^ <Source (ST)>
+-define(HL7_AUI, [{auth_no, 'ST'},
+                  {date, 'DT'},
+                  {source, 'ST'}]).
+%% CP	複合価格	<Price (MO)> ^ <Price Type (ID)> ^ <From Value (NM)> ^ <To Value (NM)> ^ <Range Units (CWE)> ^ <Range Type (ID)>
+-define(HL7_CP, [{price, 'MO'},
+                 {price_type, 'ID'},
+                 {from_value, 'NM'},
+                 {to_value, 'NM'},
+                 {range_units, 'CWE'},
+                 {range_type, 'ID'}]).
+%% TQ	タイミング/数量 	<Set ID - TQ1 (SI)> ^ <Quantity (CQ)> ^ <Repeat Pattern (RPT)> ^ <Explicit Time (TM)> ^ <Relative Time and Units (CQ)> ^ <Service Duration (CQ)> ^ <Start date/time (TS)> ^ <End date/time (TS)> ^ <Priority (CWE)> ^ <Condition text (TX)> ^ <Text instruction (TX)> ^ <Conjunction (ID)>
+-define(HL7_TQ, [{set_id, 'SI'},
+                 {quantity, 'CQ'},
+                 {repeat_pattern, 'RPT'},
+                 {explicit_time, 'TM'},
+                 {relative_time, 'CQ'},
+                 {service_duration, 'CQ'},
+                 {start_time, 'TS'},
+                 {end_time, 'TS'},
+                 {priority, 'CWE'},
+                 {condition_txt, 'TX'},
+                 {txt_instruction, 'TX'},
+                 {conjunction, 'ID'}]).
+%% LA1	アドレス変化1 を備えた位置	<Point of Care (IS)> ^ <Room (IS)> ^ <Bed (IS)> ^ <Facility (HD)> ^ <Location Status (IS)> ^ <Patient Location Type (IS)> ^ <Building (IS)> ^ <Floor (IS)> ^ <Address (AD)>
+-define(HL7_LA1, [{pnt_care, 'IS'},
+                  {room, 'IS'},
+                  {bed, 'IS'},
+                  {facility, 'HD'},
+                  {loc_status, 'IS'},
+                  {pt_loc_type, 'IS'},
+                  {building, 'IS'},
+                  {floor, 'IS'},
+                  {address, 'AD'}]).
+%% MOC	金額およびチャージコード 	<Monetary Account (MO)> ^ <Charge Code (CWE)>
+-define(HL7_MOC, [{monetary_account, 'MO'},
+                  {charge_cd, 'CWE'}]).
+%% PRL	親結果リンク 	<Parent Observation Identifier (CWE)> ^ <Parent Observation Sub-identifier (ST)> ^ <Parent Observation Value Descriptor (TX)>
+-define(HL7_PRL, [{parent_observ_id, 'CWE'},
+                  {parent_observ_subid, 'ST'},
+                  {parent_observ_val, 'TX'}]).
+%% NDL	日付と位置を伴う名前	<Name (CNN)> ^ <Start Date/time (TS)> ^ <End Date/time (TS)> ^ <Point of Care (IS)> ^ <Room (IS)> ^ <Bed (IS)> ^ <Facility (HD)> ^ <Location Status (IS)> ^ <Patient Location Type (IS)> ^ <Building (IS)> ^ <Floor (IS)>
+-define(HL7_NDL, [{name, 'CNN'},
+                  {start_date, 'TS'},
+                  {end_date, 'TS'},
+                  {point_of_care, 'IS'},
+                  {room, 'IS'},
+                  {bed, 'IS'},
+                  {facility, 'HD'},
+                  {location_status, 'IS'},
+                  {patient_loc_type, 'IS'},
+                  {building, 'IS'},
+                  {floor, 'IS'}]).
+
+%% MO	金額	<Quantity (NM)> ^ <Denomination (ID)>
+-define(HL7_MO,  [{quantity, 'NM'}, {denomination, 'ID'}]).
+%% AD	住所	<Street Address (SAD)> ^ <Other Designation (ST)> ^ <City (ST)> ^ <State or Province (ST)> ^ <Zip or Postal Code (ST)> ^ <Country (ID)> ^ <Address Type (ID)> ^ <Other eographic Designation (ST)> ^ <County/Parish Code (IS)> ^ <Census Tract (IS)> ^ <Address Representation Code (ID)> ^ <Address Validity Range (DR)> ^ <Effective Date(TS)> ^ <Expiration Date (TS)>
+-define(HL7_AD, [
+          {street_address , 'SAD'}, %% TODO: not defined
+          {other_design   , 'ST'},
+          {city           , 'ST'},
+          {state          , 'ST'},
+          {zip_cd         , 'ST'},
+          {country        , 'ID'},
+          {address_type   , 'ID'},
+          {other_geo_design , 'ST'},
+          {parish_cd      , 'IS'},
+          {census_tract   , 'IS'},
+          {address_represent_cd , 'ID'},
+          {address_valid_range  , 'DR'},
+          {effective_date , 'TS'},
+          {expire_date    , 'TS'}
+         ]).
+%% CNN	単純化複合 ID 番号と名称	<ID Number (ST)> ^ <Family Name (ST)> ^ <Given Name (ST)> ^ <Second and Further Given Names or Initials Thereof (ST)> ^ <Suffix (e.g., JR or III) (ST)> ^ <Prefix (e.g., DR) (ST)> ^ <Degree (e.g., MD) (IS)> ^ <Source Table (IS)> ^ <Assigning Authority-Namespace (IS)> ^ <Assigning Authority-Universal ID (ST)> ^ <Assigning Authority-Universal ID Type (ID)>
+-define(HL7_CNN, [{id, 'ST'},
+                  {f_nm, 'ST'},
+                  {g_nm, 'ST'},
+                  {'2nd_nm', 'ST'},
+                  {suffix, 'ST'},
+                  {prefix, 'ST'},
+                  {degree, 'IS'},
+                  {src_tbl, 'IS'},
+                  {auth_namespace, 'IS'},
+                  {auth_id, 'IS'},
+                  {auth_id_type, 'ID'}]).
+
+
 -define(HL7_PRIMITIVE_TYPES,
         [{'HD', ?HL7_HD}, {'CE', ?HL7_CE}, {'CNE', ?HL7_CNE}, {'CWE', ?HL7_CWE}, {'TS', ?HL7_TS},
          {'DR', ?HL7_DR}, {'MSG', ?HL7_MSG}, {'PT', ?HL7_PT}, {'VID', ?HL7_VID}, {'XCN', ?HL7_XCN},
          {'CX', ?HL7_CX}, {'XPN', ?HL7_XPN}, {'XAD', ?HL7_XAD}, {'XTN', ?HL7_XTN}, {'XON', ?HL7_XON},
          {'PL', ?HL7_PL}, {'EI', ?HL7_EI}, {'RPT', ?HL7_RPT}, {'CQ', ?HL7_CQ}, {'LA2', ?HL7_LA2},
-         {'EIP', ?HL7_EIP}, {'JCC', ?HL7_JCC}, {'ZRD', ?HL7_ZRD}]).
+         {'EIP', ?HL7_EIP}, {'JCC', ?HL7_JCC}, {'ZRD', ?HL7_ZRD},
+         {'DLN', ?HL7_DLN}, {'FC', ?HL7_FC}, {'DLD', ?HL7_DLD}, {'AUI', ?HL7_AUI}, {'CP', ?HL7_CP},
+         {'TQ', ?HL7_TQ}, {'LA1', ?HL7_LA1}, {'MOC', ?HL7_MOC}, {'PRL', ?HL7_PRL}, {'NDL', ?HL7_NDL},
+         {'MO', ?HL7_MO}, {'AD', ?HL7_AD}, {'CNN', ?HL7_CNN}]).
 
 
 %% １）青色は『JAHIS臨床検査データ交換規約Ver3.0の第５章関連情報詳細』に詳細な説明があります。

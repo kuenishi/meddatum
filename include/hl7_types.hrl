@@ -666,7 +666,7 @@
          {"charge_to_practice", {maybe,'MOC'}, 40, "課金"}, %% OBR-23 #N/A
          {"diagnostic_serv_sect_id", {maybe,'ID'}, 10, "診断部門 ID"}, %% OBR-24 -
          {"result_status", {maybe,'ID'}, 1, "結果状態"}, %% OBR-25 -
-         {"parent_result", {maybe,'PRL'}, 400, "親結果"}, %% OBR-26 #N/A
+         {"parent_result", {maybe,'PRL'}, 400, "親結果"}, %% OBR-26 -
          {"quantity_timing", {maybe,'TQ'}, 200, "数量/タイミング"}, %% OBR-27 #N/A
          {"result_copies_to", {maybe,'XCN'}, 250, "結果配布先"}, %% OBR-28 <ID Number (ST)> ^ <Family Name (FN)> ^ <Given Name (ST)> ^ <Second and FurtherGiven Names or Initials Thereof (ST)> ^ <Suffix (e.g., JR or III) (ST)> ^ <Prefix (e.g., DR)(ST)> ^ <Degree (e.g., MD) (IS)> ^ <Source Table (IS)> ^ <Assigning Authority (HD)> ^<Name Type Code (ID)> ^ <Identifier Check Digit (ST)> ^ <Check Digit Scheme (ID)> ^<Identifier Type Code (ID)> ^ <Assigning Facility (HD)> ^ <Name Representation Code(ID)> ^ <Name Context (CE)> ^ <Name Validity Range (DR)> ^ <Name Assembly Order(ID)> ^ <Effective Date (TS)> ^ <Expiration Date (TS)> ^ <Professional Suffix (ST)> ^ <Assigning Jurisdiction (CWE)> ^ < Assigning Agency or Department (CWE)>
 
