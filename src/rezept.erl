@@ -184,10 +184,11 @@ hospital_id(#recept{hospital_id=HospitalID}) -> HospitalID.
 
 columns() ->
     [
+     %%[{name, segments},    {type, 'varchar'}, {index, true}],
+     %%[{name, segments},    {type, 'array'}, {index, false}],
      [{name, date},        {type, 'varchar'}, {index, true}],
      [{name, patient_id},  {type, 'varchar'}, {index, true}],
      [{name, hospital_id}, {type, 'varchar'}, {index, false}],
-     %%[{name, segments},    {type, 'varchar'}, {index, true}],
      [{name, file},        {type, 'varchar'}, {index, false}],
      [{name, checksum},    {type, 'varchar'}, {index, false}]
     ].

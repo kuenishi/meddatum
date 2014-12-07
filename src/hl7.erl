@@ -136,11 +136,12 @@ to_json(#hl7msg{segments=_Segs} = HL7Msg) ->
 %% @doc return schema for presto-riak. The format is JSON.
 columns() ->
     [
+     %%[{name, segments},    {type, 'varchar'}, {index, true}]
+     %%[{name, segments},    {type, 'array'}, {index, false}]
      [{name, hospital_id}, {type, 'varchar'}, {index, false}],
      [{name, patient_id},  {type, 'varchar'}, {index, true}],
      [{name, file},        {type, 'varchar'}, {index, false}],
      [{name, date},        {type, 'varchar'}, {index, true}],
      [{name, msg_type_s},  {type, 'varchar'}, {index, false}],
      [{name, msg_id},      {type, 'varchar'}, {index, false}]
-     %% [{name, segments},    {type, 'varchar'}, {index, true}]
     ].
