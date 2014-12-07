@@ -20,7 +20,9 @@
 
 -export([from_file/2, from_file/3,
          to_json/1, from_json/1,
-         key/1, bucket/1, patient_id/1, hospital_id/1,
+         key/1, bucket/1,
+         static_bucket_from_hospital_id/1, bucket_from_hospital_id/1,
+         patient_id/1, hospital_id/1,
          columns/0]).
 
 -export([annotate/1, is_static/1,
@@ -44,12 +46,18 @@ is_static(#hl7msg{msg_type_s=MsgType}) ->
     end.
 
 bucket(#hl7msg{hospital_id=HospitalID} = HL7Msg) ->
-    Bucket0 = case is_static(HL7Msg) of
-                  true -> ?SSMIX_PATIENTS_BUCKET;
-                  false -> ?SSMIX_BUCKET
-              end,
+    case is_static(HL7Msg) of
+        true -> static_bucket_from_hospital_id(HospitalID);
+        false -> bucket_from_hospital_id(HospitalID)
+    end.
+
+static_bucket_from_hospital_id(HospitalID) when is_binary(HospitalID) ->
     {?BUCKET_TYPE,
-     <<Bucket0/binary, ?BUCKET_NAME_SEPARATOR/binary, HospitalID/binary>>}.
+     <<?SSMIX_PATIENTS_BUCKET/binary, ?BUCKET_NAME_SEPARATOR/binary, HospitalID/binary>>}.
+
+bucket_from_hospital_id(HospitalID) when is_binary(HospitalID) ->
+    {?BUCKET_TYPE,
+     <<?SSMIX_BUCKET/binary, ?BUCKET_NAME_SEPARATOR/binary, HospitalID/binary>>}.
 
 key(#hl7msg{file=File}) ->
     filename:basename(File).
@@ -128,11 +136,11 @@ to_json(#hl7msg{segments=_Segs} = HL7Msg) ->
 %% @doc return schema for presto-riak. The format is JSON.
 columns() ->
     [
-     [{name, hospital_id}, {type, 'STRING'}, {index, false}],
-     [{name, patient_id},  {type, 'STRING'}, {index, true}],
-     [{name, file},        {type, 'STRING'}, {index, false}],
-     [{name, date},        {type, 'STRING'}, {index, true}],
-     [{name, msg_type_s},  {type, 'STRING'}, {index, false}],
-     [{name, msg_id},      {type, 'STRING'}, {index, false}]
-     %% [{name, segments},    {type, 'STRING'}, {index, true}]
+     [{name, hospital_id}, {type, 'varchar'}, {index, false}],
+     [{name, patient_id},  {type, 'varchar'}, {index, true}],
+     [{name, file},        {type, 'varchar'}, {index, false}],
+     [{name, date},        {type, 'varchar'}, {index, true}],
+     [{name, msg_type_s},  {type, 'varchar'}, {index, false}],
+     [{name, msg_id},      {type, 'varchar'}, {index, false}]
+     %% [{name, segments},    {type, 'varchar'}, {index, true}]
     ].

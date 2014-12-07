@@ -25,7 +25,7 @@
 
 -export([from_json/1, to_json/1,
          key/1, key_prefix/1,
-         bucket/1,
+         bucket/1, bucket_from_hospital_id/1,
          patient_id/1, hospital_id/1,
          columns/0,
          from_file/3, from_file/4
@@ -99,6 +99,9 @@ key_prefix(Filename) when is_list(Filename) ->
 
 -spec bucket(#recept{}) -> binary().
 bucket(#recept{hospital_id = HospitalID} = _Recept) ->
+    bucket_from_hospital_id(HospitalID).
+
+bucket_from_hospital_id(HospitalID) when is_binary(HospitalID) ->
     BucketName = <<?RECEPT_BUCKET/binary, ?BUCKET_NAME_SEPARATOR/binary, HospitalID/binary>>,
     {?BUCKET_TYPE, BucketName}.
 
@@ -181,10 +184,10 @@ hospital_id(#recept{hospital_id=HospitalID}) -> HospitalID.
 
 columns() ->
     [
-     [{name, date},        {type, 'STRING'}, {index, true}],
-     [{name, patient_id},  {type, 'STRING'}, {index, true}],
-     [{name, hospital_id}, {type, 'STRING'}, {index, false}],
-     %%[{name, segments},    {type, 'STRING'}, {index, true}],
-     [{name, file},        {type, 'STRING'}, {index, false}],
-     [{name, checksum},    {type, 'STRING'}, {index, false}]
+     [{name, date},        {type, 'varchar'}, {index, true}],
+     [{name, patient_id},  {type, 'varchar'}, {index, true}],
+     [{name, hospital_id}, {type, 'varchar'}, {index, false}],
+     %%[{name, segments},    {type, 'varchar'}, {index, true}],
+     [{name, file},        {type, 'varchar'}, {index, false}],
+     [{name, checksum},    {type, 'varchar'}, {index, false}]
     ].

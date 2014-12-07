@@ -10,49 +10,102 @@
 
 -include("meddatum.hrl").
 
--export([create/0, check/0, setup/0]).
+-export([create/1, check/1, setup/1]).
 
-create() ->
-    SSMIXTable = {[
-                   {<<"name">>, <<"<SSMIX table name>">>},
-                   {<<"columns">>, [atom_to_binary({Col})||Col<-hl7:columns()]}
-                  ]},
+%% meta structures are here
+-define(PRESTO_SCHEMA_BUCKET, <<"__presto_schema">>).
+%% all tables' name should be here
+-define(PRESTO_SCHEMA_KEY, <<"__schema">>).
+
+static_tabledef(HospitalID) ->
+    {_BType0, BucketName0} = hl7:static_bucket_from_hospital_id(HospitalID),
+    SSMIXTable0 = {[
+                    {<<"name">>, BucketName0},
+                    {<<"columns">>, [atom_to_binary({Col})||Col<-hl7:columns()]}
+                   ]},
+    jsone:encode([SSMIXTable0]).
+
+normal_tabledef(HospitalID) ->
+    {_BType0, BucketName1} = hl7:bucket_from_hospital_id(HospitalID),
+    SSMIXTable1 = {[
+                    {<<"name">>, BucketName1},
+                    {<<"columns">>, [atom_to_binary({Col})||Col<-hl7:columns()]}
+                   ]},
+    jsone:encode([SSMIXTable1]).
+
+recept_tabledef(HospitalID) ->
+    {_BType, BucketName2} = rezept:bucket_from_hospital_id(HospitalID),
     ReceptTable = {[
-                    {<<"name">>, <<"<Recept table name>">>},
+                    {<<"name">>, BucketName2},
                     {<<"columns">>, [atom_to_binary({C})||C<-rezept:columns()]}
                    ]},
-    io:format("~s~n", [jsone:encode([SSMIXTable, ReceptTable])]).
+    jsone:encode(ReceptTable).
 
-check() ->
+create(HospitalID0) ->
+    HospitalID = list_to_binary(HospitalID0),
+    io:format("Static ssmix table:~s~n", [static_tabledef(HospitalID)]),
+    io:format("Normal ssmix table: ~s~n", [normal_tabledef([HospitalID])]),
+    io:format("Recept table: ~s~n", [recept_tabledef(HospitalID)]).
+
+check(HospitalID0) ->
+    HospitalID = list_to_binary(HospitalID0),
     {ok, #context{logger=Logger,
                   riakc=C} = Context} = meddatum_console:setup(),
     try
         %% check presto-riak enabled or not
-        %% {ok, Props} = riakc_pb_socket:get_bucket_type(C, ?BUCKET_TYPE),
-        %% case proplists:get_value(presto_enabled, Props) of
-        %%     true -> ok;
-        %%     _ -> treehugger:log(Logger, error, "presto is not enabled at bucket type ~p.",
-        %%                         [?BUCKET_TYPE]),
-        %%          halt(1)
-        %% end,
-        treehugger:log(Logger, info, "checking schema ~p...", [?BUCKET_TYPE]),
-        %% master schema is in {TYPE, <<"__presto_schema">>} , <<"default">>
-        %% table definition is in <<"__presto_schema">>, <<"default.tablename">>
-        {ok, Buckets} = riakc_pb_socket:list_buckets(C, ?BUCKET_TYPE),
-        check_schema(C, Logger, ?BUCKET_TYPE, Buckets),
-        lists:foreach(fun(Bucket) -> check_table(C, Logger, ?BUCKET_TYPE, Bucket) end, Buckets)
+        {ok, Tables} = get_tables(C, Logger, ?BUCKET_TYPE),
+
+        %% table definition is in {<<"md">>, <<"__presto_schema">>}, <<"tablename">>
+        io:format("Checking schema for static ssmix records on hospital ~s...", [HospitalID]),
+        {_BType0, BucketName0} = hl7:static_bucket_from_hospital_id(HospitalID),
+        io:format("~p, ", [lists:member(BucketName0, Tables)]),
+        Tabledef0 = static_tabledef(HospitalID),
+        Tabledef1 = get_tabledef(C, BucketName0),
+        Io:format("~p~n", [Tabledef0 =:= Tabledef1]),
+
+        io:format("Checking schema for normal ssmix records on hospital ~s...", [HospitalID]),
+        {_BType0, BucketName1} = hl7:bucket_from_hospital_id(HospitalID),
+        io:format("~p~n", [lists:member(BucketName1, Tables)]),
+        Tabledef00 = normal_tabledef(HospitalID),
+        Tabledef01 = get_tabledef(C, BucketName1),
+        io:format("~p~n", [Tabledef00 =:= Tabledef01]),
+
+        io:format("Checking schema for rezept on hospital ~s...", [HospitalID]),
+        {_BType, BucketName2} = rezept:bucket_from_hospital_id(HospitalID),
+        io:format("~p~n", [lists:member(BucketName2, Tables)]),
+        Tabledef10 = recept_tabledef(HospitalID),
+        Tabledef11 = get_tabledef(C, BucketName2),
+        io:format("~p~n", [Tabledef10 =:= Tabledef11]),
+        ok
+
     after
             meddatum_console:teardown(Context)
     end.
 
-setup() ->
+setup(HospitalID0) ->
+    HospitalID = list_to_binary(HospitalID0),
     {ok, #context{logger=Logger,
                   riakc=C} = Context} = meddatum_console:setup(),
     try
-        %% maybe_create_schema(C, Logger, ?BUCKET_TYPE),
-        {ok, Buckets} = riakc_pb_socket:list_buckets(C, ?BUCKET_TYPE),
-        treehugger:log(Logger, info, "all buckets in ~p: ~p", [?BUCKET_TYPE, Buckets]),
-        lists:foreach(fun(Bucket) -> maybe_create_table(C, Logger, Bucket) end, Buckets)
+        %% check presto-riak enabled or not
+        {ok, Tables} = get_tables(C, Logger, ?BUCKET_TYPE),
+
+        %% table definition is in {<<"md">>, <<"__presto_schema">>}, <<"tablename">>
+        io:format("Checking schema for static ssmix records on hospital ~s...", [HospitalID]),
+        {_BType0, BucketName0} = hl7:static_bucket_from_hospital_id(HospitalID),
+        io:format("~p~n", [lists:member(BucketName0, Tables)]),
+
+        io:format("Checking schema for normal ssmix records on hospital ~s...", [HospitalID]),
+        {_BType0, BucketName1} = hl7:bucket_from_hospital_id(HospitalID),
+        io:format("~p~n", [lists:member(BucketName1, Tables)]),
+
+        io:format("Checking schema for rezept on hospital ~s...", [HospitalID]),
+        {_BType, BucketName2} = rezept:bucket_from_hospital_id(HospitalID),
+        io:format("~p~n", [lists:member(BucketName2, Tables)]),
+
+        %% Check each table definition here
+        error
+
     after
             meddatum_console:teardown(Context)
     end.
@@ -66,24 +119,24 @@ atom_to_binary({Obj}) ->
                        {klib:maybe_a2b(Key), klib:maybe_a2b(Val)}
                end, Obj)}.
 
--define(PRESTO_SCHEMA_BUCKET, <<"__presto_schema">>).
--define(PRESTO_SCHEMA_KEY, <<"__schema">>).
-
-check_schema(C, Logger, _SchemaName = BucketType, Buckets0) ->
+get_tables(C, Logger, _SchemaName = BucketType) ->
     Bucket = {BucketType, ?PRESTO_SCHEMA_BUCKET},
-    {ok, RiakObj} = riakc_pb_socket:get(C, Bucket, ?PRESTO_SCHEMA_KEY),
-    {_, Json} = hd(riakc_obj:get_contents(RiakObj)),
-    {[{<<"tables">>, {Tables}}]} = jsone:decode(Json),
-    treehugger:log(Logger, debug, "Tables in schema: ~p", [Tables]),
-    TableList = lists:sort([Table || {Table,_} <- Tables]),
-    Buckets = lists:sort(Buckets0),
-    treehugger:log(Logger, info, "Table defintion: ~p", [TableList]),
-    treehugger:log(Logger, info, "Buckets found: ~p", [Buckets]),
-    BucketsSet = sets:from_list(Buckets),
-    TablesSet = sets:from_list(TableList ++ [?PRESTO_SCHEMA_BUCKET]),
-    case sets:is_subset(TablesSet, BucketsSet) andalso sets:is_subset(BucketsSet, TablesSet) of
-        true -> treehugger:log(Logger, info, "Buckets matched", []);
-        false -> treehugger:log(Logger, error, "Buckets and tables didn't match!", [])
+    case riakc_pb_socket:get(C, Bucket, ?PRESTO_SCHEMA_KEY)of
+        {ok, RiakObj} ->
+            {_, Json} = hd(riakc_obj:get_contents(RiakObj)),
+            {List} = jsone:decode(Json),
+            Tables = proplists:get_value(<<"tables">>, List),
+            treehugger:log(Logger, debug, "Tables in schema: ~p", [Tables]),
+            {ok, Tables};
+        {error, not_found} ->
+            treehugger:log(Logger, error,
+                           "No schema data is set up at bucket_type ~p.",
+                           [?BUCKET_TYPE]),
+            throw(no_tables);
+
+        Error ->
+            treehugger:log(Logger, error, "~p:~p ~p", [?FILE, ?LINE, Error]),
+            throw(Error)
     end.
 
 maybe_update_schema(C, Logger, _SchemaName = BucketType, _TableName = Bucket) ->
@@ -94,7 +147,7 @@ maybe_update_schema(C, Logger, _SchemaName = BucketType, _TableName = Bucket) ->
                       {[{<<"tables">>, {Tables0}}]} = jsone:decode(Json),
                       treehugger:log(Logger, info, "Existing tables: ~p", [Tables0]),
                       Tables = [{Bucket, []}|Tables0],
-    
+
                       NewJson = jsone:encode({[{<<"tables">>, {Tables}}]}),
                       riakc_obj:update_value(RiakObj0, NewJson);
                   {error, notfound} ->
@@ -120,17 +173,11 @@ maybe_update_schema(C, Logger, _SchemaName = BucketType, _TableName = Bucket) ->
 %%             treehugger:log(Logger, info, "new default schema created.", [])
 %%     end.
 
-check_table(C, Logger, SchemaName, TableName) ->
-    case riakc_pb_socket:get(C, {SchemaName, ?PRESTO_SCHEMA_BUCKET}, TableName) of
-        {ok, RiakObj} ->
-            {_, Json} = hd(riakc_obj:get_contents(RiakObj)),
-            Table = jsone:decode(Json),
-            treehugger:log(Logger, info, "Definition of table '~s': ~p",
-                           [TableName, Table]);
-        {error, notfound} ->
-            treehugger:log(Logger, error, "no table definition found for table ~s",
-                           [TableName])
-    end.
+get_tabledef(C, TableName) ->
+    SchemaName = ?BUCKET_TYPE,
+    {ok, RiakObj} = riakc_pb_socket:get(C, {SchemaName, ?PRESTO_SCHEMA_BUCKET}, TableName),
+    {_, Json} = hd(riakc_obj:get_contents(RiakObj)),
+    Json.
 
 maybe_create_table(C, Logger, Bucket) ->
     case Bucket of

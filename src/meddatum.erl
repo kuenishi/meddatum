@@ -35,11 +35,11 @@ main(["parse-recept"|Args]) ->  meddatum_console:parse_recept(Args);
 main(["delete-all-ssmix"|Args]) -> meddatum_console:delete_all_ssmix(Args);
 main(["delete-recept"|Args]) ->    meddatum_console:delete_recept(Args);
 main(["search"|Args]) ->    meddatum_console:search(Args);
-main(["create-schema"]) -> meddatum_sql_schema:create();
-main(["check-schema"]) -> meddatum_sql_schema:check();
-main(["setup-schema"]) -> meddatum_sql_schema:setup();
+main(["show-schema", HospitalID]) -> meddatum_sql_schema:create(HospitalID);
+main(["check-schema", HospitalID]) -> meddatum_sql_schema:check(HospitalID);
+main(["setup-schema", HospitalID]) -> meddatum_sql_schema:setup(HospitalID);
 main(["help"]) -> help();
-main([]) -> help().
+main(_) -> help().
 
 help() ->
     io:format("usage:~n"
@@ -55,9 +55,9 @@ help() ->
               "meddatum search <keyword> (prints all keys matched)~n"
               "meddatum [help]~n"
               "experimental:~n"
-              "meddatum create-schema (prints out supposed schema)~n"
-              "meddatum ckeck-schema~n"
-              "meddatum setup-schema~n"
+              "meddatum show-schema <hospital-id> (prints out supposed schema)~n"
+              "meddatum ckeck-schema <hospital-id> (checks tabledef about ssmix, rezept in Riak)~n"
+              "meddatum setup-schema <hospital-id> (creates tabledef on ssmix, rezept)~n"
              ).
 
 
