@@ -116,13 +116,14 @@ parse_1(Msg, [Line|Lines] = _Lines, File, Tree) ->
 
 %% From page 24 of SS-MIX2 標準化ストレージ仕様書
 'MSH'(Tokens) ->
-    ["MSH", _Seperators, _SenderApp, _Sender, _ReceiverApp, _Receiver,
+    ["MSH", "^~\\&", _SenderApp, _Sender, _ReceiverApp, _Receiver,
      _Date, _Security, _MsgType, _MsgID, _ProcessID,
      "2.5",  %% Version ID is fixed
      _SeqNum, _ContPointer, _YN, _, _CountryCode,
      "~ISO IR87", %% Charcode is fixed (but already translated to UTF8 :)
      _Lang,
      "ISO 2022-1994"|_] = Tokens,
+
     #hl7msg{msg_type_s = maybe_nth(9, Tokens),
             msg_id = maybe_nth(10, Tokens)}.
 
@@ -204,29 +205,50 @@ to_json_object(Property, Type, _Len, Col) ->
     end.
 
 to_json_object(_, "\"\"", _D)-> null;
-to_json_object('ST', Col, _D)-> unicode:characters_to_binary(Col);
-to_json_object('TX', Col, _D)-> unicode:characters_to_binary(Col);
-to_json_object('FT', Col, _D)-> unicode:characters_to_binary(Col);
+to_json_object('ST', Col, _D)-> to_json_string_and_escape(Col);
+to_json_object('TX', Col, _D)-> to_json_string_and_escape(Col);
+to_json_object('FT', Col, _D)-> to_json_string_and_escape(Col);
 to_json_object('NM', Col, _D)-> case catch list_to_integer(Col) of
                                     I when is_integer(I) -> I;
                                     _ -> list_to_float(Col)
                                 end;
-to_json_object('IS', Col, _D)-> unicode:characters_to_binary(Col); %%  list_to_binary(Col);
-to_json_object('ID', Col, _D)-> unicode:characters_to_binary(Col); %% list_to_binary(Col);
-to_json_object('DT', Col, _D)-> unicode:characters_to_binary(Col); %% 「小学校低学年の頃」
+to_json_object('IS', Col, _D)-> to_json_string_and_escape(Col); %%  list_to_binary(Col);
+to_json_object('ID', Col, _D)-> to_json_string_and_escape(Col); %% list_to_binary(Col);
+to_json_object('DT', Col, _D)-> to_json_string_and_escape(Col); %% 「小学校低学年の頃」
 to_json_object('TM', Col, _D)-> list_to_binary(Col);
 to_json_object('DTM', Col, _D)-> list_to_binary(Col);
 to_json_object('SI', Col, _D)-> list_to_integer(Col);
 
 %% Work arounds
 to_json_object('*', Col, _) -> {'*', Col}; %% as it is and process later
-to_json_object('FN', Col, _D)->  unicode:characters_to_binary(Col); %% undefined
-to_json_object('SAD', Col, _D)-> unicode:characters_to_binary(Col); %% undefined
-to_json_object('SPS', Col, _D)-> unicode:characters_to_binary(Col); %% undefined, maybe, and exists.
-to_json_object('AUI', Col, _D)-> unicode:characters_to_binary(Col); %% undefined, maybe, and exists.
+to_json_object('FN', Col, _D)->  to_json_string_and_escape(Col); %% undefined
+to_json_object('SAD', Col, _D)-> to_json_string_and_escape(Col); %% undefined
+to_json_object('SPS', Col, _D)-> to_json_string_and_escape(Col); %% undefined, maybe, and exists.
+to_json_object('AUI', Col, _D)-> to_json_string_and_escape(Col); %% undefined, maybe, and exists.
 
 to_json_object(Name, Col, Depth)->
     to_record(Name, Col, Depth).
+
+%% Original 静脈血（小児用）\F\\S\\T\\R\\E\ => 静脈血（小児用）|^&~\\
+to_json_string_and_escape(String0) ->
+    String = to_json_string_and_escape(String0, []),
+    unicode:characters_to_binary(String).
+
+%% Matching with '++' looks so slow
+to_json_string_and_escape([], Acc) ->
+    lists:reverse(Acc);
+to_json_string_and_escape("\\F\\" ++ Rest, Acc) ->
+    to_json_string_and_escape(Rest, ["|"|Acc]);
+to_json_string_and_escape("\\S\\" ++ Rest, Acc) ->
+    to_json_string_and_escape(Rest, ["^"|Acc]);
+to_json_string_and_escape("\\T\\" ++ Rest, Acc) ->
+    to_json_string_and_escape(Rest, ["&"|Acc]);
+to_json_string_and_escape("\\R\\" ++ Rest, Acc) ->
+    to_json_string_and_escape(Rest, ["~"|Acc]);
+to_json_string_and_escape("\\E\\" ++ Rest, Acc) ->
+    to_json_string_and_escape(Rest, ["\\"|Acc]);
+to_json_string_and_escape([H|Rest], Acc) ->
+    to_json_string_and_escape(Rest, [H|Acc]).
 
 get_separator(0) -> "[\\^]";
 get_separator(1) -> "[&]".
@@ -260,9 +282,30 @@ append_segment(#hl7msg{segments = Segs} = Msg, Seg) ->
 maybe_nth(N, List) ->
     try
         case lists:nth(N, List) of
-            "" -> null_null_null;
-            Term -> unicode:characters_to_binary(Term)
+            "" -> null;
+            Str -> to_json_string_and_escape(Str)
         end
     catch _:_ ->
-            null_null_null
+            null
     end.
+
+
+-ifdef(TEST).
+
+to_json_string_and_escape_test_() ->
+    [
+     ?_assertEqual(<<"|">>, to_json_string_and_escape("\\F\\")),
+     ?_assertEqual(<<"^">>, to_json_string_and_escape("\\S\\")),
+     ?_assertEqual(<<"&">>, to_json_string_and_escape("\\T\\")),
+     ?_assertEqual(<<"~">>, to_json_string_and_escape("\\R\\")),
+     ?_assertEqual(<<"\\">>, to_json_string_and_escape("\\E\\")),
+     %% ?_assertEqual(<<"静脈血（小児用）|^&~\\">>,
+     %%               to_json_string_and_escape(
+     %%                 unicode:characters_to_list("静脈血（小児用）\\F\\\\S\\\\T\\\\R\\\\E\\"))),
+     ?_assertEqual(<<"|^&~\\bbbbb">>,
+                   to_json_string_and_escape("\\F\\\\S\\\\T\\\\R\\\\E\\bbbbb")),
+     ?_assertEqual(<<"\F^T~E\\">>,
+                   to_json_string_and_escape("\F\\S\\T\\R\\E\\"))
+    ].
+
+-endif.
