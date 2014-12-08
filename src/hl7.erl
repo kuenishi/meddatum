@@ -26,7 +26,7 @@
          columns/0]).
 
 -export([annotate/1, is_static/1,
-         get_segment/2, update_hospital_id/2,
+         get_segment/2, get_segments/2, update_hospital_id/2,
          msg_type/1]).
 
 -include_lib("eunit/include/eunit.hrl").
@@ -100,6 +100,15 @@ get_segment(#hl7msg{segments = Segments}, SegName) ->
                             _ -> Acc0
                         end
                 end, {error, not_found}, Segments).
+
+get_segments(#hl7msg{segments = Segments}, SegName) ->
+    lists:filter(fun({Segment}) ->
+                        case proplists:get_value(<<"segid">>, Segment) of
+                            SegName -> true;
+                            _ -> false
+                        end;
+                    (_) -> false
+                 end, Segments).
 
 msg_type(#hl7msg{msg_type_s=MsgType}) when is_binary(MsgType) ->
     binary_to_list(MsgType);
