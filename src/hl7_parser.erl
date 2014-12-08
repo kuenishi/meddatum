@@ -137,7 +137,7 @@ handle_segment_0(MsgType, Tokens0, Msg, File, Tree) ->
 
             Data0 = lists:map(fun({{Property, {maybe, _Type}, _Length, _Text}, ""}) ->
                                       %% ok to skip
-                                      {Property, null};
+                                      {Property, null_null_null};
                                  ({{Property, {maybe, Type}, Length, _Text}, Col}) ->
                                       to_json_object(Property, Type, Length, Col);
 
@@ -145,14 +145,14 @@ handle_segment_0(MsgType, Tokens0, Msg, File, Tree) ->
                                       treehugger:hug(Tree, warning,
                                                      "empty property '~s' which isn't optional in ~s~n",
                                                     [Property, File]),
-                                      {Property, null};
+                                      {Property, null_null_null};
                                       
                                  ({{Property, Type, Length, _Text}, Col}) ->
                                       %% ?debugVal({Property, Type}),
                                       to_json_object(Property, Type, Length, Col)
                       end,
                       lists:zip(MsgDef, Tokens)),
-            Data = lists:filter(fun({_,null}) -> false;
+            Data = lists:filter(fun({_,null_null_null}) -> false;
                                    (_) -> true end, Data0),
 
             case get_observation_value(Data) of
@@ -196,13 +196,14 @@ to_json_object(Property, Type, _Len, Col) ->
     BinProperty = list_to_binary(Property),
     case re:split(Col, "[~]", [{return,list},unicode]) of
         [] ->
-            {BinProperty, null};
+            {BinProperty, null_null_null};
         [Token] ->
             {BinProperty, to_json_object(Type, Token, 0)};
         Tokens when is_list(Tokens) ->
             {BinProperty, [to_json_object(Type, T, 0) || T <- Tokens]}
     end.
 
+to_json_object(_, "\"\"", _D)-> null;
 to_json_object('ST', Col, _D)-> unicode:characters_to_binary(Col);
 to_json_object('TX', Col, _D)-> unicode:characters_to_binary(Col);
 to_json_object('FT', Col, _D)-> unicode:characters_to_binary(Col);
@@ -242,13 +243,13 @@ to_record(Name, Col, Depth) ->
             {Tokens, _}  = lists:split(ShortLen, Tokens0),
 
             Data0 = lists:map(fun({{Property, _Type}, []}) ->
-                                      {klib:maybe_binary(Property), null};
+                                      {klib:maybe_binary(Property), null_null_null};
                                  ({{Property, Type}, Tok}) ->
                                       {klib:maybe_binary(Property),
                                        to_json_object(Type, Tok, Depth+1)}
                               end,
                               lists:zip(TypeDef, Tokens)),
-            Data = lists:filter(fun({_,null}) -> false;
+            Data = lists:filter(fun({_,null_null_null}) -> false;
                                    (_) -> true end, Data0),
             {Data} %% jsone requres {_} as JSON object
     end.
@@ -259,9 +260,9 @@ append_segment(#hl7msg{segments = Segs} = Msg, Seg) ->
 maybe_nth(N, List) ->
     try
         case lists:nth(N, List) of
-            "" -> null;
+            "" -> null_null_null;
             Term -> unicode:characters_to_binary(Term)
         end
     catch _:_ ->
-            null
+            null_null_null
     end.
