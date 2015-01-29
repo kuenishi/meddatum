@@ -41,6 +41,7 @@ $ meddatum [help]
 # misc
 
 - [JAHIS standards](http://www.jahis.jp/jahis_hyojyun/seiteizumi_hyojyun/)
+- [Recept formats](http://www.ssk.or.jp/rezept/iryokikan/iryokikan_02.html)
 - hope this helps [SS-MIX open source project](http://iryogakusei.com/portfolio-item/ss-mix%E3%82%AA%E3%83%BC%E3%83%97%E3%83%B3%E3%82%BD%E3%83%BC%E3%82%B9%E5%8C%96/)
 
 
