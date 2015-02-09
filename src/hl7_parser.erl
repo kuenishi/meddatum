@@ -208,7 +208,7 @@ to_json_object(_, "\"\"", _D)-> null;
 to_json_object('ST', Col, _D)-> to_json_string_and_escape(Col);
 to_json_object('TX', Col, _D)-> to_json_string_and_escape(Col);
 to_json_object('FT', Col, _D)-> to_json_string_and_escape(Col);
-to_json_object('NM', Col, _D)-> to_json_object_nm(Col);
+to_json_object('NM', Col, _D)-> str_to_nm(Col);
 to_json_object('IS', Col, _D)-> to_json_string_and_escape(Col); %%  list_to_binary(Col);
 to_json_object('ID', Col, _D)-> to_json_string_and_escape(Col); %% list_to_binary(Col);
 to_json_object('DT', Col, _D)-> to_json_string_and_escape(Col); %% 「小学校低学年の頃」
@@ -227,21 +227,23 @@ to_json_object('AUI', Col, _D)-> to_json_string_and_escape(Col); %% undefined, m
 to_json_object(Name, Col, Depth)->
     to_record(Name, Col, Depth).
 
-to_json_object_nm(Col) -> case catch list_to_integer(Col) of
-                                    I when is_integer(I) -> I;
-                                    _ -> list_to_nm(Col)
-                          end.
+-spec str_to_nm(list()) -> integer() | float().
+str_to_nm(Str) -> case string:chr(Str , $.) of
+                      0 -> list_to_integer(Str);
+                      _ -> str_to_nm_float(Str)
+                  end.
 
+
+-spec str_to_nm_float(list()) -> float().
 %% strip a sign
-list_to_nm([$-|Col]) -> - list_to_nm(Col);
-list_to_nm([$+|Col]) -> list_to_nm(Col);
-list_to_nm(Col) ->
-    case lists:suffix("." , Col) of
-      true -> list_to_float(lists:append(Col, "0")); %% end with "."
-        false -> case lists:prefix("." , Col) of
-            true -> list_to_float(lists:append("0" , Col)); %% start with "."
-            false -> list_to_float(Col)
-        end
+str_to_nm_float([$-|Str]) -> - str_to_nm_float(Str);
+str_to_nm_float([$+|Str]) ->   str_to_nm_float(Str);
+%% start with "."
+str_to_nm_float([$.|Str]) ->   str_to_nm_float(lists:append("0" , [$.|Str]));
+str_to_nm_float(Str) ->
+    case lists:suffix("." , Str) of
+      true  -> list_to_float(lists:append(Str, "0")); %% end with "."
+      false -> list_to_float(Str)
     end.
 
 %% Original 静脈血（小児用）\F\\S\\T\\R\\E\ => 静脈血（小児用）|^&~\\
