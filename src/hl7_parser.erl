@@ -241,9 +241,9 @@ str_to_nm(Str) ->
 str_to_nm_float([$-|Str]) -> - str_to_nm_float(Str);
 str_to_nm_float([$+|Str]) ->   str_to_nm_float(Str);
 %% start with "."
-str_to_nm_float([$.|Str]) ->   str_to_nm_float(lists:append("0" , [$.|Str]));
+str_to_nm_float([$.|_] = Str) -> str_to_nm_float([$0|Str]);
 str_to_nm_float(Str) ->
-    case lists:suffix("." , Str) of
+    case lists:last(Str) =:= $. of
       true  -> list_to_float(lists:append(Str, "0")); %% end with "."
       false -> list_to_float(Str)
     end.
