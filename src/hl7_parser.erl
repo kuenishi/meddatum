@@ -228,10 +228,12 @@ to_json_object(Name, Col, Depth)->
     to_record(Name, Col, Depth).
 
 -spec str_to_nm(list()) -> integer() | float().
-str_to_nm(Str) -> case string:chr(Str , $.) of
-                      0 -> list_to_integer(Str);
-                      _ -> str_to_nm_float(Str)
-                  end.
+str_to_nm(Str) -> 
+    %% if decimal point omits from number, number is regarded as a integer.
+    case string:chr(Str , $.) of
+        0 -> list_to_integer(Str);
+        _ -> str_to_nm_float(Str)
+    end.
 
 
 -spec str_to_nm_float(list()) -> float().
