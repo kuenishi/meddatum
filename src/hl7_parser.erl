@@ -208,16 +208,14 @@ to_json_object(_, "\"\"", _D)-> null;
 to_json_object('ST', Col, _D)-> to_json_string_and_escape(Col);
 to_json_object('TX', Col, _D)-> to_json_string_and_escape(Col);
 to_json_object('FT', Col, _D)-> to_json_string_and_escape(Col);
-to_json_object('NM', Col, _D)-> case catch list_to_integer(Col) of
-                                    I when is_integer(I) -> I;
-                                    _ -> list_to_float(Col)
-                                end;
+to_json_object('NM', Col, _D)-> str_to_nm(Col);
 to_json_object('IS', Col, _D)-> to_json_string_and_escape(Col); %%  list_to_binary(Col);
 to_json_object('ID', Col, _D)-> to_json_string_and_escape(Col); %% list_to_binary(Col);
 to_json_object('DT', Col, _D)-> to_json_string_and_escape(Col); %% 「小学校低学年の頃」
 to_json_object('TM', Col, _D)-> list_to_binary(Col);
 to_json_object('DTM', Col, _D)-> list_to_binary(Col);
 to_json_object('SI', Col, _D)-> list_to_integer(Col);
+
 
 %% Work arounds
 to_json_object('*', Col, _) -> {'*', Col}; %% as it is and process later
@@ -228,6 +226,27 @@ to_json_object('AUI', Col, _D)-> to_json_string_and_escape(Col); %% undefined, m
 
 to_json_object(Name, Col, Depth)->
     to_record(Name, Col, Depth).
+
+-spec str_to_nm(list()) -> integer() | float().
+str_to_nm(Str) -> 
+    %% if decimal point omits from number, number is regarded as a integer.
+    case string:chr(Str , $.) of
+        0 -> list_to_integer(Str);
+        _ -> str_to_nm_float(Str)
+    end.
+
+
+-spec str_to_nm_float(list()) -> float().
+%% strip a sign
+str_to_nm_float([$-|Str]) -> - str_to_nm_float(Str);
+str_to_nm_float([$+|Str]) ->   str_to_nm_float(Str);
+%% start with "."
+str_to_nm_float([$.|_] = Str) -> str_to_nm_float([$0|Str]);
+str_to_nm_float(Str) ->
+    case lists:last(Str) =:= $. of
+      true  -> list_to_float(lists:append(Str, "0")); %% end with "."
+      false -> list_to_float(Str)
+    end.
 
 %% Original 静脈血（小児用）\F\\S\\T\\R\\E\ => 静脈血（小児用）|^&~\\
 to_json_string_and_escape(String0) ->
@@ -291,6 +310,24 @@ maybe_nth(N, List) ->
 
 
 -ifdef(TEST).
+
+to_json_object_NM_test_() ->
+  [
+    ?_assertEqual(8 ,   to_json_object('NM', "8", 0)),
+    ?_assertEqual(0.1 , to_json_object('NM', "0.1", 0)),
+    ?_assertEqual(0.1 , to_json_object('NM', "+0.1", 0)),
+    ?_assertEqual(135.0 , to_json_object('NM', "135.", 0)),
+    ?_assertEqual(135.0 , to_json_object('NM', "135.0", 0)),
+    ?_assertEqual(0.5 , to_json_object('NM', "0.5", 0)),
+    ?_assertEqual(0.5 , to_json_object('NM', ".5", 0)),
+    ?_assertEqual(-73.5 , to_json_object('NM', "-73.5", 0)),
+    ?_assertEqual(-0.5 , to_json_object('NM', "-.5", 0)),
+    ?_assertEqual(-135.0 , to_json_object('NM', "-135.", 0)),
+    ?_assertEqual(2.5 , to_json_object('NM', "002.5", 0)),
+    ?_assertEqual(2 , to_json_object('NM', "002", 0)),
+    ?_assertEqual(1.2 , to_json_object('NM', "01.20", 0)),
+    ?_assertEqual(0.2 , to_json_object('NM', "+.20", 0))
+  ].
 
 to_json_string_and_escape_test_() ->
     [
