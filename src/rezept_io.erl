@@ -37,7 +37,8 @@ put_record(C, Record0) ->
             %% put indices to all member
             RiakObj = set_2i(RiakObj0, Record0),
             riakc_pb_socket:put(C, RiakObj);
-        {error, empty} -> ok;
+        {error, empty} ->
+            error({empty_record, Record0});
         Other ->
             %% TODO: insert probe code to find bad data format or spec.
             %% lists:foreach(fun(R) ->
