@@ -17,7 +17,7 @@
 -module(meddatum).
 
 -export([main/1, help/0,
-         true_bucket_name/1, maybe_new_ro/5,
+         true_bucket_name/1, maybe_new_ro/4,
          ssmix_bucket/1, recept_bucket/1, ssmix_patients_bucket/1,
          check_setup/0,
          setup/2]).
@@ -64,7 +64,6 @@ help() ->
               "meddatum setup-schema <hospital-id> (creates tabledef on ssmix, rezept)~n"
              ).
 
-
 true_bucket_name(Bucket0) ->
     {?BUCKET_TYPE, Bucket0}.
 
@@ -90,19 +89,19 @@ ssmix_patients_bucket(HospitalID) ->
     ssmix_patients_bucket(iolist_to_binary(HospitalID)).
 
 %% Maybe new Riak Object
-maybe_new_ro(Client, Bucket, Key, Data, ContentType) ->
+maybe_new_ro(Client, Bucket, Key, Data) ->
     case riakc_pb_socket:get(Client, Bucket, Key) of
         {ok, RiakObj0} ->
             case riakc_obj:value_count(RiakObj0) of
                 1 ->
-                    riakc_obj:update_value(RiakObj0, Data, ContentType);
+                    riakc_obj:update_value(RiakObj0, Data, ?APPLICATION_JSON);
                 N when N > 1 ->
                     RiakObj = riakc_obj:new(Bucket, Key,
-                                            Data, ContentType),
+                                            Data, ?APPLICATION_JSON),
                     riakc_obj:set_vclock(RiakObj, riakc_obj:vclock(RiakObj0))
             end;
         {error, _E} ->
-            riakc_obj:new(Bucket, Key, Data, ContentType)
+            riakc_obj:new(Bucket, Key, Data, ?APPLICATION_JSON)
     end.
 
 -define(RESULT(N, X), io:format("~s: ~p~n", [(N), (X)])).

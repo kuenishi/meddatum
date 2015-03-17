@@ -28,11 +28,10 @@ put_record(C, Record0) ->
     case rezept:to_json(Record0) of
         {ok, JSONRecords} ->
             %%ok = file:write_file("test.json", JSONRecords).
-            ContentType = "application/json",
             %% Key = list_to_binary(integer_to_list(erlang:phash2(JSONRecords))),
             Key = rezept:key(Record0),
             Bucket = rezept:bucket(Record0),
-            RiakObj0 = meddatum:maybe_new_ro(C, Bucket, Key, JSONRecords, ContentType),
+            RiakObj0 = meddatum:maybe_new_ro(C, Bucket, Key, JSONRecords),
 
             %% put indices to all member
             RiakObj = set_2i(RiakObj0, Record0),

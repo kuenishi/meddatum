@@ -41,11 +41,10 @@ walk(Path, HospitalID, Ctx) when is_binary(HospitalID) ->
 -spec put_json(pid(), #hl7msg{}, pid()) -> ok | no_return().
 put_json(Client, Msg, Logger) ->
     %% TODO: Bucket, Key are to be extracted from msg
-    ContentType = <<"application/json">>,
     Key = hl7:key(Msg),
     Data = hl7:to_json(Msg),
     Bucket = hl7:bucket(Msg),
-    RiakObj0 = meddatum:maybe_new_ro(Client, Bucket, Key, Data, ContentType),
+    RiakObj0 = meddatum:maybe_new_ro(Client, Bucket, Key, Data),
 
     %%_ = lager:debug("inserting: ~p~n", [Key]),
     treehugger:log(Logger, debug, "inserting ~p", [{Bucket,Key}]),

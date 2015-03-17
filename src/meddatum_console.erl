@@ -214,9 +214,9 @@ parse_dpcs([Mode, File]) ->
                    "Dn" -> dn
                end,
     {ok, #context{logger=Logger}} = meddatum_console:setup(false),
-    Records = dpcs_parser:parse(File , ModeAtom , Logger),
+    Records = dpcs_parser:parse(File, ModeAtom, Logger),
     lists:foreach(
-        fun({K,C,R}) ->
+        fun({_K,C,R}) ->
             JSON = jsone:encode({C ++ R}, [native_utf8]),
             io:format("~ts~n" , [JSON])
         end,
