@@ -18,9 +18,9 @@
 
 -behaviour(md_record).
 
--export([from_file/2, from_file/3,
+-export([from_file/3, from_file/4,
          to_json/1, from_json/1,
-         key/1, bucket/1,
+         key/1, bucket/1, make_2i_list/1,
          static_bucket_from_hospital_id/1, bucket_from_hospital_id/1,
          patient_id/1, hospital_id/1,
          columns/0]).
@@ -61,6 +61,9 @@ bucket_from_hospital_id(HospitalID) when is_binary(HospitalID) ->
 
 key(#hl7msg{file=File}) ->
     filename:basename(File).
+
+make_2i_list(#hl7msg{date=Date, patient_id=PatientID}) ->
+    [{"date", Date}, {"patient_id", PatientID}].
 
 patient_id(#hl7msg{patient_id=PatientID}) -> PatientID.
 
@@ -114,11 +117,12 @@ msg_type(#hl7msg{msg_type_s=MsgType}) when is_binary(MsgType) ->
     binary_to_list(MsgType);
 msg_type(#hl7msg{msg_type_s=MsgType}) -> MsgType.
 
--spec from_file(filename:filename(), term()) -> ok | {error, any()}.
-from_file(Filename, Tree)->
+-spec from_file(filename:filename(), list(), term()) -> ok | {error, any()}.
+from_file(Filename, Tree, _)->
     hl7_parser:parse(Filename, Tree).
 
-from_file(Filename, Tree, PostProcessor)->
+-spec from_file(filename:filename(), list(), term(), fun()) -> ok | {error, any()}.
+from_file(Filename, Tree, _, PostProcessor)->
     hl7_parser:parse(Filename, Tree, PostProcessor).
 
 decoder() ->
@@ -138,7 +142,7 @@ from_json(Json) when is_binary(Json) ->
 to_json(#hl7msg{segments=_Segs} = HL7Msg) ->
     E = encoder(),
     case E(HL7Msg) of
-        Bin when is_binary(Bin) -> Bin;
+        Bin when is_binary(Bin) -> {ok, Bin};
         Other -> error(Other)
     end.
 

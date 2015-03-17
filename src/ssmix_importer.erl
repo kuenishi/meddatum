@@ -16,12 +16,29 @@
 
 -module(ssmix_importer).
 -export([walk/3,
+         parse_all_files/3,
          index_name/1,
+         put_json/3,
          delete_all/2]).
 
 -include("hl7.hrl").
 -include("meddatum.hrl").
 -include_lib("eunit/include/eunit.hrl").
+
+parse_all_files(Path, HospitalID, Ctx) when is_list(HospitalID) ->
+    parse_all_files(Path, unicode:characters_to_binary(HospitalID), Ctx);
+parse_all_files(Path, HospitalID, Ctx) when is_binary(HospitalID) ->
+    F = fun(File, Acc0) ->
+                case process_file(File, HospitalID, Ctx) of
+                    ok -> Acc0;
+                    {error,_} when is_list(Acc0) ->
+                        [File|Acc0];
+                    {error,_} ->
+                        [File]
+                end
+        end,
+    _ErrorFiles = filelib:fold_files(Path, "", true, F, []),
+    ok.
 
 walk(Path, HospitalID, Ctx) when is_list(HospitalID) ->
     walk(Path, unicode:characters_to_binary(HospitalID), Ctx);
@@ -38,11 +55,13 @@ walk(Path, HospitalID, Ctx) when is_binary(HospitalID) ->
     _ErrorFiles = filelib:fold_files(Path, "", true, F, []),
     ok.
 
+
+
 -spec put_json(pid(), #hl7msg{}, pid()) -> ok | no_return().
 put_json(Client, Msg, Logger) ->
     %% TODO: Bucket, Key are to be extracted from msg
     Key = hl7:key(Msg),
-    Data = hl7:to_json(Msg),
+    {ok, Data} = hl7:to_json(Msg),
     Bucket = hl7:bucket(Msg),
     RiakObj0 = meddatum:maybe_new_ro(Client, Bucket, Key, Data),
 
@@ -129,11 +148,11 @@ process_file(File, HospitalID, #context{riakc=Riakc, logger=Logger} = _Ctx) ->
     treehugger:log(Logger, info, "Processing ~p ~p", [File, HospitalID]),
     case string:right(File, 2) of
         "_1" ->
-            case hl7:from_file(File, Logger) of
+            case hl7:from_file(File, Logger, dummy) of
                 {ok, HL7Msg0} ->
                     HL7Msg = hl7:annotate(HL7Msg0#hl7msg{hospital_id=HospitalID}),
                     try
-                        ok=put_json(Riakc, HL7Msg, Logger)
+                        ok=md_record:put_json(Riakc, HL7Msg, hl7, Logger)
                     catch T:E ->
                             treehugger:log(Logger, error, "~p:~p ~p",
                                            [T,E, erlang:get_stacktrace()])

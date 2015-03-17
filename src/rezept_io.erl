@@ -21,9 +21,9 @@
 -include("rezept.hrl").
 -include("meddatum.hrl").
 
--export([put_record/2, delete_from_file/2]).
+-export([put_json/2, delete_from_file/2]).
 
-put_record(C, Record0) ->
+put_json(C, Record0) ->
 
     case rezept:to_json(Record0) of
         {ok, JSONRecords} ->

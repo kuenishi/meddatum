@@ -111,7 +111,7 @@ import_recept([Mode0, Filename]) ->
                        [Filename, length(Records)]),
 
         lists:foreach(fun(Record)->
-                              ok = rezept_io:put_record(C, Record)
+                              ok = md_record:put_json(C, Record, rezept, Logger)
                       end, Records),
 
         treehugger:log(Logger, info, "wrote ~p records into Riak.", [length(Records)])
@@ -140,7 +140,7 @@ import_dpcs([Mode, HospitalID, Date, Filename]) ->
                        "parsing ~p finished (~p records extracted)",
                        [Filename, length(Records)]),
         lists:foreach(fun(Record)->
-                              ok = dpcs_io:put_record(C, Mode , HospitalID , Date , Record)
+                              ok = dpcs_io:put_json(C, Mode , HospitalID , Date , Record)
                       end, Records),
 
         treehugger:log(Logger, info, "wrote ~p records into Riak.", [length(Records)])
@@ -159,7 +159,7 @@ parse_ssmix([Path]) ->
     {ok, #context{logger=Logger}} = meddatum_console:setup(false),
 
     F = fun(File, Acc0) ->
-                case hl7:from_file(File, Logger) of
+                case hl7:from_file(File, Logger, dummy) of
                     {ok, HL7Msg0} ->
                         io:format(standard_error, "~ts:~n", [File]),
                         io:format("~ts~n", [hl7:to_json(HL7Msg0)]);
@@ -193,7 +193,7 @@ parse_recept([Mode, File]) ->
 
     {ok, #context{logger=Logger}} = meddatum_console:setup(false),
 
-    {ok, Records} = rezept:from_file(File, [ModeAtom], Logger),
+    {ok, Records} = rezept:from_file(File, [ModeAtom], dummy, Logger),
     lists:foreach(fun({ok, JSON}) ->
                           io:format("~ts~n", [JSON]);
                      ({error, E}) ->

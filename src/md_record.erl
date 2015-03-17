@@ -18,34 +18,41 @@
 
 -include("meddatum.hrl").
 -export([bucket2hospital_id/1,
-         new/3, put_record/2]).
-
--record(md_record,
-        {module :: module(),
-         payload,
-         type :: atom()}).
-
--type md_record(T) :: #md_record{payload :: T}.
--export_type([md_record/1]).
+         put_json/4]).
 
 %% note that the file is usually *NOT* JSON.
--callback from_file(filename:filename(), list(), pid()) -> {ok, [md_record(_)]}.
--callback from_file(filename:filename(), list(), pid(), PostProcessor::fun()) -> {ok, [md_record(_)]}.
+-callback from_file(filename:filename(), list(), pid()) -> {ok, [_]}.
+-callback from_file(filename:filename(), list(), pid(), PostProcessor::fun()) -> {ok, [_]}.
 
--callback to_json(md_record(_)) ->  {ok, JSON::binary()}.
--callback from_json(JSON::binary()) -> md_record(_).
--callback key(md_record(_)) -> binary().
--callback bucket(md_record(_)) -> binary().
--callback patient_id(md_record(_)) -> binary().
--callback hospital_id(md_record(_)) -> binary().
--callback payload(md_record(T)) -> T.
+-callback to_json(_) ->  {ok, JSON::binary()}.
+-callback from_json(JSON::binary()) -> _.
+-callback key(_) -> binary().
+-callback bucket(_) -> binary().
+-callback make_2i_list(_) -> [{binary(), binary()|integer()}].
+-callback patient_id(_) -> binary().
+-callback hospital_id(_) -> binary().
 -callback columns() -> JSON::binary().
 
-new(Module, Payload, Type) ->
-    #md_record{module=Module, payload=Payload, type=Type}.
-
--spec put_record(pid(), md_record(_)) -> ok.
-put_record(_, _) -> undefined.
+-spec put_json(pid(), _::any(), module(), pid()) -> ok.
+put_json(C, Msg, Mod, Logger) when is_atom(Mod) ->
+    Key = Mod:key(Msg),
+    Data = Mod:to_json(Msg),
+    Bucket = Mod:bucket(Msg),
+    RiakObj0 = meddatum:maybe_new_ro(C, Bucket, Key, Data),
+    Indexes = Mod:make_2i_list(Msg),
+    Metadata0 = riakc_obj:get_update_metadata(RiakObj0),
+    Metadata = lists:foldl(fun({K,V}, MD0) when is_binary(V) ->
+                                   riakc_obj:set_secondary_index(MD0, {{binary_index, K}, [V]});
+                              ({K,V}, MD0) when is_integer(V) ->
+                                   riakc_obj:set_secondary_index(MD0, {{integer_index, K}, [V]})
+                           end, Metadata0, Indexes),
+    RiakObj = riakc_obj:update_metadata(RiakObj0, Metadata),
+    %%_ = lager:debug("inserting: ~p~n", [Key]),
+    treehugger:log(Logger, debug, "inserting ~p", [{Bucket,Key}]),
+    case riakc_pb_socket:put(C, RiakObj) of
+      ok -> ok;
+      Error -> treehugger:log(error, Logger, "error inserting ~p: ~p", [Key, Error])
+    end.
 
 bucket2hospital_id({_, Bucket}) -> bucket2hospital_id(Bucket);
 bucket2hospital_id(Bucket) when is_binary(Bucket) ->
