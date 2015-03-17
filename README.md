@@ -47,4 +47,4 @@ $ meddatum [help]
 
 # license
 
-Apache 2.0, see LICENCE file.
+Apache 2.0, see LICENCE and AUTHORS file.
