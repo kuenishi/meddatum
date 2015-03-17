@@ -16,29 +16,11 @@
 
 -module(ssmix_importer).
 -export([walk/3,
-         parse_all_files/3,
-         index_name/1,
-         put_json/3,
          delete_all/2]).
 
 -include("hl7.hrl").
 -include("meddatum.hrl").
 -include_lib("eunit/include/eunit.hrl").
-
-parse_all_files(Path, HospitalID, Ctx) when is_list(HospitalID) ->
-    parse_all_files(Path, unicode:characters_to_binary(HospitalID), Ctx);
-parse_all_files(Path, HospitalID, Ctx) when is_binary(HospitalID) ->
-    F = fun(File, Acc0) ->
-                case process_file(File, HospitalID, Ctx) of
-                    ok -> Acc0;
-                    {error,_} when is_list(Acc0) ->
-                        [File|Acc0];
-                    {error,_} ->
-                        [File]
-                end
-        end,
-    _ErrorFiles = filelib:fold_files(Path, "", true, F, []),
-    ok.
 
 walk(Path, HospitalID, Ctx) when is_list(HospitalID) ->
     walk(Path, unicode:characters_to_binary(HospitalID), Ctx);
@@ -54,35 +36,6 @@ walk(Path, HospitalID, Ctx) when is_binary(HospitalID) ->
         end,
     _ErrorFiles = filelib:fold_files(Path, "", true, F, []),
     ok.
-
-
-
--spec put_json(pid(), #hl7msg{}, pid()) -> ok | no_return().
-put_json(Client, Msg, Logger) ->
-    %% TODO: Bucket, Key are to be extracted from msg
-    Key = hl7:key(Msg),
-    {ok, Data} = hl7:to_json(Msg),
-    Bucket = hl7:bucket(Msg),
-    RiakObj0 = meddatum:maybe_new_ro(Client, Bucket, Key, Data),
-
-    %%_ = lager:debug("inserting: ~p~n", [Key]),
-    treehugger:log(Logger, debug, "inserting ~p", [{Bucket,Key}]),
-    RiakObj = set_2i(RiakObj0, Msg#hl7msg.date, Msg#hl7msg.patient_id),
-    case riakc_pb_socket:put(Client, RiakObj) of
-      ok -> ok;
-      Error -> treehugger:log(error, Logger, "error inserting ~p: ~p", [Key, Error])
-    end.
-
-set_2i(RiakObj0, Date, PatientID) ->
-    MD0 = riakc_obj:get_update_metadata(RiakObj0),
-    MD1 = riakc_obj:set_secondary_index(MD0, {{binary_index, index_name(date)}, [Date]}),
-    MD2 = riakc_obj:set_secondary_index(MD1, {{binary_index, index_name(patient_id)}, [PatientID]}),
-    riakc_obj:update_metadata(RiakObj0, MD2).
-
-index_name(patient_id) ->
-    "patient_id";
-index_name(date) ->
-    "date".
 
 delete_all(Host, Port) ->
     delete_all(Host, Port, ?SSMIX_BUCKET),

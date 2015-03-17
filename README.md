@@ -31,8 +31,10 @@ $ meddatum create-config
 $ meddatum check-config
 $ meddatum import-ssmix <hospital-id> <path/to/directory>
 $ meddatum import-recept <path/to/file>
+$ meddatum import-dpcs ...
 $ meddatum parse-ssmix <ssmix-file>
 $ meddatum parse-recept <recept-file>
+$ meddatum parse-dpcs ...
 $ meddatum delete-all-ssmix <hospital-id>
 $ meddatum delete-recept <recept-file>
 $ meddatum [help]
@@ -42,6 +44,7 @@ $ meddatum [help]
 
 - [JAHIS standards](http://www.jahis.jp/jahis_hyojyun/seiteizumi_hyojyun/)
 - [Recept formats](http://www.ssk.or.jp/rezept/iryokikan/iryokikan_02.html)
+- [DPC Survey data format](http://www.prrism.com/dpc/setsumei_20140808.pdf)
 - hope this helps [SS-MIX open source project](http://iryogakusei.com/portfolio-item/ss-mix%E3%82%AA%E3%83%BC%E3%83%97%E3%83%B3%E3%82%BD%E3%83%BC%E3%82%B9%E5%8C%96/)
 
 

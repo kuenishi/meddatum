@@ -16,51 +16,11 @@
 
 -module(rezept_io).
 
--include_lib("eunit/include/eunit.hrl").
 -include_lib("riakc/include/riakc.hrl").
 -include("rezept.hrl").
 -include("meddatum.hrl").
 
--export([put_json/2, delete_from_file/2]).
-
-put_json(C, Record0) ->
-
-    case rezept:to_json(Record0) of
-        {ok, JSONRecords} ->
-            %%ok = file:write_file("test.json", JSONRecords).
-            %% Key = list_to_binary(integer_to_list(erlang:phash2(JSONRecords))),
-            Key = rezept:key(Record0),
-            Bucket = rezept:bucket(Record0),
-            RiakObj0 = meddatum:maybe_new_ro(C, Bucket, Key, JSONRecords),
-
-            %% put indices to all member
-            RiakObj = set_2i(RiakObj0, Record0),
-            riakc_pb_socket:put(C, RiakObj);
-        {error, empty} ->
-            error({empty_record, Record0});
-        Other ->
-            %% TODO: insert probe code to find bad data format or spec.
-            %% lists:foreach(fun(R) ->
-            %%                       lists:foreach(fun(P) ->
-            %%                                             io:format("~n~p~n", [[P]]),
-            %%                                             {ok, _} = to_json([P])
-            %%                                     end, R)
-            %%               end, proplists:get_value(<<"segments">>, Record0)),
-            error(Other)
-    end.
-
-set_2i(RiakObj0, Record0) ->
-    RiakObj1 = case Record0#recept.patient_id of
-                   undefined -> RiakObj0;
-                   PatientID ->
-                       MD0 = riakc_obj:get_update_metadata(RiakObj0),
-                       MD1 = riakc_obj:set_secondary_index(MD0, {{binary_index, ssmix_importer:index_name(patient_id)}, [PatientID]}),
-                       riakc_obj:update_metadata(RiakObj0, MD1)
-               end,
-    Date = Record0#recept.date,
-    MD2 = riakc_obj:get_update_metadata(RiakObj1),
-    MD3 = riakc_obj:set_secondary_index(MD2, {{binary_index, ssmix_importer:index_name(date)}, [Date]}),
-    riakc_obj:update_metadata(RiakObj1, MD3).
+-export([delete_from_file/2]).
 
 delete_from_file(C, Filename) ->
     KeyPrefix = rezept:key_prefix(Filename),
