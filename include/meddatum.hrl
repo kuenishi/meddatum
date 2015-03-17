@@ -6,6 +6,7 @@
 -define(BUCKET_TYPE, <<"md">>).
 -define(SCHEMA_NAME, <<"md_schema">>).
 -define(INDEX_NAME, <<"md_index">>).
+-define(APPLICATION_JSON, "application/json").
 
 %% a bucket to store date-independent ssmix records
 %% which are:

@@ -17,7 +17,7 @@
 -module(meddatum).
 
 -export([main/1, help/0,
-         true_bucket_name/1, maybe_new_ro/5,
+         true_bucket_name/1, maybe_new_ro/4,
          ssmix_bucket/1, recept_bucket/1, ssmix_patients_bucket/1,
          check_setup/0,
          setup/2]).
@@ -30,8 +30,10 @@ main(["check-config"]) ->  meddatum_console:check_config();
 main(["setup-riak"]) ->    meddatum_console:setup_riak();
 main(["import-ssmix"|Args]) ->  meddatum_console:import_ssmix(Args);
 main(["import-recept"|Args]) -> meddatum_console:import_recept(Args);
+main(["import-dpcs"|Args]) -> meddatum_console:import_dpcs(Args);
 main(["parse-ssmix"|Args]) ->   meddatum_console:parse_ssmix(Args);
 main(["parse-recept"|Args]) ->  meddatum_console:parse_recept(Args);
+main(["parse-dpcs"|Args]) ->  meddatum_console:parse_dpcs(Args);
 main(["delete-all-ssmix"|Args]) -> meddatum_console:delete_all_ssmix(Args);
 main(["delete-recept"|Args]) ->    meddatum_console:delete_recept(Args);
 main(["search"|Args]) ->    meddatum_console:search(Args);
@@ -48,8 +50,10 @@ help() ->
               "meddatum setup-riak   (setup Riak Search for healthb)~n"
               "meddatum import-ssmix <hospital-id> <path/to/directory>~n"
               "meddatum import-recept [dpc|med] <path/to/file>~n"
+              "meddatum import-dpcs [Dn|EFn|EFg|FF1|FF4] <hospital-id> <date> <path/to/file>~n"
               "meddatum parse-ssmix <ssmix-file or ssmix-dir> (test parsing ssmix file)~n"
               "meddatum parse-recept [dpc|med] <recept-file> (test parsing recept file)~n"
+              "meddatum parse-dpcs [Dn|EFn|EFg|FF1|FF4] <dpc-file> (test parsing ef integrate file)~n"
               "meddatum delete-all-ssmix <hospital-id>~n"
               "meddatum delete-recept <recept-file>~n"
               "meddatum search <keyword> (prints all keys matched)~n"
@@ -59,7 +63,6 @@ help() ->
               "meddatum ckeck-schema <hospital-id> (checks tabledef about ssmix, rezept in Riak)~n"
               "meddatum setup-schema <hospital-id> (creates tabledef on ssmix, rezept)~n"
              ).
-
 
 true_bucket_name(Bucket0) ->
     {?BUCKET_TYPE, Bucket0}.
@@ -86,19 +89,19 @@ ssmix_patients_bucket(HospitalID) ->
     ssmix_patients_bucket(iolist_to_binary(HospitalID)).
 
 %% Maybe new Riak Object
-maybe_new_ro(Client, Bucket, Key, Data, ContentType) ->
+maybe_new_ro(Client, Bucket, Key, Data) ->
     case riakc_pb_socket:get(Client, Bucket, Key) of
         {ok, RiakObj0} ->
             case riakc_obj:value_count(RiakObj0) of
                 1 ->
-                    riakc_obj:update_value(RiakObj0, Data, ContentType);
+                    riakc_obj:update_value(RiakObj0, Data, ?APPLICATION_JSON);
                 N when N > 1 ->
                     RiakObj = riakc_obj:new(Bucket, Key,
-                                            Data, ContentType),
+                                            Data, ?APPLICATION_JSON),
                     riakc_obj:set_vclock(RiakObj, riakc_obj:vclock(RiakObj0))
             end;
         {error, _E} ->
-            riakc_obj:new(Bucket, Key, Data, ContentType)
+            riakc_obj:new(Bucket, Key, Data, ?APPLICATION_JSON)
     end.
 
 -define(RESULT(N, X), io:format("~s: ~p~n", [(N), (X)])).
