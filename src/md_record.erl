@@ -22,10 +22,10 @@
 
 -record(md_record,
         {module :: module(),
-         payload :: term(),
+         payload,
          type :: atom()}).
 
--type md_record(_) :: #md_record{}.
+-type md_record(T) :: #md_record{payload :: T}.
 -export_type([md_record/1]).
 
 %% note that the file is usually *NOT* JSON.
