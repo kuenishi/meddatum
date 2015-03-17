@@ -323,11 +323,6 @@ fold_results(DecodeFun, FoldFun, Acc0, [{_Int,List}|Remain]) ->
 
 %% @doc
 %% @private
-strip_list(undefined) -> undefined;
-strip_list(SingleEntryList) -> hd(SingleEntryList).
-
-%% @doc
-%% @private
 -spec check_keys([{{binary(), binary()},{binary(),binary()},binary()}]) -> {ok, {binary(), [{binary(),binary()}]}}.
 check_keys(RiakKeys) ->
     {{HospitalID, PatientID}, B, K} = hd(RiakKeys),

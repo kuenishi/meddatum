@@ -146,8 +146,7 @@ setup(Host, Port) ->
     end,
 
     {B, K} = {{?BUCKET_TYPE, <<"b">>}, <<"k">>},
-    Obj0 = meddatum:maybe_new_ro(C, B, K,
-                                 <<"{\"test\":1}">>, "application/json"),
+    Obj0 = meddatum:maybe_new_ro(C, B, K, <<"{\"test\":1}">>),
     ?RESULT("get a test data", riakc_obj:get_contents(Obj0)),
 
     ?RESULT("put a test data", riakc_pb_socket:put(C, Obj0)),

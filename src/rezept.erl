@@ -26,6 +26,7 @@
 -export([from_json/1, to_json/1,
          key/1, key_prefix/1,
          bucket/1, bucket_from_hospital_id/1,
+         make_2i_list/1,
          patient_id/1, hospital_id/1,
          columns/0,
          from_file/3, from_file/4
@@ -104,6 +105,9 @@ bucket(#recept{hospital_id = HospitalID} = _Recept) ->
 bucket_from_hospital_id(HospitalID) when is_binary(HospitalID) ->
     BucketName = <<?RECEPT_BUCKET/binary, ?BUCKET_NAME_SEPARATOR/binary, HospitalID/binary>>,
     {?BUCKET_TYPE, BucketName}.
+
+make_2i_list(#recept{patient_id=PatientID, date=Date}) ->
+    [{"date", Date}, {"patient_id", PatientID}].
 
 append_to_recept(#recept{segments=List} = Recept, Data) ->
     Recept#recept{segments=[Data|List]}.
