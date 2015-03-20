@@ -5,7 +5,7 @@
           patient_id  :: binary(),
           file :: filename:filename(),
           date :: string(),
-          msg_type_s :: string(),
+          msg_type_s :: binary() | string(),
           msg_id :: string(),
           segments = [] :: list({list()})
          }).

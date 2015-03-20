@@ -30,6 +30,8 @@ walk(Path, HospitalID, Ctx) when is_binary(HospitalID) ->
                     ok -> Acc0;
                     {error,_} when is_list(Acc0) ->
                         [File|Acc0];
+                    {error, {bad_suffix, _}} ->
+                        [File];
                     {error,_} ->
                         [File]
                 end
@@ -53,6 +55,7 @@ delete_all(Host, Port, Bucket) ->
             end
     end.
 
+-spec deleter(inet:hostname(), inet:port_number(), binary()) -> no_return().
 deleter(Host, Port, Bucket0) ->
     {ok, C} = riakc_pb_socket:start_link(Host, Port),
     Bucket = meddatum:true_bucket_name(Bucket0),
@@ -65,6 +68,7 @@ deleter(Host, Port, Bucket0) ->
 deleter_loop(C, Bucket, Count) ->
     receive
         done -> {ok, Count};
+        {fail, E} -> E;
         Keys when is_list(Keys) ->
             Fold = fun(Key, N) ->
                            {ok, RiakObj} = riakc_pb_socket:get(C, Bucket, Key),
@@ -75,18 +79,24 @@ deleter_loop(C, Bucket, Count) ->
             deleter_loop(C, Bucket, Deleted + Count)
     end.
 
--spec fetcher(atom(), inet:port_number(), pid(), binary()) -> done.
+-spec fetcher(atom(), inet:port_number(), pid(), binary()) -> no_return().
 fetcher(Host, Port, DeleterPid, Bucket0) ->
     {ok, C} = riakc_pb_socket:start_link(Host, Port),
     Bucket = meddatum:true_bucket_name(Bucket0),
-    {ok, ReqID} = riakc_pb_socket:stream_list_keys(C, Bucket),
-    Result = fetcher_loop(C, ReqID, 0, DeleterPid),
-    ok = riakc_pb_socket:stop(C),
-    io:format("~p fetcher: ~p > ~p~n", [Bucket, ReqID, Result]),
-    DeleterPid ! done,
-    done.
+    case riakc_pb_socket:stream_list_keys(C, Bucket) of
+        {ok, ReqID} ->
+            Result = fetcher_loop(C, ReqID, 0, DeleterPid),
+            ok = riakc_pb_socket:stop(C),
+            io:format("~p fetcher: ~p > ~p~n", [Bucket, ReqID, Result]),
+            DeleterPid ! done,
+            done;
+        {error, _} = E->
+            DeleterPid ! {fail, E},
+            fail
+    end.
 
--spec fetcher_loop(pid(), term(), non_neg_integer(), pid()) -> {ok, non_neg_integer()} | no_return().
+-spec fetcher_loop(pid(), riakc_pb_socket:req_id(),
+                   non_neg_integer(), pid()) -> {ok, non_neg_integer()}.
 fetcher_loop(C, ReqID, Count, DeleterPid) ->
     receive
         {ReqID, {keys, Keys}} ->

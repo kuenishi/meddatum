@@ -40,6 +40,7 @@
 parse_file(Filename, Mode, Logger) ->
     parse_file(Filename, Mode, Logger, fun ?MODULE:default_extractor/1).
 
+-spec parse_file(filename:filename(), med | dpc, pid(), fun()|undefined) -> {ok, list()}.
 parse_file(Filename, Mode, Logger, InfoExtractor) when is_function(InfoExtractor) ->
     {ok, Lines} = japanese:read_file(Filename),
     {ok,Checksum} = checksum:file_md5(Filename),
@@ -81,7 +82,7 @@ extract_date(Col, Key) ->
     %%     DateBin ->   DateBin
     %% end.
 
--spec gyymm2date(binary()) -> {ok, binary()} | {error, any()}.
+-spec gyymm2date(binary()|string()) -> {ok, binary()} | {error, any()}.
 gyymm2date(GYYMM) when is_binary(GYYMM) ->
     gyymm2date(binary_to_list(GYYMM));
 gyymm2date([P,Y0,Y1,M0,M1]) ->
@@ -90,7 +91,7 @@ gyymm2date([P,Y0,Y1,M0,M1]) ->
 gyymm2date(Other) ->
     {error, {bad_gyymm, Other}}.
 
--spec gyymmdd2date(binary()) -> {ok, binary()} | {error, any()}.
+-spec gyymmdd2date(binary()|string()) -> {ok, binary()} | {error, any()}.
 gyymmdd2date(GYYMMDD) when is_binary(GYYMMDD) ->
     gyymmdd2date(binary_to_list(GYYMMDD));
 gyymmdd2date([P,Y0,Y1,M0,M1,D0,D1]) ->
@@ -238,7 +239,9 @@ check_type(LineNo, Col, Entry, Tree) ->
 
 
 -spec check_type({atom(), atom()|{maybe,atom()}, integer()}, string())
-                -> {ok, {string(), null|binary()}}. %% unicode binary
+                -> {ok, {string(), null|binary()}} | %% unicode binary
+                   {warning, {error, term()}} |
+                   {warning, {string(), null}}.
 check_type({Name, {maybe, _}, _}, []) -> {ok, {Name, null}};
 check_type({Name, {maybe, Type}, MaxDigits}, Entry) ->
     check_type({Name, Type, MaxDigits}, Entry);
