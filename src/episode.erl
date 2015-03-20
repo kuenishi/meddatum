@@ -138,7 +138,7 @@ save_hl7(#hl7msg{file=Path} = HL7Msg, DirPath, PatientID) ->
     Filename0 = lists:last(filename:split(binary_to_list(Path))),
     Filename = filename:join([DirPath, Filename0]) ++ ".json",
 
-    ok = file:write_file(Filename, hl7:to_json(HL7Msg)),
+    ok = file:write_file(Filename, element(2, hl7:to_json(HL7Msg))),
     _ = lager:debug("~p saved to ~s~n", [PatientID, Filename]).
     %% io:format("[debug] ~p saved to ~s~n", [PatientID, Filename]).
 
