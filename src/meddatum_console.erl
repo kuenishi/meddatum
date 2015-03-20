@@ -123,7 +123,7 @@ import_recept([Mode0, Filename]) ->
     end;
 import_recept(_) -> meddatum:help().
 
-import_dpcs([Mode, HospitalID, Date, Filename]) ->
+import_dpcs([Mode, _HospitalID, _Date, Filename]) ->
     ModeAtom = case Mode of
                    "EFn" -> efn;
                    "EFg" -> efg;
@@ -135,12 +135,12 @@ import_dpcs([Mode, HospitalID, Date, Filename]) ->
                   riakc=C} = Context} = meddatum_console:setup(),
     treehugger:log(Logger, info, "parsing ~s as ~s", [Filename, Mode]),
     try
-        Records = dpcs_parser:parse(Filename , ModeAtom , Logger),
+        {ok, Records} = dpcs:from_file(Filename, [ModeAtom], Logger),
         treehugger:log(Logger, info,
                        "parsing ~p finished (~p records extracted)",
                        [Filename, length(Records)]),
         lists:foreach(fun(Record)->
-                              ok = dpcs_io:put_json(C, Mode , HospitalID , Date , Record)
+                              ok = md_record:put_json(C, Record, dpcs, Logger)
                       end, Records),
 
         treehugger:log(Logger, info, "wrote ~p records into Riak.", [length(Records)])
@@ -214,13 +214,12 @@ parse_dpcs([Mode, File]) ->
                    "Dn" -> dn
                end,
     {ok, #context{logger=Logger}} = meddatum_console:setup(false),
-    Records = dpcs_parser:parse(File, ModeAtom, Logger),
-    lists:foreach(
-        fun({_K,C,R}) ->
-            JSON = jsone:encode({C ++ R}, [native_utf8]),
-            io:format("~ts~n" , [JSON])
-        end,
-        Records);
+    {ok, Records} = dpcs:from_file(File, [ModeAtom], Logger),
+    lists:foreach(fun(Record) ->
+                          {ok, JSON} = dpcs:to_json(Record),
+                          io:format("~ts~n" , [JSON])
+                  end,
+                  Records);
 
 parse_dpcs(_) -> meddatum:help().
 
