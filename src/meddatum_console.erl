@@ -162,7 +162,7 @@ parse_ssmix([Path]) ->
                 case hl7:from_file(File, Logger, dummy) of
                     {ok, HL7Msg0} ->
                         io:format(standard_error, "~ts:~n", [File]),
-                        io:format("~ts~n", [hl7:to_json(HL7Msg0)]);
+                        io:format("~ts~n", [element(2, hl7:to_json(HL7Msg0))]);
                     {error,_} when is_list(Acc0) ->
                         [File|Acc0];
                     {error,_} ->
@@ -193,7 +193,7 @@ parse_recept([Mode, File]) ->
 
     {ok, #context{logger=Logger}} = meddatum_console:setup(false),
 
-    {ok, Records} = rezept:from_file(File, [ModeAtom], dummy, Logger),
+    {ok, Records} = rezept:from_file(File, [ModeAtom], Logger),
     lists:foreach(fun({ok, JSON}) ->
                           io:format("~ts~n", [JSON]);
                      ({error, E}) ->
