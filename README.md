@@ -1,12 +1,13 @@
 # meddatum
 ==========
 
-hl7/e-rezept parser and importer to Riak database.
+A set of parsers of several medical record data format, combined with importers to Riak database.
 
 Erlang/OTP library to handle [SS-MIX](http://www.hci-bc.com/ss-mix/ssmix/) data (Japanese local standard including HL7 format) and [electric rezepts](http://www.ssk.or.jp/rezept/). This toolkit includes:
 
 - [x] SS-MIXed HL7 parser, converter and importer to Riak
-- [x] electric rezept parser, converter and importer to Riak
+- [x] electric recept parser, converter and importer to Riak
+- [x] DPC Survey data format
 - [x] backend query system to be installed into Riak cluster
 - [x] forntend query tools
 - [ ] pluggable to other datastore like Mongo,MySQL,Hive,Solr,??
