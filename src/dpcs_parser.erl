@@ -4,7 +4,7 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
--spec parse(filename:filename(), dpcs:record_type(), pid()) ->[tuple()].
+-spec parse(filename:filename(), dpcs:record_type(), pid()) ->[dpcs:rec()].
 parse(Filename, Mode, Logger) ->
     {ok, Lines0} = japanese:read_file(Filename),
     Lines = lists:zip(lists:seq(1, length(Lines0)), Lines0),
@@ -17,16 +17,18 @@ parse(Filename, Mode, Logger) ->
                           end,
               Tokens = re:split(StripLine, "[\t]", [{return, list}, unicode]),
               case parse_tokens(Tokens, Mode) of
-                  {ok, {Key, CommonField, CodeField}} ->
-                      case ets:lookup(Table, Key) of
+                  {ok, {Key, CommonFields, CodeField}} ->
+                      DPCSRecord = dpcs:new(Key, Mode, CommonFields, CodeField),
+                      case ets:lookup_element(Table, Key, 2) of
                           [] ->
-                              ets:insert(Table,{Key,CommonField,[CodeField]});
-                          [{_,_,R}]->
-                              Rnext = [CodeField | R],
-                              ets:insert(Table,{Key,CommonField,Rnext})
+                              ets:insert(Table, DPCSRecord);
+                          [PrevDPCSRecord]->
+                              NewDPCSRecord = dpcs:merge(DPCSRecord, PrevDPCSRecord),
+                              ets:insert(Table, NewDPCSRecord)
                       end;
                   {ok, {Key, CommonField}} ->
-                      ets:insert_new(Table, {Key, CommonField, []});
+                      DPCSRecord = dpcs:new(Key, Mode, CommonField, []),
+                      ets:insert_new(Table, DPCSRecord);
                   Error ->
                       treehugger:hug(Logger, error, "Invalid format at ~s line ~p: ~p",
                                      [Filename, LineNo, Error])
@@ -41,6 +43,7 @@ parse_tokens(Tokens, dn) -> parse_dn_tokens(Tokens);
 parse_tokens(Tokens, efg) -> parse_ef_tokens(Tokens, efg);
 parse_tokens(Tokens, efn) -> parse_ef_tokens(Tokens, efn).
 
+%% -> {iolist(), proplists:proplist(), {binary(), {[...]}}}
 parse_ff1_tokens(Tokens) ->
     case Tokens of
         [Cocd, Kanjaid, Nyuymd, _Kaisukanrino, _Medical_no, Code , _Version, _Seqno | Payload] ->
@@ -57,6 +60,7 @@ parse_ff1_tokens(Tokens) ->
             {error, wrong_ff1_tokens}
     end.
 
+%% -> {iolist(), proplists:proplist()}
 parse_ff4_tokens(Tokens) ->
     case Tokens of
         [Cocd, Kanjaid,Nyuymd,Taiymd,Hokkb] ->
@@ -71,6 +75,7 @@ parse_ff4_tokens(Tokens) ->
             {error, wrong_ff4_tokens}
     end.
 
+%% -> {iolist(), proplists:proplist(), {rececode, {[]}}}
 parse_dn_tokens(Tokens) ->
     case Tokens of
         [Cocd ,Kanjaid ,Taiymd ,Nyuymd ,Datakb ,D_seqno ,Hptenmstcd ,Rececd,

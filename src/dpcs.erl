@@ -1,11 +1,89 @@
 -module(dpcs).
 
--export([add_field/3]).
+-include("meddatum.hrl").
+
+-behaviour(md_record).
+
+-export([to_json/1, from_json/1,
+         key/1, bucket/1, make_2i_list/1,
+         patient_id/1, hospital_id/1,
+         from_file/3, from_file/4,
+         columns/0]).
+
+-export([new/4, merge/2, add_field/3]).
 
 -type record_type() :: ff1|ff4|efg|efn|dn.
--export_type([record_type/0]).
 
--spec add_field({atom(), binary()}, dpcs:record_type(), [{binary(),integer()|binary()}]) ->
+-record(dpcs, {
+          key :: binary(),
+          type :: record_type(),
+          hospital_id :: binary(),
+          fields :: proplists:proplist(),
+          common_fields :: proplists:proplist()}).
+
+-type rec() :: #dpcs{}.
+-export_type([record_type/0, rec/0]).
+
+-spec bucket(rec()) -> binary().
+bucket(#dpcs{type = Type, hospital_id = HospitalID}) ->
+    meddatum:true_bucket_name(iolist_to_binary([klib:maybe_a2b(Type), $:, HospitalID])).
+
+-spec key(rec()) -> binary().
+key(#dpcs{key=Key}) -> Key.
+
+%% TODO
+-spec make_2i_list(rec()) -> [{string(), binary()|integer()}].
+make_2i_list(#dpcs{}) ->
+    undefined.
+
+-spec hospital_id(rec()) -> binary().
+hospital_id(#dpcs{hospital_id=HospitalID}) -> HospitalID.
+
+-spec patient_id(rec()) -> binary().
+patient_id(_) -> undefined.
+
+-spec from_json(binary()) -> rec().
+from_json(_JSON) -> undefined.
+
+-spec to_json(rec()) -> {ok, binary()}.
+to_json(#dpcs{fields=Fields, common_fields=CommonFields}) ->
+    JSON = jsone:encode({CommonFields++Fields}, [native_utf8]),
+    {ok, JSON}.
+
+-spec from_file(filename:filename(), list(), pid()) -> {ok, [rec()]}.
+from_file(Filename, [Mode, HospitalID], Logger) ->
+    ModeAtom = Mode,
+    Records0 = dpcs_parser:parse(Filename, Mode, Logger),
+    Records = lists:map(fun(Rec) ->
+                                Rec#dpcs{hospital_id=HospitalID,
+                                         type=ModeAtom}
+                        end, Records0),
+    {ok, Records}.
+
+
+-spec from_file(filename:filename(), list(), pid(), fun()) -> {ok, rec()}.
+from_file(Filename, List, Logger, _) ->
+    from_file(Filename, List, Logger).
+
+-spec columns() -> list().
+columns() -> undefined.
+
+%% =======
+
+-spec new(iolist(), record_type(), proplists:proplist(), list(tuple())) -> rec().
+new(Key, Type, CommonFields, CodeField) ->
+    #dpcs{key=iolist_to_binary(Key),
+          type=Type,
+          common_fields=CommonFields,
+          fields=[CodeField]}.
+
+-spec merge(New::rec(), Old::rec()) -> rec().
+merge(New = #dpcs{fields=NewFields}, _ = #dpcs{fields=Fields}) ->
+    New#dpcs{fields=NewFields++Fields}.
+
+%% Rnext = [CodeField | R],
+-spec add_field({atom(), binary()}, dpcs:record_type(),
+                [{binary(),integer()|binary()}]) ->
                        [{binary(), integer()|binary()}].
 add_field({FieldName , FieldValue} , Mode, Fields) ->
     case trans_field({FieldName, FieldValue}, Mode) of
