@@ -9,6 +9,5 @@
                   ecsv,
                   jsone
                  ]},
-  {mod, { hl7_app, []}},
   {env, []}
  ]}.
