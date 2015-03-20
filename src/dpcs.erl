@@ -18,6 +18,7 @@
           key :: binary(),
           type :: record_type(),
           hospital_id :: binary(),
+          patient_id :: binary(),
           fields :: proplists:proplist(),
           common_fields :: proplists:proplist()}).
 
@@ -40,7 +41,7 @@ make_2i_list(#dpcs{}) ->
 hospital_id(#dpcs{hospital_id=HospitalID}) -> HospitalID.
 
 -spec patient_id(rec()) -> binary().
-patient_id(_) -> undefined.
+patient_id(#dpcs{patient_id=PatientID}) -> PatientID.
 
 -spec from_json(binary()) -> rec().
 from_json(_JSON) -> undefined.
@@ -51,13 +52,9 @@ to_json(#dpcs{fields=Fields, common_fields=CommonFields}) ->
     {ok, JSON}.
 
 -spec from_file(filename:filename(), list(), pid()) -> {ok, [rec()]}.
-from_file(Filename, [Mode, HospitalID], Logger) ->
-    ModeAtom = Mode,
+from_file(Filename, [Mode], Logger) when is_atom(Mode) ->
     Records0 = dpcs_parser:parse(Filename, Mode, Logger),
-    Records = lists:map(fun(Rec) ->
-                                Rec#dpcs{hospital_id=HospitalID,
-                                         type=ModeAtom}
-                        end, Records0),
+    Records = lists:map(fun({_, Record}) -> Record end, Records0),
     {ok, Records}.
 
 
@@ -72,7 +69,11 @@ columns() -> undefined.
 
 -spec new(iolist(), record_type(), proplists:proplist(), list(tuple())) -> rec().
 new(Key, Type, CommonFields, CodeField) ->
+    PatientID = proplists:get_value(<<"kanjaid">>, CommonFields),
+    HospitalID = proplists:get_value(<<"cocd">>, CommonFields),
     #dpcs{key=iolist_to_binary(Key),
+          patient_id=PatientID,
+          hospital_id=HospitalID,
           type=Type,
           common_fields=CommonFields,
           fields=[CodeField]}.

@@ -19,16 +19,19 @@ parse(Filename, Mode, Logger) ->
               case parse_tokens(Tokens, Mode) of
                   {ok, {Key, CommonFields, CodeField}} ->
                       DPCSRecord = dpcs:new(Key, Mode, CommonFields, CodeField),
-                      case ets:lookup_element(Table, Key, 2) of
-                          [] ->
-                              ets:insert(Table, DPCSRecord);
-                          [PrevDPCSRecord]->
+                      BinKey = dpcs:key(DPCSRecord),
+                      case ets:insert_new(Table, {BinKey, DPCSRecord}) of
+                          true ->
+                              ok;
+                          false ->
+                              PrevDPCSRecord = ets:lookup_element(Table, BinKey, 2),
                               NewDPCSRecord = dpcs:merge(DPCSRecord, PrevDPCSRecord),
-                              ets:insert(Table, NewDPCSRecord)
+                              ets:insert(Table, {BinKey, NewDPCSRecord})
                       end;
                   {ok, {Key, CommonField}} ->
                       DPCSRecord = dpcs:new(Key, Mode, CommonField, []),
-                      ets:insert_new(Table, DPCSRecord);
+                      BinKey = dpcs:key(DPCSRecord),
+                      ets:insert_new(Table, {BinKey, DPCSRecord});
                   Error ->
                       treehugger:hug(Logger, error, "Invalid format at ~s line ~p: ~p",
                                      [Filename, LineNo, Error])
