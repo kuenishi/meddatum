@@ -34,8 +34,8 @@ key(#dpcs{key=Key}) -> Key.
 
 %% TODO
 -spec make_2i_list(rec()) -> [{string(), binary()|integer()}].
-make_2i_list(#dpcs{}) ->
-    undefined.
+make_2i_list(#dpcs{patient_id=PatientID}) ->
+    [{"patient_id", PatientID}].
 
 -spec hospital_id(rec()) -> binary().
 hospital_id(#dpcs{hospital_id=HospitalID}) -> HospitalID.
