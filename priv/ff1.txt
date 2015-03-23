@@ -1,0 +1,94 @@
+A000010	患者属性	1	生年月日	1	str	birthymd
+		2	性別	1	str	sex
+		3	患者住所地域の郵便番号	1	str	postno
+A000020	入院情報	1	入院年月日	1	str	nyuymd
+		2	入院経路	1	str	h_nyukb
+		3	他院よりの紹介の有無	0	str	introkb
+		4	自院の外来からの入院	0	str	o_nyukb
+		5	予定・救急医療入院	0	str	e_nyukb
+		6	救急車による搬送の有無	0	str	emergkb
+		7	入院前の在宅医療の有無	0	str	zaitaku_befnyu
+A000030	退院情報	1	退院年月日	1	str	taiymd
+		2	退院先	1	str	h_taikb
+		3	退院時転帰	1	str	h_tenkkb
+		4	24 時間以内の死亡の有無	1	str	death24kb
+		5	退院後の在宅医療の有無	0	str	zaitaku_afttai
+A000031	様式1対象期間 	1	様式1開始日	1	str	form1_staymd
+		2	様式1終了日	1	str	form1_endymd
+A000040	診療科	2	診療科コード	1	str	shinkacd
+		3	転科の有無	1	str	tenkakb
+A000050	病棟	2	調査対象となる一般病棟への入院の有無 	1	str	c_nyukb_ippan
+		3	調査対象となる精神病棟への入院の有無	1	str	c_nyukb_seisin
+		4	調査対象となるその他の病棟への入院の有無	1	str	c_nyukb_other
+A000060	診療目的・経過	2	入院中の主な診療目的	1	str	mainexam
+		3	治験実施の有無	1	str	curekb
+A000070	前回退院	1	前回退院年月日	1	str	b_taiymd
+		2	前回同一疾病で自院入院の有無	1	str	b_nyukb
+A000080	再入院調査	2	再入院種別	2	str	reent_syu
+		3	理由の種別	2	str	reent_reason_syu
+		9	自由記載欄	0	str	reent_reason
+A000090	再転棟調査	2	再転棟種別	2	str	retransfer_syu
+		3	理由の種別	2	str	retransfer_reason_syu
+		9	自由記載欄	0	str	retransfer_reason
+A001010	患者プロファイル/身長･体重	2	身長	1	str	height
+		3	体重	1	str	weight
+A001020	患者プロファイル/喫煙指数	2	喫煙指数	1	numeric	smk_index
+A001030	患者プロファイル/褥瘡	2	入院時の褥瘡の有無	1	str	bedsore_nyu
+		3	退院時の褥瘡の有無	1	str	bedsore_tai
+A002010	妊婦情報	2	現在の妊娠の有無	1	str	pregkb
+		3	入院時の妊娠週数	0	numeric	pregweek_cnt
+A003010	出生児情報	2	出生時体重	2	numeric	b_weight
+		3	出生時妊娠週数	2	numeric	birthweek
+A004010	高齢者情報	2	認知症高齢者の日常生活自立度判定基準	2	str	fim_of_dep
+A006010	診断情報/主傷病	2	ICD10 コード	1	str	mainsick_cd
+		9	主傷病名	1	str	mainsick_nm
+A006020	診断情報/入院契機	2	ICD10コード	1	str	oppsick_cd
+		9	入院の契機となった傷病名	1	str	oppsick_nm
+A006030	診断情報/医療資源	2	ICD10コード	1	str	maxsick_cd
+		3	病名付加コード	0	str	disaddcd
+		9	医療資源を最も投入した傷病名	1	str	maxsick_nm
+A006031	診断情報/医療資源2	2	ICD10コード	2	str	nextsick_cd
+		9	医療資源を2番目に投入した傷病名	2	str	nextsick_nm
+A006040	診断情報/併存症	2	ICD10コード	2	str	heisick_cd
+		9	入院時併存症名	2	str	heisick_nm
+A006050	診断情報/続発症	2	ICD10コード	2	str	hassick_cd
+		9	入院後発症疾患名	2	str	hassick_nm
+A007010	手術情報	1	手術日	2	str	ope_opeymd
+		2	点数表コード	2	str	ope_tencd
+		4	手術回数	2	str	ope_cnt
+		5	手術側数	2	str	ope_side
+		6	麻酔	2	str	ope_ane
+		9	手術名	2	str	ope_nm
+A008010	持参薬使用状況	2	持参薬の使用の有無	0	str	bringing_medicine
+ADL0010	ADLスコア/入院時	2	入院時のADLスコア	0	str	n_adlkb
+ADL0020	ADLスコア/退院時	2	退院時のADLスコア	0	str	t_adlkb
+CAN0010	がん患者/初発･再発	3	がんの初発、再発	2	str	cnc_no
+CAN0020	がん患者/UICC TNM	3	UICC病期分類(T)	2	str	uicc_t
+		4	UICC病期分類(N)	2	str	uicc_n
+		5	UICC病期分類(M)	2	str	uicc_m
+		6	UICC病期分類(版)	2	str	uicc_edition
+CAN0030	がん患者/Stage	3	癌取扱い規約に基づくがんのStage分類	2	str	cnc_stage
+CAN0040	がん患者/化学療法の有無	3	化学療法の有無	2	str	chemokb
+JCS0010	JCS/入院時	2	入院時意識障害がある場合のJCS	2	str	n_jcskb
+JCS0020	JCS/退院時	2	退院時意識障害がある場合のJCS	2	str	t_jcskb
+M010010	脳卒中患者/入院前	2	発症前 Rankin Scale	2	str	n_mrs
+		3	脳卒中の発症時期	2	str	apoplexy_ymd
+M010020	脳卒中患者/退院時	2	退院時 modified Rankin Scale	2	str	t_mrs
+M010030	脳腫瘍患者/テモゾロミド	2	テモゾロミド（初回治療）の有無	2	str	temodarkb
+M040010	MDC04患者/Hugh-Jones	2	Hugh-Jones分類	2	str	hg_jn_case
+M040020	肺炎患者/重症度	2	肺炎の重症度分類	2	str	pneumonia_case
+M050010	心不全患者/NYHA	2	心不全のNYHA心機能分類	2	str	nyha_case
+M050020	狭心症、慢性虚血性心疾患患者情報/CCS	2	狭心症、慢性虚血性心疾患（050050）における入院時の重症度：CCS分類	2	str	ccs_case
+M050030	急性心筋梗塞患者情報/Killip	2	急性心筋梗塞（050030）における入院時の重症度：Killip分類	2	str	killip_case
+M060010	肝硬変患者情報/Child-Pugh	2	肝硬変のChild-Pugh分類	2	str	child_case
+M060020	急性膵炎患者情報/重症度	2	急性膵炎の重症度分類	2	str	pancreas_case
+M070010	関節リウマチ患者情報/分子標的薬	2	抗リウマチ分子標的薬の初回導入治療の有無	2	str	antirheumatic
+M120010	産科患者情報/分娩	2	入院周辺の分娩の有無	2	str	childbirthkb
+		3	分娩時出血量	0	str	childbirth_bleed
+M160010	熱傷患者情報/BurnIndex	2	BurnIndex	2	numeric	b_index
+M170010	精神疾患･認知症患者情報/入院時GAF	2	入院時GAF尺度	2	str	n_gafmeasure
+M170020	精神保健福祉法に関する情報	2	精神保健福祉法における入院形態	2	str	seisin_nyuform
+		3	精神保健福祉法に基づく隔離日数	2	numeric	isolation_days
+		4	精神保健福祉法に基づく身体拘束日数	2	numeric	restraint_days
+Mzz0010	その他の重症度分類	2	その他の重症度分類・分類番号または記号	2	str	injucd
+		9	その他の重症度分類・名称	2	str	injunk
