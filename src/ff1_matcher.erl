@@ -97,5 +97,5 @@ to_list("M170010", [ _ , N_gafmeasure, _ , _ , _ , _ , _ , _ , _ ]) ->
 to_list("M170020", [ _ , Seisin_nyuform, Isolation_days, Restraint_days, _ , _ , _ , _ , _ ]) ->
     [{seisin_nyuform, Seisin_nyuform},{isolation_days, Isolation_days},{restraint_days, Restraint_days}];
 to_list("Mzz0010", [ _ , Injucd, _ , _ , _ , _ , _ , _ , Injunk]) ->
-    [{injucd, Injucd},{injunk, Injunk}];
+    [{injucd, Injucd},{injunk, Injunk}].
 
