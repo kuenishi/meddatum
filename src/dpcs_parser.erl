@@ -20,8 +20,8 @@ parse(Filename, Mode, Logger) ->
                           end,
               Tokens = re:split(StripLine, "[\t]", [{return, list}, unicode]),
               case parse_tokens(Tokens, Mode) of
-                  {ok, {Key, CommonFields, CodeField}} ->
-                      DPCSRecord = dpcs:new(Key, Mode, CommonFields, CodeField),
+                  {ok, {Key, CommonFields, CodeFields}} ->
+                      DPCSRecord = dpcs:new(Key, Mode, CommonFields, CodeFields),
                       BinKey = dpcs:key(DPCSRecord),
                       case ets:insert_new(Table, {BinKey, DPCSRecord}) of
                           true ->
@@ -31,8 +31,8 @@ parse(Filename, Mode, Logger) ->
                               NewDPCSRecord = dpcs:merge(DPCSRecord, PrevDPCSRecord),
                               ets:insert(Table, {BinKey, NewDPCSRecord})
                       end;
-                  {ok, {Key, CommonField}} ->
-                      DPCSRecord = dpcs:new(Key, Mode, CommonField, []),
+                  {ok, {Key, CommonFields}} ->
+                      DPCSRecord = dpcs:new(Key, Mode, CommonFields, []),
                       BinKey = dpcs:key(DPCSRecord),
                       ets:insert_new(Table, {BinKey, DPCSRecord});
                   Error ->
@@ -51,18 +51,26 @@ parse_tokens(Tokens, efg) -> parse_ef_tokens(Tokens, efg);
 parse_tokens(Tokens, efn) -> parse_ef_tokens(Tokens, efn).
 
 %% -> {iolist(), proplists:proplist(), {binary(), {[...]}}}
+-spec parse_ff1_tokens([string()]) ->
+                              {ok, {iolist(), proplists:proplist(),
+                                    proplists:proplist()}} |
+                              {error, wrong_ff1_tokens}.
 parse_ff1_tokens(Tokens) ->
     case Tokens of
         [Cocd, Kanjaid, Nyuymd, _Kaisukanrino, _Medical_no, Code , _Version, _Seqno | Payload] ->
+
             F = fun({K,V}, Acc) ->
                         dpcs:add_field({K,V}, dn, Acc)
                 end,
             CommonField_list = [{cocd, Cocd},{kanjaid,Kanjaid},{nyuymd,Nyuymd}],
             CommonField =  lists:foldl(F ,[], CommonField_list),
+
             CodeField_list = ff1_matcher:to_list(Code, Payload),
-            CodeField = {list_to_binary(Code) , {lists:foldl(F, [], CodeField_list)}},
+            CodeField = {list_to_binary(Code),
+                         {lists:foldl(F, [], CodeField_list)}},
+
             Key = [Cocd, $:, Kanjaid, $:, Nyuymd],
-            {ok, {Key , CommonField, CodeField}};
+            {ok, {Key , CommonField, [CodeField]}};
         _ ->
             {error, wrong_ff1_tokens}
     end.
@@ -77,7 +85,7 @@ parse_ff4_tokens(Tokens) ->
             CommonField_list = [{cocd, Cocd},{kanjaid,Kanjaid},{taiymd,Taiymd},{nyuymd,Nyuymd},{hokkb,Hokkb}],
             CommonField =  lists:foldl(F ,[], CommonField_list),
             Key = [Cocd, $:, Kanjaid, $:, Nyuymd],
-            {Key, CommonField};
+            {ok, {Key, CommonField}};
         _ ->
             {error, wrong_ff4_tokens}
     end.
@@ -90,9 +98,7 @@ parse_dn_tokens(Tokens) ->
          Jisymd,
          Recptkakb ,Shinkakb ,Drcd ,Wrdcd ,Wrdkb,
          Nyugaikb ,Cotype ,Dpcstaymd ,Dpcendymd ,Dpcreckymd ,Dpccd ,Coefficient] ->
-            F = fun({K,V}, Acc) ->
-                        dpcs:add_field({K,V}, dn, Acc)
-                end,
+
             RececdField_list = [{undno, Undno}, {shinactnm, Shinactnm},{actten, Actten}, {actdrg,Actdrg}, {actzai, Actzai},{actcnt,Actcnt},
                                 {entenkb, Entenkb}, {hokno,Hokno}, {recesyucd,Recesyucd},
                                 {recptkakb,Recptkakb}, {shinkakb,Shinkakb},{drcd,Drcd},{wrdcd,Wrdcd},{wrdkb,Wrdkb}
@@ -101,10 +107,14 @@ parse_dn_tokens(Tokens) ->
                                 {hptenmstcd,Hptenmstcd},{jisymd,Jisymd},{nyugaikb,Nyugaikb},{cotype,Cotype},
                                 {dpcstaymd,Dpcstaymd},{dpcendymd, Dpcendymd}, {dpcreckymd, Dpcreckymd}, {dpccd,Dpccd}, {coefficient,Coefficient}],
 
+            F = fun({K,V}, Acc) ->
+                        dpcs:add_field({K,V}, dn, Acc)
+                end,
             RececdField = {list_to_binary(Rececd) , {lists:foldl(F, [], RececdField_list)}},
+
             CommonField =  lists:foldl(F ,[], CommonField_list),
             Key = [Cocd, $:, Kanjaid, $:, Nyuymd, $:, Jisymd],
-            {ok, {Key , CommonField, RececdField}};
+            {ok, {Key , CommonField, [RececdField]}};
         _ ->
             {error, wrong_dn_tokens}
     end.
@@ -116,9 +126,7 @@ parse_ef_tokens(Tokens, Mode) ->
          Jisymd,
          Recptkakb,Shinkakb,Drcd, Wrdcd, Wrdkb,
          Nyugaikb, Cotype] ->
-            F = fun({K,V}, Acc) ->
-                        dpcs:add_field({K,V}, Mode, Acc)
-                end,
+
             RececdField_list = [{undno, Undno}, {shindetnm, Shindetnm}, {ryo, Ryo}, { kijtani , Kijtani }, {meisaiten, Meisaiten},
                                 {entenkb, Entenkb}, {jissekiten, Jissekiten}, {includekb, Includekb}, {actten, Actten}, {actdrg,Actdrg},
                                 {actzai, Actzai},{actcnt,Actcnt},{hokno,Hokno}, {recesyucd,Recesyucd},
@@ -127,13 +135,17 @@ parse_ef_tokens(Tokens, Mode) ->
             CommonField_list = [{cocd, Cocd},{kanjaid,Kanjaid},{taiymd,Taiymd},{nyuymd,Nyuymd},{datakb,Datakb},{d_seqno,D_seqno},{actdetno,Actdetno},
                                 {hptenmstcd,Hptenmstcd},{jisymd,Jisymd},{nyugaikb,Nyugaikb},{cotype,Cotype}],
 
+            F = fun({K,V}, Acc) ->
+                        dpcs:add_field({K,V}, Mode, Acc)
+                end,
             RececdField = {list_to_binary(Rececd) , {lists:foldl(F, [], RececdField_list)}},
+
             CommonField =  lists:foldl(F ,[], CommonField_list),
             Key = case Mode of
                       efn -> [Cocd, $:, Kanjaid, $:, Nyuymd, $:, Jisymd];
                       efg -> [Cocd, $:, Kanjaid, $:, Jisymd]
                   end,
-            {ok, {Key , CommonField, RececdField}};
+            {ok, {Key , CommonField, [RececdField]}};
         _ ->
             {error, wrong_ef_tokens}
     end.

@@ -76,7 +76,7 @@ new(Key, Type, CommonFields, CodeField) ->
           hospital_id=HospitalID,
           type=Type,
           common_fields=CommonFields,
-          fields=[CodeField]}.
+          fields=CodeField}.
 
 -spec merge(New::rec(), Old::rec()) -> rec().
 merge(New = #dpcs{fields=NewFields}, _ = #dpcs{fields=Fields}) ->
