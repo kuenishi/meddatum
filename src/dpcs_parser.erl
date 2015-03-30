@@ -10,7 +10,10 @@ parse(Filename, Mode, Logger) ->
     Lines = lists:zip(lists:seq(1, length(Lines0)), Lines0),
     Table = ets:new(ef_data, [set, private]),
     lists:foreach(
-      fun({LineNo, Line}) ->
+      fun({_, [10]}) ->
+              %% End of file last line ignored
+              ok;
+         ({LineNo, Line}) ->
               StripLine = case Line of
                               [$\n|L] -> L;
                               L -> L
@@ -34,7 +37,8 @@ parse(Filename, Mode, Logger) ->
                       ets:insert_new(Table, {BinKey, DPCSRecord});
                   Error ->
                       treehugger:hug(Logger, error, "Invalid format at ~s line ~p: ~p",
-                                     [Filename, LineNo, Error])
+                                     [Filename, LineNo, Error]),
+                      error({Filename, LineNo, Error})
               end
       end,
       Lines),
