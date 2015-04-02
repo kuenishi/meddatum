@@ -34,7 +34,7 @@
 
 -export([
          append_to_recept/2,
-         finalize/1
+         finalize/1, subtables/0
         ]).
 
 -type recept() :: #recept{}.
@@ -196,3 +196,6 @@ columns() ->
      [{name, file},        {type, 'varchar'}, {index, false}],
      [{name, checksum},    {type, 'varchar'}, {index, false}]
     ].
+
+subtables() ->
+    [].

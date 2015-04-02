@@ -27,7 +27,7 @@
 
 -export([annotate/1, is_static/1,
          get_segment/2, get_segments/2, update_hospital_id/2,
-         msg_type/1]).
+         msg_type/1, subtables/0]).
 
 -include_lib("eunit/include/eunit.hrl").
 -include("hl7.hrl").
@@ -158,3 +158,6 @@ columns() ->
      [{name, msg_type_s},  {type, 'varchar'}, {index, false}],
      [{name, msg_id},      {type, 'varchar'}, {index, false}]
     ].
+
+subtables() ->
+    [].

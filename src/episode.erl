@@ -159,6 +159,8 @@ save_recept(Recept, DirPath, PatientID) ->
 
 -ifdef(TEST).
 
+-include_lib("eunit/include/eunit.hrl").
+
 filename_test()->
     save_recept(#recept{date = <<"dummydate">>}, "/tmp", <<"foobar">>).
 

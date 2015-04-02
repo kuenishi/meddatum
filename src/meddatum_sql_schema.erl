@@ -1,11 +1,6 @@
-%%%-------------------------------------------------------------------
-%%% @author UENISHI Kota <kota@basho.com>
-%%% @copyright (C) 2014, UENISHI Kota
 %%% @doc
-%%%
+%%%  meddatum json-schema for presto-riak
 %%% @end
-%%% Created :  5 Oct 2014 by UENISHI Kota <kota@basho.com>
-%%%-------------------------------------------------------------------
 -module(meddatum_sql_schema).
 
 -include("meddatum.hrl").
@@ -22,7 +17,7 @@ static_tabledef(HospitalID) ->
     SSMIXTable0 = {[
                     {<<"name">>, BucketName0},
                     {<<"columns">>, [atom_to_binary({Col})||Col<-hl7:columns()]}
-                   ]},
+                   ] ++ hl7:subtables() },
     jsone:encode(SSMIXTable0).
 
 normal_tabledef(HospitalID) ->
@@ -30,7 +25,7 @@ normal_tabledef(HospitalID) ->
     SSMIXTable1 = {[
                     {<<"name">>, BucketName1},
                     {<<"columns">>, [atom_to_binary({Col})||Col<-hl7:columns()]}
-                   ]},
+                   ] ++ hl7:subtables() },
     jsone:encode(SSMIXTable1).
 
 recept_tabledef(HospitalID) ->
@@ -38,7 +33,7 @@ recept_tabledef(HospitalID) ->
     ReceptTable = {[
                     {<<"name">>, BucketName2},
                     {<<"columns">>, [atom_to_binary({C})||C<-rezept:columns()]}
-                   ]},
+                   ] ++ rezept:subtables()},
     jsone:encode(ReceptTable).
 
 create(HospitalID0) ->
