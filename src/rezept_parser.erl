@@ -238,7 +238,7 @@ check_type(LineNo, Col, Entry, Tree) ->
     end.
 
 
--spec check_type({atom(), atom()|{maybe,atom()}, integer()}, string())
+-spec check_type({atom()|binary(), atom()|{maybe,atom()}, integer()}, string())
                 -> {ok, {string(), null|binary()}} | %% unicode binary
                    {warning, {error, term()}} |
                    {warning, {string(), null}}.
