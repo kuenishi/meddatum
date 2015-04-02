@@ -59,9 +59,9 @@ help() ->
               "meddatum search <keyword> (prints all keys matched)~n"
               "meddatum [help]~n"
               "experimental:~n"
-              "meddatum show-schema <hospital-id> (prints out supposed schema)~n"
-              "meddatum ckeck-schema <hospital-id> (checks tabledef about ssmix, rezept in Riak)~n"
-              "meddatum setup-schema <hospital-id> (creates tabledef on ssmix, rezept)~n"
+              "meddatum show-schema <hospital-id> (prints out supposed schema about ssmix, recept)~n"
+              "meddatum ckeck-schema <hospital-id> (checks tabledef about ssmix, recept in Riak)~n"
+              "meddatum setup-schema <hospital-id> (creates tabledef on ssmix, recept)~n"
              ).
 
 true_bucket_name(Bucket0) ->
