@@ -198,4 +198,39 @@ columns() ->
     ].
 
 subtables() ->
-    [].
+    %% ?DPC_RECORD_TYPES both have ?REZEPT_COMMON_RECORDS so set needed
+    %% ?MED_RECORD_TYPES
+    [{<<"subtables">>,
+      lists:map(fun(C) -> recept_record_to_presto_nested_column(C) end,
+                ?DPC_RECORD_TYPES)}].
+
+recept_record_to_presto_nested_column({_, _, Columns0}) ->
+    Columns = lists:map(fun({Name, Type, _Cols}) ->
+                                {[{name, Name},
+                                  {type, type_recept2presto(Type)},
+                                  {index, false}]}
+                         end, Columns0),
+    {[{name, <<"boom">>},
+      {bucket, <<"buck">>},
+      {path, <<"$.segments[?(@.record_info=='HO')]">>},
+      {columns, Columns}
+     ]}.
+
+type_recept2presto(_Type) ->
+    <<"sometype">>.
+
+%% {
+%%     name: "ho",
+%%     bucket: "recept",
+%%     path: "$.segments[?(@.record_info=='HO')]",     
+%%     columns: [
+%%         {name: "l", type: "varchar", index: true},
+%%         {name: "record_info", type: "varchar", index: true},
+%%         {name: "hokno", type: "varchar", index: true},
+%%         {name: "kigo", type: "varchar", index: true},
+%%         {name: "bango", type: "varchar", index: true},
+%%         {name: "hoknissu", type: "bigint", index: true},
+%%         {name: "hokten", type: "bigint", index: true},
+%%     ]
+
+%% }

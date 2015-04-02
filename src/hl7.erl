@@ -31,6 +31,7 @@
 
 -include_lib("eunit/include/eunit.hrl").
 -include("hl7.hrl").
+-include("hl7_types.hrl").
 -include("meddatum.hrl").
 -include("md_json.hrl").
 
@@ -161,3 +162,8 @@ columns() ->
 
 subtables() ->
     [].
+    %% [{<<"subtables">>,
+    %%  lists:map(fun({Name, _Type}) ->
+    %%                    {list_to_binary(Name), <<"boom">>}
+    %%            end, ?HL7_TYPES)
+    %%  }].

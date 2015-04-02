@@ -18,7 +18,7 @@ static_tabledef(HospitalID) ->
                     {<<"name">>, BucketName0},
                     {<<"columns">>, [atom_to_binary({Col})||Col<-hl7:columns()]}
                    ] ++ hl7:subtables() },
-    jsone:encode(SSMIXTable0).
+    jsone:encode(SSMIXTable0, [native_utf8]).
 
 normal_tabledef(HospitalID) ->
     {_BType0, BucketName1} = hl7:bucket_from_hospital_id(HospitalID),
@@ -26,7 +26,7 @@ normal_tabledef(HospitalID) ->
                     {<<"name">>, BucketName1},
                     {<<"columns">>, [atom_to_binary({Col})||Col<-hl7:columns()]}
                    ] ++ hl7:subtables() },
-    jsone:encode(SSMIXTable1).
+    jsone:encode(SSMIXTable1, [native_utf8]).
 
 recept_tabledef(HospitalID) ->
     {_BType, BucketName2} = rezept:bucket_from_hospital_id(HospitalID),
@@ -34,13 +34,14 @@ recept_tabledef(HospitalID) ->
                     {<<"name">>, BucketName2},
                     {<<"columns">>, [atom_to_binary({C})||C<-rezept:columns()]}
                    ] ++ rezept:subtables()},
-    jsone:encode(ReceptTable).
+    jsone:encode(ReceptTable, [native_utf8]).
 
 create(HospitalID0) ->
+    io:setopts([{encoding,utf8}]),
     HospitalID = list_to_binary(HospitalID0),
-    io:format("Static ssmix table:~s~n", [static_tabledef(HospitalID)]),
-    io:format("Normal ssmix table: ~s~n", [normal_tabledef(HospitalID)]),
-    io:format("Recept table: ~s~n", [recept_tabledef(HospitalID)]).
+    io:format("Static ssmix table: ~ts~n", [static_tabledef(HospitalID)]),
+    io:format("Normal ssmix table: ~ts~n", [normal_tabledef(HospitalID)]),
+    io:format("Recept table: ~ts~n", [recept_tabledef(HospitalID)]).
 
 check(HospitalID0) ->
     HospitalID = list_to_binary(HospitalID0),
