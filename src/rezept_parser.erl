@@ -238,7 +238,7 @@ check_type(LineNo, Col, Entry, Tree) ->
     end.
 
 
--spec check_type({atom(), atom()|{maybe,atom()}, integer()}, string())
+-spec check_type({atom()|binary(), atom()|{maybe,atom()}, integer()}, string())
                 -> {ok, {string(), null|binary()}} | %% unicode binary
                    {warning, {error, term()}} |
                    {warning, {string(), null}}.
@@ -281,6 +281,8 @@ postprocess(Seg, #recept{date=Date} = _Recept) ->
     end.
 
 %% @private
+%% @doc Changes [{info_1, Info1}, ...] to
+%%              [{history, [ {[{date, -}, {cnt, -}]}, .... ]}]
 handle_30days(Seg, Date) ->
     {NewSeg, History} = handle_30days(Seg, Date, [], []),
     lists:reverse([{<<"history">>, History}|NewSeg]).

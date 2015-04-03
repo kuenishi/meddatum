@@ -1,16 +1,11 @@
-%%%-------------------------------------------------------------------
-%%% @author UENISHI Kota <kota@basho.com>
-%%% @copyright (C) 2014, UENISHI Kota
 %%% @doc
-%%%
+%%%  meddatum json-schema for presto-riak
 %%% @end
-%%% Created :  5 Oct 2014 by UENISHI Kota <kota@basho.com>
-%%%-------------------------------------------------------------------
 -module(meddatum_sql_schema).
 
 -include("meddatum.hrl").
 
--export([create/1, check/1, setup/1]).
+-export([create/2, check/1, setup/1]).
 
 %% meta structures are here
 -define(PRESTO_SCHEMA_BUCKET, <<"__presto_schema">>).
@@ -22,30 +17,37 @@ static_tabledef(HospitalID) ->
     SSMIXTable0 = {[
                     {<<"name">>, BucketName0},
                     {<<"columns">>, [atom_to_binary({Col})||Col<-hl7:columns()]}
-                   ]},
-    jsone:encode(SSMIXTable0).
+                   ] ++ hl7:subtables() },
+    jsone:encode(SSMIXTable0, [native_utf8]).
 
 normal_tabledef(HospitalID) ->
     {_BType0, BucketName1} = hl7:bucket_from_hospital_id(HospitalID),
     SSMIXTable1 = {[
                     {<<"name">>, BucketName1},
                     {<<"columns">>, [atom_to_binary({Col})||Col<-hl7:columns()]}
-                   ]},
-    jsone:encode(SSMIXTable1).
+                   ] ++ hl7:subtables() },
+    jsone:encode(SSMIXTable1, [native_utf8]).
 
 recept_tabledef(HospitalID) ->
     {_BType, BucketName2} = rezept:bucket_from_hospital_id(HospitalID),
     ReceptTable = {[
                     {<<"name">>, BucketName2},
                     {<<"columns">>, [atom_to_binary({C})||C<-rezept:columns()]}
-                   ]},
-    jsone:encode(ReceptTable).
+                   ] ++ rezept:subtables()},
+    jsone:encode(ReceptTable, [native_utf8]).
 
-create(HospitalID0) ->
+create(Type, HospitalID0) ->
+    ok = io:setopts([{encoding,utf8}]),
     HospitalID = list_to_binary(HospitalID0),
-    io:format("Static ssmix table:~s~n", [static_tabledef(HospitalID)]),
-    io:format("Normal ssmix table: ~s~n", [normal_tabledef(HospitalID)]),
-    io:format("Recept table: ~s~n", [recept_tabledef(HospitalID)]).
+    Text= case Type of
+              static ->
+                  static_tabledef(HospitalID);
+              ssmix ->
+                  normal_tabledef(HospitalID);
+              recept ->
+                  recept_tabledef(HospitalID)
+          end,
+    io:format("~ts~n", [Text]).
 
 check(HospitalID0) ->
     HospitalID = list_to_binary(HospitalID0),

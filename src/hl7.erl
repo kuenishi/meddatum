@@ -27,10 +27,11 @@
 
 -export([annotate/1, is_static/1,
          get_segment/2, get_segments/2, update_hospital_id/2,
-         msg_type/1]).
+         msg_type/1, subtables/0]).
 
 -include_lib("eunit/include/eunit.hrl").
 -include("hl7.hrl").
+-include("hl7_types.hrl").
 -include("meddatum.hrl").
 -include("md_json.hrl").
 
@@ -158,3 +159,11 @@ columns() ->
      [{name, msg_type_s},  {type, 'varchar'}, {index, false}],
      [{name, msg_id},      {type, 'varchar'}, {index, false}]
     ].
+
+subtables() ->
+    [].
+    %% [{<<"subtables">>,
+    %%  lists:map(fun({Name, _Type}) ->
+    %%                    {list_to_binary(Name), <<"boom">>}
+    %%            end, ?HL7_TYPES)
+    %%  }].

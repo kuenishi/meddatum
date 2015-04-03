@@ -34,7 +34,7 @@
 
 -export([
          append_to_recept/2,
-         finalize/1
+         finalize/1, subtables/0
         ]).
 
 -type recept() :: #recept{}.
@@ -102,6 +102,7 @@ key_prefix(Filename) when is_list(Filename) ->
 bucket(#recept{hospital_id = HospitalID} = _Recept) ->
     bucket_from_hospital_id(HospitalID).
 
+-spec bucket_from_hospital_id(binary()) -> {binary(), binary()}.
 bucket_from_hospital_id(HospitalID) when is_binary(HospitalID) ->
     BucketName = <<?RECEPT_BUCKET/binary, ?BUCKET_NAME_SEPARATOR/binary, HospitalID/binary>>,
     {?BUCKET_TYPE, BucketName}.
@@ -188,11 +189,100 @@ hospital_id(#recept{hospital_id=HospitalID}) -> HospitalID.
 
 columns() ->
     [
-     %%[{name, segments},    {type, 'varchar'}, {index, true}],
-     %%[{name, segments},    {type, 'array'}, {index, false}],
      [{name, date},        {type, 'varchar'}, {index, true}],
      [{name, patient_id},  {type, 'varchar'}, {index, true}],
      [{name, hospital_id}, {type, 'varchar'}, {index, false}],
      [{name, file},        {type, 'varchar'}, {index, false}],
      [{name, checksum},    {type, 'varchar'}, {index, false}]
     ].
+
+subtables() ->
+    %% ?MED_RECORD_TYPES and ?DPC_RECORD_TYPES both have part, which
+    %% is ?REZEPT_COMMON_RECORDS. So duplication is removed by sets
+    RecordTypes = sets:union(sets:from_list(?DPC_RECORD_TYPES),
+                             sets:from_list(?MED_RECORD_TYPES)),
+    [{<<"subtables">>,
+      lists:map(fun(C) -> recept_record_to_presto_nested_column(C) end,
+                sets:to_list(RecordTypes))}].
+
+recept_record_to_presto_nested_column({Rinfo0, _, RecordTypes0}) ->
+    SubtableColumns =
+        lists:map(fun({Name0, Type, _Length}) ->
+                          {[{name, Name0},
+                            {type, type_recept2presto(Type)},
+                            {index, false}]}
+                  end,
+                  handle_30days_schema(RecordTypes0)),
+    Rinfo = list_to_binary(Rinfo0),
+    {[{name, Rinfo},
+      {path, <<"$.segments[?(@.record_info=='", Rinfo/binary, "')]">>},
+      {columns, SubtableColumns}
+     ]}.
+
+%% @doc see rezept_parser:check_type/2
+type_recept2presto({maybe, Type}) -> type_recept2presto(Type);
+type_recept2presto(integer) ->  bigint;
+type_recept2presto(latin1) -> varchar;
+type_recept2presto(unicode) -> varchar;
+type_recept2presto(date) -> varchar;
+type_recept2presto(gyymm) -> varchar;
+type_recept2presto(gyymmdd) -> varchar;
+type_recept2presto(jy_code) -> varchar;
+type_recept2presto(prefecture) -> varchar.
+
+%% @doc see rezept_parser:handle_30days/2
+handle_30days_schema(RecordTypes0) ->
+    RecordTypes =
+        lists:filter(
+          fun(info_1) -> false;
+             (info_2) -> false;
+             (info_3) -> false;
+             (info_4) -> false;
+             (info_5) -> false;
+             (info_6) -> false;
+             (info_7) -> false;
+             (info_8) -> false;
+             (info_9) -> false;
+             (info_10) -> false;
+             (info_11) -> false;
+             (info_12) -> false;
+             (info_13) -> false;
+             (info_14) -> false;
+             (info_15) -> false;
+             (info_16) -> false;
+             (info_17) -> false;
+             (info_18) -> false;
+             (info_19) -> false;
+             (info_20) -> false;
+             (info_21) -> false;
+             (info_22) -> false;
+             (info_23) -> false;
+             (info_24) -> false;
+             (info_25) -> false;
+             (info_26) -> false;
+             (info_27) -> false;
+             (info_28) -> false;
+             (info_29) -> false;
+             (info_30) -> false;
+             (info_31) -> false;
+             (_) -> true
+          end,
+          RecordTypes0),
+
+    %% TODO: how can we do search this with?
+    [{'history-date', gyymmdd, 0},
+     {'history-cnt', integer, 0}] ++ RecordTypes.
+
+%% {
+%%     name: "ho", => shown as 'tablename:ho' in Presto
+%%     path: "$.segments[?(@.record_info=='HO')]",
+%%     columns: [
+%%         {name: "l", type: "varchar", index: true},
+%%         {name: "record_info", type: "varchar", index: true},
+%%         {name: "hokno", type: "varchar", index: true},
+%%         {name: "kigo", type: "varchar", index: true},
+%%         {name: "bango", type: "varchar", index: true},
+%%         {name: "hoknissu", type: "bigint", index: true},
+%%         {name: "hokten", type: "bigint", index: true},
+%%     ]
+%% }
