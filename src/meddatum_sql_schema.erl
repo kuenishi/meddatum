@@ -37,7 +37,7 @@ recept_tabledef(HospitalID) ->
     jsone:encode(ReceptTable, [native_utf8]).
 
 create(HospitalID0) ->
-    io:setopts([{encoding,utf8}]),
+    ok = io:setopts([{encoding,utf8}]),
     HospitalID = list_to_binary(HospitalID0),
     io:format("Static ssmix table: ~ts~n", [static_tabledef(HospitalID)]),
     io:format("Normal ssmix table: ~ts~n", [normal_tabledef(HospitalID)]),

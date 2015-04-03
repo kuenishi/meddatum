@@ -102,6 +102,7 @@ key_prefix(Filename) when is_list(Filename) ->
 bucket(#recept{hospital_id = HospitalID} = _Recept) ->
     bucket_from_hospital_id(HospitalID).
 
+-spec bucket_from_hospital_id(binary()) -> {binary(), binary()}.
 bucket_from_hospital_id(HospitalID) when is_binary(HospitalID) ->
     BucketName = <<?RECEPT_BUCKET/binary, ?BUCKET_NAME_SEPARATOR/binary, HospitalID/binary>>,
     {?BUCKET_TYPE, BucketName}.
@@ -188,8 +189,6 @@ hospital_id(#recept{hospital_id=HospitalID}) -> HospitalID.
 
 columns() ->
     [
-     %%[{name, segments},    {type, 'varchar'}, {index, true}],
-     %%[{name, segments},    {type, 'array'}, {index, false}],
      [{name, date},        {type, 'varchar'}, {index, true}],
      [{name, patient_id},  {type, 'varchar'}, {index, true}],
      [{name, hospital_id}, {type, 'varchar'}, {index, false}],
@@ -198,31 +197,41 @@ columns() ->
     ].
 
 subtables() ->
-    %% ?DPC_RECORD_TYPES both have ?REZEPT_COMMON_RECORDS so set needed
-    %% ?MED_RECORD_TYPES
+    %% ?MED_RECORD_TYPES and ?DPC_RECORD_TYPES both have part, which
+    %% is ?REZEPT_COMMON_RECORDS. So duplication is removed by sets
+    RecordTypes = sets:union(sets:from_list(?DPC_RECORD_TYPES),
+                             sets:from_list(?MED_RECORD_TYPES)),
     [{<<"subtables">>,
       lists:map(fun(C) -> recept_record_to_presto_nested_column(C) end,
-                ?DPC_RECORD_TYPES)}].
+                sets:to_list(RecordTypes))}].
 
-recept_record_to_presto_nested_column({_, _, Columns0}) ->
-    Columns = lists:map(fun({Name, Type, _Cols}) ->
-                                {[{name, Name},
-                                  {type, type_recept2presto(Type)},
-                                  {index, false}]}
-                         end, Columns0),
-    {[{name, <<"boom">>},
-      {bucket, <<"buck">>},
-      {path, <<"$.segments[?(@.record_info=='HO')]">>},
-      {columns, Columns}
+recept_record_to_presto_nested_column({Rinfo0, _, RecordTypes0}) ->
+    SubtableColumns =
+        lists:map(fun({Name0, Type, _Length}) ->
+                          {[{name, Name0},
+                            {type, type_recept2presto(Type)},
+                            {index, false}]}
+                  end, RecordTypes0),
+    Rinfo = list_to_binary(Rinfo0),
+    {[{name, Rinfo},
+      {path, <<"$.segments[?(@.record_info=='", Rinfo/binary, "')]">>},
+      {columns, SubtableColumns}
      ]}.
 
-type_recept2presto(_Type) ->
-    <<"sometype">>.
+%% @doc see rezept_parser:check_type/2
+type_recept2presto({maybe, Type}) -> type_recept2presto(Type);
+type_recept2presto(integer) ->  bigint;
+type_recept2presto(latin1) -> varchar;
+type_recept2presto(unicode) -> varchar;
+type_recept2presto(date) -> varchar;
+type_recept2presto(gyymm) -> varchar;
+type_recept2presto(gyymmdd) -> varchar;
+type_recept2presto(jy_code) -> varchar;
+type_recept2presto(prefecture) -> varchar.
 
 %% {
-%%     name: "ho",
-%%     bucket: "recept",
-%%     path: "$.segments[?(@.record_info=='HO')]",     
+%%     name: "ho", => shown as 'tablename:ho' in Presto
+%%     path: "$.segments[?(@.record_info=='HO')]",
 %%     columns: [
 %%         {name: "l", type: "varchar", index: true},
 %%         {name: "record_info", type: "varchar", index: true},
@@ -232,5 +241,4 @@ type_recept2presto(_Type) ->
 %%         {name: "hoknissu", type: "bigint", index: true},
 %%         {name: "hokten", type: "bigint", index: true},
 %%     ]
-
 %% }

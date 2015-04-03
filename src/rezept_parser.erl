@@ -281,6 +281,8 @@ postprocess(Seg, #recept{date=Date} = _Recept) ->
     end.
 
 %% @private
+%% @doc Changes [{info_1, Info1}, ...] to
+%%              [{history, [ {[{date, -}, {cnt, -}]}, .... ]}]
 handle_30days(Seg, Date) ->
     {NewSeg, History} = handle_30days(Seg, Date, [], []),
     lists:reverse([{<<"history">>, History}|NewSeg]).
