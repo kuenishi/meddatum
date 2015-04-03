@@ -5,7 +5,7 @@
 
 -include("meddatum.hrl").
 
--export([create/1, check/1, setup/1]).
+-export([create/2, check/1, setup/1]).
 
 %% meta structures are here
 -define(PRESTO_SCHEMA_BUCKET, <<"__presto_schema">>).
@@ -36,12 +36,18 @@ recept_tabledef(HospitalID) ->
                    ] ++ rezept:subtables()},
     jsone:encode(ReceptTable, [native_utf8]).
 
-create(HospitalID0) ->
+create(Type, HospitalID0) ->
     ok = io:setopts([{encoding,utf8}]),
     HospitalID = list_to_binary(HospitalID0),
-    io:format("Static ssmix table: ~ts~n", [static_tabledef(HospitalID)]),
-    io:format("Normal ssmix table: ~ts~n", [normal_tabledef(HospitalID)]),
-    io:format("Recept table: ~ts~n", [recept_tabledef(HospitalID)]).
+    Text= case Type of
+              static ->
+                  static_tabledef(HospitalID);
+              ssmix ->
+                  normal_tabledef(HospitalID);
+              recept ->
+                  recept_tabledef(HospitalID)
+          end,
+    io:format("~ts~n", [Text]).
 
 check(HospitalID0) ->
     HospitalID = list_to_binary(HospitalID0),
