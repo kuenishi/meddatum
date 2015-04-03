@@ -211,7 +211,8 @@ recept_record_to_presto_nested_column({Rinfo0, _, RecordTypes0}) ->
                           {[{name, Name0},
                             {type, type_recept2presto(Type)},
                             {index, false}]}
-                  end, RecordTypes0),
+                  end,
+                  handle_30days_schema(RecordTypes0)),
     Rinfo = list_to_binary(Rinfo0),
     {[{name, Rinfo},
       {path, <<"$.segments[?(@.record_info=='", Rinfo/binary, "')]">>},
@@ -228,6 +229,49 @@ type_recept2presto(gyymm) -> varchar;
 type_recept2presto(gyymmdd) -> varchar;
 type_recept2presto(jy_code) -> varchar;
 type_recept2presto(prefecture) -> varchar.
+
+%% @doc see rezept_parser:handle_30days/2
+handle_30days_schema(RecordTypes0) ->
+    RecordTypes =
+        lists:filter(
+          fun(info_1) -> false;
+             (info_2) -> false;
+             (info_3) -> false;
+             (info_4) -> false;
+             (info_5) -> false;
+             (info_6) -> false;
+             (info_7) -> false;
+             (info_8) -> false;
+             (info_9) -> false;
+             (info_10) -> false;
+             (info_11) -> false;
+             (info_12) -> false;
+             (info_13) -> false;
+             (info_14) -> false;
+             (info_15) -> false;
+             (info_16) -> false;
+             (info_17) -> false;
+             (info_18) -> false;
+             (info_19) -> false;
+             (info_20) -> false;
+             (info_21) -> false;
+             (info_22) -> false;
+             (info_23) -> false;
+             (info_24) -> false;
+             (info_25) -> false;
+             (info_26) -> false;
+             (info_27) -> false;
+             (info_28) -> false;
+             (info_29) -> false;
+             (info_30) -> false;
+             (info_31) -> false;
+             (_) -> true
+          end,
+          RecordTypes0),
+
+    %% TODO: how can we do search this with?
+    [{'history-date', gyymmdd, 0},
+     {'history-cnt', integer, 0}] ++ RecordTypes.
 
 %% {
 %%     name: "ho", => shown as 'tablename:ho' in Presto
