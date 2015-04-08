@@ -30,7 +30,8 @@ main(["check-config"]) ->  meddatum_console:check_config();
 main(["setup-riak"]) ->    meddatum_console:setup_riak();
 main(["import-ssmix"|Args]) ->  meddatum_console:import_ssmix(Args);
 main(["import-recept"|Args]) -> meddatum_console:import_recept(Args);
-main(["import-dpcs"|Args]) -> meddatum_console:import_dpcs(Args);
+main(["import-dpcs", "-f"|Args]) -> meddatum_console:import_dpcs(Args, true);
+main(["import-dpcs"|Args]) -> meddatum_console:import_dpcs(Args, false);
 main(["parse-ssmix"|Args]) ->   meddatum_console:parse_ssmix(Args);
 main(["parse-recept"|Args]) ->  meddatum_console:parse_recept(Args);
 main(["parse-dpcs"|Args]) ->  meddatum_console:parse_dpcs(Args);
@@ -57,7 +58,7 @@ help() ->
               "meddatum setup-riak   (setup Riak Search for healthb)~n"
               "meddatum import-ssmix <hospital-id> <path/to/directory>~n"
               "meddatum import-recept [dpc|med] <path/to/file>~n"
-              "meddatum import-dpcs [Dn|EFn|EFg|FF1|FF4] <hospital-id> <date> <path/to/file>~n"
+              "meddatum import-dpcs -f <dir> <hospital-id> <date> [-Dn|-EFn|-EFg|-FF1|-FF4 <path/to/file>]~n"
               "meddatum parse-ssmix <ssmix-file or ssmix-dir> (test parsing ssmix file)~n"
               "meddatum parse-recept [dpc|med] <recept-file> (test parsing recept file)~n"
               "meddatum parse-dpcs [Dn|EFn|EFg|FF1|FF4] <dpc-file> (test parsing ef integrate file)~n"

@@ -24,7 +24,7 @@
 -export([create_config/0, check_config/0,
          setup_riak/0,
          import_ssmix/1, import_recept/1,
-         import_dpcs/1,
+         import_dpcs/2,
          parse_ssmix/1, parse_recept/1,
          parse_dpcs/1,
          delete_all_ssmix/1, delete_recept/1,
@@ -123,35 +123,50 @@ import_recept([Mode0, Filename]) ->
     end;
 import_recept(_) -> meddatum:help().
 
-import_dpcs([Mode, _HospitalID, _Date, Filename]) ->
-    ModeAtom = case Mode of
-                   "EFn" -> efn;
-                   "EFg" -> efg;
-                   "FF1" -> ff1;
-                   "FF4" -> ff4;
-                   "Dn"  -> dn
-               end,
-    {ok, #context{logger=Logger,
-                  riakc=C} = Context} = meddatum_console:setup(),
-    treehugger:log(Logger, info, "parsing ~s as ~s", [Filename, Mode]),
-    try
-        {ok, Records} = dpcs:from_file(Filename, [ModeAtom], Logger),
-        treehugger:log(Logger, info,
-                       "parsing ~p finished (~p records extracted)",
-                       [Filename, length(Records)]),
-        lists:foreach(fun(Record)->
-                              ok = md_record:put_json(C, Record, dpcs, Logger)
-                      end, Records),
+import_dpcs([_Dir, HospitalID, Date|_] = Argv, Force) ->
 
-        treehugger:log(Logger, info, "wrote ~p records into Riak.", [length(Records)])
-    catch E:T ->
-            treehugger:log(Logger, error,
-                           "~p:~p ~w", [E, T, erlang:get_stacktrace()])
-    after
-        meddatum_console:teardown(Context)
+    %% ModeAtom = case Mode of
+    %%                "EFn" -> efn;
+    %%                "EFg" -> efg;
+    %%                "FF1" -> ff1;
+    %%                "FF4" -> ff4;
+    %%                "Dn"  -> dn
+    %%            end,
+    Identifier = {HospitalID, Date},
+    case dpcs:files_to_parse(Argv) of
+        {error, _} = E -> E;
+        {ok, Files} ->
+            {ok, #context{logger=Logger,
+                          riakc=C} = Context} = meddatum_console:setup(),
+            treehugger:log(Logger, info, "parsing ~s", [Files]),
+            case Force of
+                true -> ok;
+                false -> md_record:check_is_set_done(C, dpcs, Identifier)
+            end,
+            try
+                case dpcs:parse_files(Files) of
+                    {ok, Records} ->
+                        treehugger:log(Logger, info,
+                                       "parsing ~p finished", [Files]),
+                        lists:foreach(fun(Record)->
+                                              ok = md_record:put_json(C, Record, dpcs, Logger)
+                                      end, Records),
+                        case md_record:mark_set_as_done(C, dpcs, Identifier) of
+                            true ->
+                                treehugger:log(Logger, info, "wrote ~p records into Riak.", [length(Records)]);
+                            _ ->
+                                treehugger:log(Logger, info, "failed writing records into Riak.", [length(Records)])
+                        end
+                end
+            catch E:T ->
+                    treehugger:log(Logger, error,
+                                   "~p:~p ~w", [E, T, erlang:get_stacktrace()])
+            after
+                meddatum_console:teardown(Context)
+            end
     end;
 
-import_dpcs(_) -> meddatum:help().
+import_dpcs(_, _) -> meddatum:help().
 
 parse_ssmix([Path]) ->
     io:setopts([{encoding,utf8}]),

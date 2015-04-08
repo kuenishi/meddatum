@@ -18,7 +18,8 @@
 
 -include("meddatum.hrl").
 -export([bucket2hospital_id/1,
-         put_json/4]).
+         put_json/4,
+         mark_set_as_done/3, check_is_set_done/3]).
 
 %% note that the file is usually *NOT* JSON.
 -callback from_file(filename:filename(), list(), pid()) -> {ok, [_]}.
@@ -32,6 +33,11 @@
 -callback patient_id(_) -> binary().
 -callback hospital_id(_) -> binary().
 -callback columns() -> JSON::binary().
+
+-callback mark_set_as_done(RiakClient::pid(), Identifier::term()) ->
+    ok | {error, term()}.
+-callback check_is_set_done(RiakClient::pid(), Identifier::term()) ->
+    boolean().
 
 -spec put_json(pid(), _::any(), module(), pid()) -> ok.
 put_json(C, Msg, Mod, Logger) when is_atom(Mod) ->
@@ -69,3 +75,11 @@ bucket2hospital_id(Bucket) when is_binary(Bucket) ->
         <<"recept:", HospitalID/binary>> ->
             {recept, HospitalID}
     end.
+
+-spec mark_set_as_done(pid(), module(), term()) -> ok | {error, term()}.
+mark_set_as_done(C, Module, Identifier) ->
+    Module:mark_set_as_done(C, Identifier).
+
+-spec check_is_set_done(pid(), module(), term()) -> boolean().
+check_is_set_done(C, Module, Identifier) ->
+    Module:check_is_set_done(C, Identifier).

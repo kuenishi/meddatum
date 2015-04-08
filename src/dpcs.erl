@@ -8,9 +8,12 @@
          key/1, bucket/1, make_2i_list/1,
          patient_id/1, hospital_id/1,
          from_file/3, from_file/4,
+         check_is_set_done/2, mark_set_as_done/2,
          columns/0]).
 
 -export([new/4, merge/2, add_field/3]).
+
+-export([files_to_parse/1, parse_files/4]).
 
 -type record_type() :: ff1|ff4|efg|efn|dn.
 
@@ -61,6 +64,45 @@ from_file(Filename, [Mode], Logger) when is_atom(Mode) ->
 -spec from_file(filename:filename(), list(), pid(), fun()) -> {ok, rec()}.
 from_file(Filename, List, Logger, _) ->
     from_file(Filename, List, Logger).
+
+check_is_set_done(C, {HospitalID, Date}) ->
+    {BT, Key} = tbk(HospitalID, Date),
+    case riakc_pb_socket:get(C, BT, Key, [{pr,all}]) of
+        {error, notfound} -> false;
+        {ok, RiakObj} -> is_tombstone(RiakObj)
+    end.
+
+is_tombstone(RiakObj) ->
+    case riakc_obj:get_contents(RiakObj) of
+        [{MD,_}] ->
+            TS = <<"X-Riak-Deleted">>,
+            case riakc_obj:get_user_metadata_entry(MD, TS) of
+                notfound -> false;
+                _Value -> true
+            end;
+        _ ->
+            error({has_siblings, {riakc_obj:bucket(RiakObj),
+                                  riakc_obj:key(RiakObj)}})
+    end.
+    
+
+%% @doc Hereby for dpcs, for a set of files that have same
+%% {HospitalID, Date} is a set of import - thus if all records
+%% inside it are once registered, a mark should be stored
+%% in Riak. The Bucket name? That's the problem.
+mark_set_as_done(C, {HospitalID, Date}) ->
+    {BT, Key} = tbk(HospitalID, Date),
+    RiakObject = meddatum:maybe_new_ro(C, BT, Key,
+                                       ?DPCS_TRAIL_MARKER),
+    riakc_pb_socket:put(C, RiakObject).
+
+tbk(HospitalID, Date) ->
+    BT = meddatum:true_bucket_name(<<?DPCS_BUCKET/binary,
+                                     ?BUCKET_NAME_SEPARATOR/binary,
+                                     "trail">>),
+    Key = [HospitalID, ?BUCKET_NAME_SEPARATOR, Date],
+    BinKey = iolist_to_binary(Key),
+    {BT, BinKey}.
 
 -spec columns() -> list().
 columns() -> undefined.
@@ -128,3 +170,52 @@ is_numeric_field(b_index , _) -> true;
 is_numeric_field(isolation_days , _) -> true;
 is_numeric_field(restraint_days , _) -> true;
 is_numeric_field(_, _) -> false.
+
+
+files_to_parse([Dir, HospitalID, Date]) ->
+    Prefixes = [{"FF1", ff1}, {"FF4", ff4}, {"EFn", efn}, {"EFg", efg},
+                {"Dn", dn}],
+    {ok, 
+     lists:map(fun({Prefix, Mode}) ->
+                       Name = [Prefix, $_, HospitalID, $_, Date, ".txt"],
+                       {filename:join([Dir, iolist_to_binary(Name)]), Mode}
+               end,
+               Prefixes)};
+files_to_parse([Dir, _, _|Options]) ->
+    case parse_options(Options, []) of
+        {ok, Files} ->
+            lists:map(fun(File) ->
+                              filename:join([Dir, File])
+                      end, Files);
+        {error, _} = E -> E
+    end.
+
+parse_options([], Files) -> {ok, Files};
+parse_options(["-FF1", Filename|Rest], Acc) ->
+    parse_options(Rest, [{Filename, ff1}|Acc]);
+parse_options(["-FF4", Filename|Rest], Acc) ->
+    parse_options(Rest, [{Filename, ff4}|Acc]);
+parse_options(["-EFn", Filename|Rest], Acc) ->
+    parse_options(Rest, [{Filename, efn}|Acc]);
+parse_options(["-EFg", Filename|Rest], Acc) ->
+    parse_options(Rest, [{Filename, efg}|Acc]);
+parse_options(["-Dn", Filename|Rest], Acc) ->
+    parse_options(Rest, [{Filename, dn}|Acc]);
+parse_options(Other, _) ->
+    {error, {wrong_options, Other}}.
+
+parse_files(Files, HospitalID, Date, Logger) ->
+    lists:foldl(
+      fun({Filename, Mode}, {ok, Records0}) ->
+              case dpcs:from_file(Filename, [Mode], Logger) of
+                  {ok, Records} ->
+                      case dpcs:check(HospitalID, Date, Records) of
+                          ok -> {ok, [{Mode, Records}|Records0]};
+                          Error1 -> {error, {Error1, Filename}}
+                      end;
+                  Error2 ->
+                      {error, {Error2, Filename}}
+              end;
+         (_, Error) ->
+              Error
+      end, {ok, []}, Files).
