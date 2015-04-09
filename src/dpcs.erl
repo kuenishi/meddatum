@@ -12,7 +12,7 @@
          check_is_set_done/2, mark_set_as_done/2,
          columns/0]).
 
--export([new/5, merge/2, update_shinym/2]).
+-export([new/5, merge/2, merge_2/2, update_shinym/2]).
 
 -export([files_to_parse/1, parse_files/4]).
 
@@ -62,7 +62,32 @@ hospital_id(#dpcs{common_fields=#dpcs_common{cocd=HospitalID}}) -> HospitalID.
 patient_id(#dpcs{common_fields=#dpcs_common{kanjaid=PatientID}}) -> PatientID.
 
 -spec from_json(binary()) -> rec().
-from_json(_JSON) -> undefined.
+from_json(JSON) ->
+    {List} = jsone:decode(JSON),
+    from_json(List, #dpcs{}).
+
+from_json([], DPCS) -> DPCS;
+from_json([{<<"key">>, Key}|L], DPCS) ->
+    from_json(L, DPCS#dpcs{key=Key});
+from_json([{<<"type">>, Type}|L], DPCS) ->
+    T = case binary_to_existing_atom(Type, utf8) of
+            ff1 -> ff1;
+            ff4 -> ff4;
+            efg -> efg;
+            efn -> efn;
+            dn -> dn
+        end,
+    from_json(L, DPCS#dpcs{type=T});
+from_json([{<<"cocd">>, V}|L], DPCS = #dpcs{common_fields=CF}) ->
+    from_json(L, DPCS#dpcs{common_fields=CF#dpcs_common{cocd=V}});
+from_json([{<<"kanjaid">>, V}|L], DPCS = #dpcs{common_fields=CF}) ->
+    from_json(L, DPCS#dpcs{common_fields=CF#dpcs_common{kanjaid=V}});
+from_json([{<<"nyuymd">>, V}|L], DPCS = #dpcs{common_fields=CF}) ->
+    from_json(L, DPCS#dpcs{common_fields=CF#dpcs_common{nyuymd=V}});
+from_json([{<<"shinym">>, V}|L], DPCS = #dpcs{common_fields=CF}) ->
+    from_json(L, DPCS#dpcs{common_fields=CF#dpcs_common{shinym=V}});
+from_json([{K, V}|L], DPCS = #dpcs{fields=F}) ->
+    from_json(L, DPCS#dpcs{fields=[{K,V}|F]}).
 
 -spec to_json(rec()) -> {ok, binary()}.
 to_json(#dpcs{fields=Fields, common_fields=CommonFields}) ->
@@ -161,13 +186,17 @@ update_shinym(Rec = #dpcs{common_fields=CF}, Date) ->
     CommonFields = CF#dpcs_common{shinym=Date},
     Rec#dpcs{common_fields=CommonFields}.
 
--spec merge(New::rec(), Old::rec()) -> rec().
-merge(L = #dpcs{key=Key, type=Type,
+-spec merge([rec()], rec()) -> rec().
+merge(LList, R) ->
+    lists:foldl(fun merge_2/2, R, LList).
+
+-spec merge_2(L::rec(), R::rec()) -> rec().
+merge_2(L = #dpcs{key=Key, type=Type,
                 common_fields=CF, fields=LFields},
       _ = #dpcs{key=Key, type=Type,
                 common_fields=CF, fields=RFields}) ->
     L#dpcs{fields=LFields++RFields};
-merge(L, R) ->
+merge_2(L, R) ->
     error({cannot_merge, L, R}).
 
 files_to_parse([Dir, HospitalID, Date]) ->

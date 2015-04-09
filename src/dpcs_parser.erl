@@ -29,7 +29,7 @@ parse(Filename, Mode, Date, Logger) ->
                               ok;
                           false ->
                               PrevDPCSRecord = ets:lookup_element(Table, {Mode, BinKey}, 2),
-                              NewDPCSRecord = dpcs:merge(DPCSRecord, PrevDPCSRecord),
+                              NewDPCSRecord = dpcs:merge_2(DPCSRecord, PrevDPCSRecord),
                               ets:insert(Table, {{Mode, BinKey}, NewDPCSRecord})
                       end;
                   Error ->
