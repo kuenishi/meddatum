@@ -28,6 +28,7 @@
          bucket/1, bucket_from_hospital_id/1,
          make_2i_list/1,
          patient_id/1, hospital_id/1,
+         check_is_set_done/2, mark_set_as_done/2,
          columns/0,
          from_file/3, from_file/4
          ]).
@@ -186,6 +187,8 @@ rev_append([HD|TL], Right) -> rev_append(TL, [HD|Right]).
 patient_id(#recept{patient_id=PatientID}) -> PatientID.
 hospital_id(#recept{hospital_id=HospitalID}) -> HospitalID.
 
+check_is_set_done(_, _) -> true.
+mark_set_as_done(_, _) -> ok.
 
 columns() ->
     [

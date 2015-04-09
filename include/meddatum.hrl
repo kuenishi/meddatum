@@ -1,12 +1,18 @@
 
 %% SEE md_record.erl when you're changing these names
+%% these are just prefix for bucket name
 -define(SSMIX_BUCKET, <<"ssmix">>).
 -define(RECEPT_BUCKET, <<"recept">>).
+-define(DPCS_BUCKET, <<"dpcs">>).
+
 -define(BUCKET_NAME_SEPARATOR, <<":">>).
 -define(BUCKET_TYPE, <<"md">>).
 -define(SCHEMA_NAME, <<"md_schema">>).
 -define(INDEX_NAME, <<"md_index">>).
+
 -define(APPLICATION_JSON, "application/json").
+
+-define(DPCS_TRAIL_MARKER, <<"95">>). %% McQueen
 
 %% a bucket to store date-independent ssmix records
 %% which are:

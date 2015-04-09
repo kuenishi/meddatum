@@ -17,7 +17,8 @@
 -module(klib).
 
 -export([rev_map/2, maybe_binary/1,
-         maybe_a2b/1, ensure_dir/1]).
+         maybe_a2b/1, ensure_dir/1,
+         str_to_numeric/1]).
 
 -include_lib("kernel/include/file.hrl").
 
@@ -44,4 +45,24 @@ ensure_dir(Dir) ->
                 _ -> {error, {not_dir, Dir}}
             end;
         E -> {error, {E, Dir}}
+    end.
+
+-spec str_to_numeric(string()) -> integer() | float().
+str_to_numeric(Str) -> 
+    %% if decimal point omits from number, number is regarded as a integer.
+    case string:chr(Str , $.) of
+        0 -> list_to_integer(Str);
+        _ -> str_to_nm_float(Str)
+    end.
+
+-spec str_to_nm_float(string()) -> float().
+%% strip a sign
+str_to_nm_float([$-|Str]) -> - str_to_nm_float(Str);
+str_to_nm_float([$+|Str]) ->   str_to_nm_float(Str);
+%% start with "."
+str_to_nm_float([$.|_] = Str) -> str_to_nm_float([$0|Str]);
+str_to_nm_float(Str) ->
+    case lists:last(Str) =:= $. of
+      true  -> list_to_float(lists:append(Str, "0")); %% end with "."
+      false -> list_to_float(Str)
     end.
