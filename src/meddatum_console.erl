@@ -137,7 +137,7 @@ import_dpcs([_Dir, HospitalID, Date|_] = Argv, Force) ->
                 false -> md_record:check_is_set_done(C, dpcs, Identifier)
             end,
             try
-                case dpcs:parse_files(Files) of
+                case dpcs:parse_files(Files, HospitalID, Date, Logger) of
                     {ok, Records} ->
                         treehugger:log(Logger, info,
                                        "parsing ~p finished", [Files]),
