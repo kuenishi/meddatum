@@ -1,11 +1,12 @@
 -module(dpcs_parser).
 
--export([parse/3]).
+-export([parse/4]).
 
 -include_lib("eunit/include/eunit.hrl").
 
--spec parse(filename:filename(), dpcs:record_type(), pid()) ->[dpcs:rec()].
-parse(Filename, Mode, Logger) ->
+-spec parse(filename:filename(), dpcs:record_type(),
+            binary(), pid()) ->[dpcs:rec()].
+parse(Filename, Mode, Date, Logger) ->
     {ok, Lines0} = japanese:read_file(Filename),
     Lines = lists:zip(lists:seq(1, length(Lines0)), Lines0),
     Table = ets:new(ef_data, [set, private]),
@@ -20,7 +21,11 @@ parse(Filename, Mode, Logger) ->
                           end,
               Tokens = re:split(StripLine, "[\t]", [{return, list}, unicode]),
               case parse_tokens(Tokens, Mode) of
-                  {ok, {Key, CommonFields, CodeFields}} ->
+                  {ok, {Key, CommonFields0, CodeFields}} ->
+                      CommonFields = case Mode of
+                                         ff1 -> [];
+                                         _ -> [{<<"shinym">>, Date}]
+                                     end ++ CommonFields0,
                       DPCSRecord = dpcs:new(Key, Mode, CommonFields, CodeFields),
                       BinKey = dpcs:key(DPCSRecord),
                       case ets:insert_new(Table, {BinKey, DPCSRecord}) of
@@ -31,7 +36,11 @@ parse(Filename, Mode, Logger) ->
                               NewDPCSRecord = dpcs:merge(DPCSRecord, PrevDPCSRecord),
                               ets:insert(Table, {BinKey, NewDPCSRecord})
                       end;
-                  {ok, {Key, CommonFields}} ->
+                  {ok, {Key, CommonFields0}} ->
+                      CommonFields = case Mode of
+                                         ff1 -> [];
+                                         _ -> [{<<"shinym">>, Date}]
+                                     end ++ CommonFields0,
                       DPCSRecord = dpcs:new(Key, Mode, CommonFields, []),
                       BinKey = dpcs:key(DPCSRecord),
                       ets:insert_new(Table, {BinKey, DPCSRecord});
@@ -44,6 +53,10 @@ parse(Filename, Mode, Logger) ->
       Lines),
     ets:tab2list(Table).
 
+-spec parse_tokens([string()], dpcs:record_type()) ->
+                          {ok, {iolist(), term(), term()}} |
+                          {ok, {iolist(), term()}} |
+                          {error, atom()}.
 parse_tokens(Tokens, ff1) -> parse_ff1_tokens(Tokens);
 parse_tokens(Tokens, ff4) -> parse_ff4_tokens(Tokens);
 parse_tokens(Tokens, dn) -> parse_dn_tokens(Tokens);
@@ -58,7 +71,6 @@ parse_tokens(Tokens, efn) -> parse_ef_tokens(Tokens, efn).
 parse_ff1_tokens(Tokens) ->
     case Tokens of
         [Cocd, Kanjaid, Nyuymd, _Kaisukanrino, _Medical_no, Code , _Version, _Seqno | Payload] ->
-
             F = fun({K,V}, Acc) ->
                         dpcs:add_field({K,V}, dn, Acc)
                 end,

@@ -125,13 +125,6 @@ import_recept(_) -> meddatum:help().
 
 import_dpcs([_Dir, HospitalID, Date|_] = Argv, Force) ->
 
-    %% ModeAtom = case Mode of
-    %%                "EFn" -> efn;
-    %%                "EFg" -> efg;
-    %%                "FF1" -> ff1;
-    %%                "FF4" -> ff4;
-    %%                "Dn"  -> dn
-    %%            end,
     Identifier = {HospitalID, Date},
     case dpcs:files_to_parse(Argv) of
         {error, _} = E -> E;
@@ -218,23 +211,24 @@ parse_recept([Mode, File]) ->
 
 parse_recept(_) -> meddatum:help().
 
-parse_dpcs([Mode, File]) ->
+parse_dpcs([_Dir, HospitalID, Date|_] = Argv) ->
     io:setopts([{encoding, unicode}]),
-    io:format(standard_error, "~p~n", [File]),
-    ModeAtom = case Mode of
-                   "EFn" -> efn;
-                   "EFg" -> efg;
-                   "FF1" -> ff1;
-                   "FF4" -> ff4;
-                   "Dn" -> dn
-               end,
-    {ok, #context{logger=Logger}} = meddatum_console:setup(false),
-    {ok, Records} = dpcs:from_file(File, [ModeAtom], Logger),
-    lists:foreach(fun(Record) ->
-                          {ok, JSON} = dpcs:to_json(Record),
-                          io:format("~ts~n" , [JSON])
-                  end,
-                  Records);
+    {ok, #context{logger=Logger} = Context} = meddatum_console:setup(),
+
+    {ok, Files} = dpcs:files_to_parse(Argv),
+    io:format(standard_error, "~p~n", [Files]),
+    BinHospitalID = list_to_binary(HospitalID),
+    YYYYMM = iolist_to_binary(["20", Date]),
+    try
+        {ok, ModesRecords} = dpcs:parse_files(Files, BinHospitalID, YYYYMM, Logger),
+        lists:foreach(fun({_Mode, Records})->
+                              lists:foreach(fun(Record) ->
+                                                    io:format("~ts~n", [element(2, dpcs:to_json(Record))])
+                                            end, Records)
+                      end, ModesRecords)
+    after
+        meddatum_console:teardown(Context)
+    end;
 
 parse_dpcs(_) -> meddatum:help().
 

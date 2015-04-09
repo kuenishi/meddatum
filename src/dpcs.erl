@@ -55,8 +55,9 @@ to_json(#dpcs{fields=Fields, common_fields=CommonFields}) ->
     {ok, JSON}.
 
 -spec from_file(filename:filename(), list(), pid()) -> {ok, [rec()]}.
-from_file(Filename, [Mode], Logger) when is_atom(Mode) ->
-    Records0 = dpcs_parser:parse(Filename, Mode, Logger),
+from_file(Filename, [Mode, YYYYMM], Logger)
+  when is_atom(Mode) ->
+    Records0 = dpcs_parser:parse(Filename, Mode, YYYYMM, Logger),
     Records = lists:map(fun({_, Record}) -> Record end, Records0),
     {ok, Records}.
 
@@ -178,14 +179,14 @@ files_to_parse([Dir, HospitalID, Date]) ->
     {ok, 
      lists:map(fun({Prefix, Mode}) ->
                        Name = [Prefix, $_, HospitalID, $_, Date, ".txt"],
-                       {filename:join([Dir, iolist_to_binary(Name)]), Mode}
+                       {filename:join([Dir, lists:flatten(Name)]), Mode}
                end,
                Prefixes)};
 files_to_parse([Dir, _, _|Options]) ->
     case parse_options(Options, []) of
         {ok, Files} ->
-            lists:map(fun(File) ->
-                              filename:join([Dir, File])
+            lists:map(fun({T, File}) ->
+                              {T, filename:join([Dir, File])}
                       end, Files);
         {error, _} = E -> E
     end.
@@ -204,18 +205,47 @@ parse_options(["-Dn", Filename|Rest], Acc) ->
 parse_options(Other, _) ->
     {error, {wrong_options, Other}}.
 
-parse_files(Files, HospitalID, Date, Logger) ->
+-spec parse_files(filename:filename(), binary(), binary(), term()) ->
+                         {ok, [{record_type(), [rec()]}]}.
+parse_files(Files, _HospitalID, YYYYMM, Logger) ->
     lists:foldl(
       fun({Filename, Mode}, {ok, Records0}) ->
-              case dpcs:from_file(Filename, [Mode], Logger) of
+              io:format(standard_error, "parsing ~p...~n", [Filename]),
+              case dpcs:from_file(Filename, [Mode, YYYYMM], Logger) of
                   {ok, Records} ->
-                      case dpcs:check(HospitalID, Date, Records) of
-                          ok -> {ok, [{Mode, Records}|Records0]};
-                          Error1 -> {error, {Error1, Filename}}
-                      end;
+                      %% case check_all(list_to_binary(HospitalID),
+                      %%                list_to_binary(Date), Records) of
+                      {ok, [{Mode, Records}|Records0]};
+                      %%     Error1 -> {error, {Error1, Filename}}
+                      %% end;
                   Error2 ->
                       {error, {Error2, Filename}}
               end;
          (_, Error) ->
               Error
       end, {ok, []}, Files).
+
+
+%% -spec check_date_hospital(binary(), binary(), rec()) -> ok | {error, atom()}.
+%% check_date_hospital(HospitalID, YYMM,
+%%                     #dpcs{hospital_id=HospitalID,
+%%                           date = YYYYMMDD} = _R)
+%%   when is_binary(YYMM) ->
+%%     case YYYYMMDD of
+%%         <<"20", YYMM:4/binary, _/binary>> -> ok;
+%%         _ ->
+%%             io:format("argv:~p file:~p~n", [YYMM, YYYYMMDD]),
+%%             io:format("record:~p~n", [_R]),
+%%             {error, different_date}
+%%     end;
+%% check_date_hospital(_, Date, #dpcs{date=Date} = _) ->
+%%     {error, different_hospital};
+%% check_date_hospital(_H, _D, _R) ->
+%%     {error, both_wrong}.
+
+%% check_all(_, _, []) -> ok;
+%% check_all(HospitalID, Date, [Record|Records]) ->
+%%     case check_date_hospital(HospitalID, Date, Record) of
+%%         ok -> check_all(HospitalID, Date, Records);
+%%         Error -> Error
+%%     end.
