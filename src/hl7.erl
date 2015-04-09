@@ -134,8 +134,6 @@ decoder() ->
 
 encoder() ->
     ?JSON_RECORD_ENCODER(hl7msg).
-    %% md_json:encoder([{hl7msg, record_info(fields, hl7msg)}],
-    %%               [{ignore, [null]}]).
 
 from_json(Json) when is_binary(Json) ->
     D = decoder(),

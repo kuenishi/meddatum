@@ -1,6 +1,7 @@
 -module(dpcs).
 
 -include("meddatum.hrl").
+-include("md_json.hrl").
 
 -behaviour(md_record).
 
@@ -11,47 +12,62 @@
          check_is_set_done/2, mark_set_as_done/2,
          columns/0]).
 
--export([new/4, merge/2]).
+-export([new/5, merge/2, update_shinym/2]).
 
 -export([files_to_parse/1, parse_files/4]).
 
 -type record_type() :: ff1|ff4|efg|efn|dn.
 
+-record(dpcs_common, {
+          cocd :: binary(),
+          kanjaid :: binary(),
+          nyuymd :: binary(),
+          shinym :: binary()
+         }).
+
 -record(dpcs, {
           key :: binary(),
           type :: record_type(),
-          hospital_id :: binary(),
-          patient_id :: binary(),
-          fields :: proplists:proplist(),
-          common_fields :: proplists:proplist()}).
+          common_fields :: #dpcs_common{},
+          fields :: proplists:proplist()
+         }).
 
 -type rec() :: #dpcs{}.
 -export_type([record_type/0, rec/0]).
 
 -spec bucket(rec()) -> binary().
-bucket(#dpcs{type = Type, hospital_id = HospitalID}) ->
-    meddatum:true_bucket_name(iolist_to_binary([klib:maybe_a2b(Type), $:, HospitalID])).
+bucket(#dpcs{type = efn}) ->
+    meddatum:true_bucket_name(<<?DPCS_BUCKET/binary, "efndn">>);
+bucket(#dpcs{type = efg}) ->
+    meddatum:true_bucket_name(<<?DPCS_BUCKET/binary, "efg">>);
+bucket(#dpcs{type = dn}) ->
+    meddatum:true_bucket_name(<<?DPCS_BUCKET/binary, "efndn">>);
+bucket(#dpcs{type = ff1}) ->
+    meddatum:true_bucket_name(<<?DPCS_BUCKET/binary, "ff">>);
+bucket(#dpcs{type = ff4}) ->
+    meddatum:true_bucket_name(<<?DPCS_BUCKET/binary, "ff">>).
 
 -spec key(rec()) -> binary().
 key(#dpcs{key=Key}) -> Key.
 
 %% TODO
 -spec make_2i_list(rec()) -> [{string(), binary()|integer()}].
-make_2i_list(#dpcs{patient_id=PatientID}) ->
-    [{"patient_id", PatientID}].
+make_2i_list(Rec) ->
+    [{"kanjaid", patient_id(Rec)}].
 
 -spec hospital_id(rec()) -> binary().
-hospital_id(#dpcs{hospital_id=HospitalID}) -> HospitalID.
+hospital_id(#dpcs{common_fields=#dpcs_common{cocd=HospitalID}}) -> HospitalID.
 
 -spec patient_id(rec()) -> binary().
-patient_id(#dpcs{patient_id=PatientID}) -> PatientID.
+patient_id(#dpcs{common_fields=#dpcs_common{kanjaid=PatientID}}) -> PatientID.
 
 -spec from_json(binary()) -> rec().
 from_json(_JSON) -> undefined.
 
 -spec to_json(rec()) -> {ok, binary()}.
 to_json(#dpcs{fields=Fields, common_fields=CommonFields}) ->
-    JSON = jsone:encode({CommonFields++Fields}, [native_utf8]),
+    CFList = (?JSON_RECORD_OPENER(dpcs_common))(CommonFields),
+    JSON = jsone:encode({CFList++Fields}, [native_utf8]),
     {ok, JSON}.
 
 -spec from_file(filename:filename(), list(), pid()) -> {ok, [rec()]}.
@@ -110,21 +126,49 @@ columns() -> undefined.
 
 %% =======
 
--spec new(iolist(), record_type(), proplists:proplist(), list(tuple())) -> rec().
-new(Key, Type, CommonFields, CodeField) ->
-    PatientID = proplists:get_value(<<"kanjaid">>, CommonFields),
-    HospitalID = proplists:get_value(<<"cocd">>, CommonFields),
+-spec new(record_type(),
+          Cocd :: binary(),
+          Kanjaid :: binary(),
+          Nyuymd :: binary(),
+          proplists:proplist()) -> rec().
+new(Type, Cocd, Kanjaid, Nyuymd, Fields0) ->
+    Key = case Type of
+              ff1 -> iolist_to_binary([Cocd, $:, Kanjaid, $:, Nyuymd]);
+              ff4 -> iolist_to_binary([Cocd, $:, Kanjaid, $:, Nyuymd]);
+              efn ->
+                  Jisymd = proplists:get_value(jisymd, Fields0),
+                  iolist_to_binary([Cocd, $:, Kanjaid, $:, Nyuymd, $:, Jisymd]);
+              efg ->
+                  Jisymd = proplists:get_value(jisymd, Fields0),
+                  iolist_to_binary([Cocd, $:, Kanjaid, $:, Jisymd]);
+              dn ->
+                  Jisymd = proplists:get_value(jisymd, Fields0),
+                  iolist_to_binary([Cocd, $:, Kanjaid, $:, Nyuymd, $:, Jisymd])
+          end,
+    CommonFields =
+              #dpcs_common{cocd=iolist_to_binary(Cocd),
+                           kanjaid=iolist_to_binary(Kanjaid),
+                           nyuymd=iolist_to_binary(Nyuymd)},
+    Fields = lists:foldl(fun dpcs_parser:cleanup_fields/2, [], Fields0),
+
     #dpcs{key=iolist_to_binary(Key),
-          patient_id=PatientID,
-          hospital_id=HospitalID,
           type=Type,
           common_fields=CommonFields,
-          fields=CodeField}.
+          fields=Fields}.
+
+-spec update_shinym(rec(), binary()) -> rec().
+update_shinym(Rec = #dpcs{common_fields=CF}, Date) ->
+    CommonFields = CF#dpcs_common{shinym=Date},
+    Rec#dpcs{common_fields=CommonFields}.
 
 -spec merge(New::rec(), Old::rec()) -> rec().
-merge(New = #dpcs{fields=NewFields}, _ = #dpcs{fields=Fields}) ->
-    New#dpcs{fields=NewFields++Fields}.
-
+merge(L = #dpcs{key=Key, type=Type,
+                common_fields=CF, fields=LFields},
+      _ = #dpcs{key=Key, type=Type,
+                common_fields=CF, fields=RFields}) ->
+    L#dpcs{fields=LFields++RFields};
+merge(L, R) ->
+    error({cannot_merge, L, R}).
 
 files_to_parse([Dir, HospitalID, Date]) ->
     Prefixes = [{"FF1", ff1}, {"FF4", ff4}, {"EFn", efn}, {"EFg", efg},
