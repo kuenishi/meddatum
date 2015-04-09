@@ -30,6 +30,8 @@
 -callback key(_) -> binary().
 -callback bucket(_) -> binary().
 -callback make_2i_list(_) -> [{binary(), binary()|integer()}].
+-callback merge(Old :: [Record], New :: Record) -> Record.
+
 -callback patient_id(_) -> binary().
 -callback hospital_id(_) -> binary().
 -callback columns() -> JSON::binary().
@@ -42,27 +44,22 @@
 -spec put_json(pid(), _::any(), module(), pid()) -> ok.
 put_json(C, Msg, Mod, Logger) when is_atom(Mod) ->
     Key = Mod:key(Msg),
-    case Mod:to_json(Msg) of
-        {ok, Data} when is_binary(Data) ->
-            Bucket = Mod:bucket(Msg),
-            RiakObj0 = meddatum:maybe_new_ro(C, Bucket, Key, Data),
-            Indexes = Mod:make_2i_list(Msg),
-            Metadata0 = riakc_obj:get_update_metadata(RiakObj0),
-            Metadata = lists:foldl(fun({K,V}, MD0) when is_binary(V) ->
-                                           riakc_obj:set_secondary_index(MD0, {{binary_index, K}, [V]});
-                                      ({K,V}, MD0) when is_integer(V) ->
-                                           riakc_obj:set_secondary_index(MD0, {{integer_index, K}, [V]})
-                                   end, Metadata0, Indexes),
-            RiakObj = riakc_obj:update_metadata(RiakObj0, Metadata),
-            %%_ = lager:debug("inserting: ~p~n", [Key]),
-            treehugger:log(Logger, debug, "inserting ~p", [{Bucket,Key}]),
-            case riakc_pb_socket:put(C, RiakObj) of
-                ok -> ok;
-                Error -> treehugger:log(error, Logger, "error inserting ~p: ~p", [Key, Error])
-            end;
-        E ->
-            treehugger:log(Logger, error, "can't encode record (~p): ~p", [E, Msg]),
-            E
+    Bucket = Mod:bucket(Msg),
+    RiakObj0 = maybe_new_ro(C, Mod, Bucket, Key, Msg),
+
+    Indexes = Mod:make_2i_list(Msg),
+    Metadata0 = riakc_obj:get_update_metadata(RiakObj0),
+    Metadata = lists:foldl(fun({K,V}, MD0) when is_binary(V) ->
+                                   riakc_obj:set_secondary_index(MD0, {{binary_index, K}, [V]});
+                              ({K,V}, MD0) when is_integer(V) ->
+                                   riakc_obj:set_secondary_index(MD0, {{integer_index, K}, [V]})
+                           end, Metadata0, Indexes),
+    RiakObj = riakc_obj:update_metadata(RiakObj0, Metadata),
+    %%_ = lager:debug("inserting: ~p~n", [Key]),
+    treehugger:log(Logger, debug, "inserting ~p", [{Bucket,Key}]),
+    case riakc_pb_socket:put(C, RiakObj) of
+        ok -> ok;
+        Error -> treehugger:log(error, Logger, "error inserting ~p: ~p", [Key, Error])
     end.
 
 bucket2hospital_id({_, Bucket}) -> bucket2hospital_id(Bucket);
@@ -83,3 +80,17 @@ mark_set_as_done(C, Module, Identifier) ->
 -spec check_is_set_done(pid(), module(), term()) -> boolean().
 check_is_set_done(C, Module, Identifier) ->
     Module:check_is_set_done(C, Identifier).
+
+%% Maybe new Riak Object
+maybe_new_ro(Client, Mod, Bucket, Key, Msg) ->
+    case riakc_pb_socket:get(Client, Bucket, Key) of
+        {ok, RiakObj0} ->
+            Values = [Mod:from_json(Value)
+                      || Value <- riakc_obj:get_values(RiakObj0)],
+            {ok, Data} = Mod:to_json(Mod:merge(Values, Msg)),
+            riakc_obj:update_value(RiakObj0, Data, ?APPLICATION_JSON);
+        {error, _E} ->
+            {ok, Data} = Mod:to_json(Msg),
+            riakc_obj:new(Bucket, Key, Data, ?APPLICATION_JSON)
+    end.
+

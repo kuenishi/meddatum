@@ -1,6 +1,6 @@
 -module(dpcs_parser).
 
--export([parse/4]).
+-export([parse/4, cleanup_fields/2]).
 
 -include_lib("eunit/include/eunit.hrl").
 
@@ -21,29 +21,17 @@ parse(Filename, Mode, Date, Logger) ->
                           end,
               Tokens = re:split(StripLine, "[\t]", [{return, list}, unicode]),
               case parse_tokens(Tokens, Mode) of
-                  {ok, {Key, CommonFields0, CodeFields}} ->
-                      CommonFields = case Mode of
-                                         ff1 -> [];
-                                         _ -> [{<<"shinym">>, Date}]
-                                     end ++ CommonFields0,
-                      DPCSRecord = dpcs:new(Key, Mode, CommonFields, CodeFields),
+                  {ok, DPCSRecord0} ->
+                      DPCSRecord = dpcs:update_shinym(DPCSRecord0, Date),
                       BinKey = dpcs:key(DPCSRecord),
-                      case ets:insert_new(Table, {BinKey, DPCSRecord}) of
+                      case ets:insert_new(Table, {{Mode, BinKey}, DPCSRecord}) of
                           true ->
                               ok;
                           false ->
-                              PrevDPCSRecord = ets:lookup_element(Table, BinKey, 2),
-                              NewDPCSRecord = dpcs:merge(DPCSRecord, PrevDPCSRecord),
-                              ets:insert(Table, {BinKey, NewDPCSRecord})
+                              PrevDPCSRecord = ets:lookup_element(Table, {Mode, BinKey}, 2),
+                              NewDPCSRecord = dpcs:merge_2(DPCSRecord, PrevDPCSRecord),
+                              ets:insert(Table, {{Mode, BinKey}, NewDPCSRecord})
                       end;
-                  {ok, {Key, CommonFields0}} ->
-                      CommonFields = case Mode of
-                                         ff1 -> [];
-                                         _ -> [{<<"shinym">>, Date}]
-                                     end ++ CommonFields0,
-                      DPCSRecord = dpcs:new(Key, Mode, CommonFields, []),
-                      BinKey = dpcs:key(DPCSRecord),
-                      ets:insert_new(Table, {BinKey, DPCSRecord});
                   Error ->
                       treehugger:hug(Logger, error, "Invalid format at ~s line ~p: ~p",
                                      [Filename, LineNo, Error]),
@@ -70,20 +58,9 @@ parse_tokens(Tokens, efn) -> parse_ef_tokens(Tokens, efn).
                               {error, wrong_ff1_tokens}.
 parse_ff1_tokens(Tokens) ->
     case Tokens of
-        [Cocd, Kanjaid, Nyuymd, Kaisukanrino, Medical_no, Code , _Version, _Seqno | Payload] ->
-            F = fun({K,V}, Acc) ->
-                        add_field({K,V}, dn, Acc)
-                end,
-            CommonField_list = [{cocd, Cocd},{kanjaid,Kanjaid},{nyuymd,Nyuymd},
-                                {kaisukanrino, Kaisukanrino}, {medical_no, Medical_no}],
-            CommonField =  lists:foldl(F ,[], CommonField_list),
-
-            CodeField_list = ff1_matcher:to_list(Code, Payload),
-            CodeField = {list_to_binary(Code),
-                         {lists:foldl(F, [], CodeField_list)}},
-
-            Key = [Cocd, $:, Kanjaid, $:, Nyuymd],
-            {ok, {Key , CommonField, [CodeField]}};
+        [Cocd, Kanjaid, Nyuymd, _Kaisukanrino, _Medical_no, Code , _Version, _Seqno | Payload] ->
+            CodeFields = ff1_matcher:to_list(Code, Payload),
+            {ok, dpcs:new(ff1, Cocd, Kanjaid, Nyuymd, CodeFields)};
         _ ->
             {error, wrong_ff1_tokens}
     end.
@@ -92,13 +69,8 @@ parse_ff1_tokens(Tokens) ->
 parse_ff4_tokens(Tokens) ->
     case Tokens of
         [Cocd, Kanjaid,Nyuymd,Taiymd,Hokkb] ->
-            F = fun({K,V}, Acc) ->
-                        add_field({K,V}, dn, Acc)
-                end,
-            CommonField_list = [{cocd, Cocd},{kanjaid,Kanjaid},{taiymd,Taiymd},{nyuymd,Nyuymd},{hokkb,Hokkb}],
-            CommonField =  lists:foldl(F ,[], CommonField_list),
-            Key = [Cocd, $:, Kanjaid, $:, Nyuymd],
-            {ok, {Key, CommonField}};
+            Fields = [{taiymd,Taiymd},{hokkb,Hokkb}],
+            {ok, dpcs:new(ff4, Cocd, Kanjaid, Nyuymd,Fields)};
         _ ->
             {error, wrong_ff4_tokens}
     end.
@@ -112,22 +84,14 @@ parse_dn_tokens(Tokens) ->
          Recptkakb ,Shinkakb ,Drcd ,Wrdcd ,Wrdkb,
          Nyugaikb ,Cotype ,Dpcstaymd ,Dpcendymd ,Dpcreckymd ,Dpccd ,Coefficient] ->
 
-            RececdField_list = [{undno, Undno}, {shinactnm, Shinactnm},{actten, Actten}, {actdrg,Actdrg}, {actzai, Actzai},{actcnt,Actcnt},
-                                {entenkb, Entenkb}, {hokno,Hokno}, {recesyucd,Recesyucd},
-                                {recptkakb,Recptkakb}, {shinkakb,Shinkakb},{drcd,Drcd},{wrdcd,Wrdcd},{wrdkb,Wrdkb}
-                               ],
-            CommonField_list = [{cocd, Cocd},{kanjaid,Kanjaid},{taiymd,Taiymd},{nyuymd,Nyuymd},{datakb,Datakb},{d_seqno,D_seqno},
-                                {hptenmstcd,Hptenmstcd},{jisymd,Jisymd},{nyugaikb,Nyugaikb},{cotype,Cotype},
-                                {dpcstaymd,Dpcstaymd},{dpcendymd, Dpcendymd}, {dpcreckymd, Dpcreckymd}, {dpccd,Dpccd}, {coefficient,Coefficient}],
-
-            F = fun({K,V}, Acc) ->
-                        add_field({K,V}, dn, Acc)
-                end,
-            RececdField = {list_to_binary(Rececd) , {lists:foldl(F, [], RececdField_list)}},
-
-            CommonField =  lists:foldl(F ,[], CommonField_list),
-            Key = [Cocd, $:, Kanjaid, $:, Nyuymd, $:, Jisymd],
-            {ok, {Key , CommonField, [RececdField]}};
+            Fields = [{undno, Undno}, {shinactnm, Shinactnm},{actten, Actten}, {actdrg,Actdrg}, {actzai, Actzai},{actcnt,Actcnt},
+                      {entenkb, Entenkb}, {hokno,Hokno}, {recesyucd,Recesyucd},
+                      {recptkakb,Recptkakb}, {shinkakb,Shinkakb},{drcd,Drcd},{wrdcd,Wrdcd},{wrdkb,Wrdkb},
+                      {taiymd,Taiymd},{datakb,Datakb},{d_seqno,D_seqno},{rececd, Rececd},
+                      {hptenmstcd,Hptenmstcd},{jisymd,Jisymd},{nyugaikb,Nyugaikb},{cotype,Cotype},
+                      {dpcstaymd,Dpcstaymd},{dpcendymd, Dpcendymd}, {dpcreckymd, Dpcreckymd}, {dpccd,Dpccd}, {coefficient,Coefficient}],
+            
+            {ok, dpcs:new(dn, Cocd, Kanjaid, Nyuymd, Fields)};
         _ ->
             {error, wrong_dn_tokens}
     end.
@@ -140,68 +104,58 @@ parse_ef_tokens(Tokens, Mode) ->
          Recptkakb,Shinkakb,Drcd, Wrdcd, Wrdkb,
          Nyugaikb, Cotype] ->
 
-            RececdField_list = [{undno, Undno}, {shindetnm, Shindetnm}, {ryo, Ryo}, { kijtani , Kijtani }, {meisaiten, Meisaiten},
-                                {entenkb, Entenkb}, {jissekiten, Jissekiten}, {includekb, Includekb}, {actten, Actten}, {actdrg,Actdrg},
-                                {actzai, Actzai},{actcnt,Actcnt},{hokno,Hokno}, {recesyucd,Recesyucd},
-                                {recptkakb,Recptkakb}, {shinkakb,Shinkakb},{drcd,Drcd},{wrdcd,Wrdcd},{wrdkb,Wrdkb}
-                               ],
-            CommonField_list = [{cocd, Cocd},{kanjaid,Kanjaid},{taiymd,Taiymd},{nyuymd,Nyuymd},{datakb,Datakb},{d_seqno,D_seqno},{actdetno,Actdetno},
-                                {hptenmstcd,Hptenmstcd},{jisymd,Jisymd},{nyugaikb,Nyugaikb},{cotype,Cotype}],
+            Fields = [{undno, Undno}, {shindetnm, Shindetnm}, {ryo, Ryo}, { kijtani , Kijtani }, {meisaiten, Meisaiten},
+                      {entenkb, Entenkb}, {jissekiten, Jissekiten}, {includekb, Includekb}, {actten, Actten}, {actdrg,Actdrg},
+                      {actzai, Actzai},{actcnt,Actcnt},{hokno,Hokno}, {recesyucd,Recesyucd},
+                      {recptkakb,Recptkakb}, {shinkakb,Shinkakb},{drcd,Drcd},{wrdcd,Wrdcd},{wrdkb,Wrdkb},
+                      {taiymd,Taiymd},{datakb,Datakb},{d_seqno,D_seqno},{actdetno,Actdetno},
+                      {hptenmstcd,Hptenmstcd},{rececd, Rececd}, {jisymd,Jisymd},{nyugaikb,Nyugaikb},{cotype,Cotype}],
 
-            F = fun({K,V}, Acc) ->
-                        add_field({K,V}, Mode, Acc)
-                end,
-            RececdField = {list_to_binary(Rececd) , {lists:foldl(F, [], RececdField_list)}},
-
-            CommonField =  lists:foldl(F ,[], CommonField_list),
-            Key = case Mode of
-                      efn -> [Cocd, $:, Kanjaid, $:, Nyuymd, $:, Jisymd];
-                      efg -> [Cocd, $:, Kanjaid, $:, Jisymd]
-                  end,
-            {ok, {Key , CommonField, [RececdField]}};
+            {ok, dpcs:new(Mode, Cocd, Kanjaid, Nyuymd, Fields)};
         _ ->
             {error, wrong_ef_tokens}
     end.
 
--spec add_field({atom(), binary()},
-                dpcs:record_type(), 
-                [{binary(),integer()|binary()}]) ->
-                       [{binary(), integer()|binary()}].
-add_field({FieldName , FieldValue} , Mode, Fields) ->
+-spec cleanup_fields({atom(), binary()},
+                    [{binary(),integer()|binary()}]) ->
+                           [{binary(), integer()|binary()}].
+cleanup_fields({FieldName, FieldValue}, Fields) ->
     case string:strip(FieldValue) of
         "" ->
             Fields;
         TrimmedValue ->
-            [trans_field(FieldName, TrimmedValue, Mode)|Fields]
+            [trans_field({FieldName, TrimmedValue})|Fields]
     end.
 
--spec trans_field(atom(), string(), dpcs:record_type()) ->
-                         [] | {binary(), integer()|binary()}.
-trans_field(FieldName, FieldValue, Mode) ->
-    case is_numeric_field(FieldName, Mode) of
+-spec trans_field({atom(), string()}) ->
+                         {binary(), float()|integer()|binary()}.
+trans_field({FieldName, FieldValue}) when is_atom(FieldName) ->
+    case is_numeric_field(FieldName) of
         true ->
             {atom_to_binary(FieldName,utf8),
              klib:str_to_numeric(FieldValue)};
         false ->
             {atom_to_binary(FieldName,utf8),
              unicode:characters_to_binary(FieldValue,utf8,utf8)}
-    end.
+    end;
+trans_field(F) -> F.
 
--spec is_numeric_field(atom(), any()) -> boolean().
-is_numeric_field(ryo, _) -> true;
-is_numeric_field(meisaiten, _) -> true;
-is_numeric_field(jissekiten, _) -> true;
-is_numeric_field(actten, _) -> true;
-is_numeric_field(actdrg, _) -> true;
-is_numeric_field(actzai, _) -> true;
-is_numeric_field(actcnt, _) -> true;
-is_numeric_field(coefficient, _) -> true;
-is_numeric_field(smk_index, _) -> true;
-is_numeric_field(pregweek_cnt , _) -> true;
-is_numeric_field(b_weight , _) -> true;
-is_numeric_field(birthweek, _) -> true;
-is_numeric_field(b_index , _) -> true;
-is_numeric_field(isolation_days , _) -> true;
-is_numeric_field(restraint_days , _) -> true;
-is_numeric_field(_, _) -> false.
+
+-spec is_numeric_field(atom()) -> boolean().
+is_numeric_field(ryo) -> true;
+is_numeric_field(meisaiten) -> true;
+is_numeric_field(jissekiten) -> true;
+is_numeric_field(actten) -> true;
+is_numeric_field(actdrg) -> true;
+is_numeric_field(actzai) -> true;
+is_numeric_field(actcnt) -> true;
+is_numeric_field(coefficient) -> true;
+is_numeric_field(smk_index) -> true;
+is_numeric_field(pregweek_cnt ) -> true;
+is_numeric_field(b_weight ) -> true;
+is_numeric_field(birthweek) -> true;
+is_numeric_field(b_index ) -> true;
+is_numeric_field(isolation_days ) -> true;
+is_numeric_field(restraint_days ) -> true;
+is_numeric_field(_) -> false.
 

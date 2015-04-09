@@ -16,8 +16,8 @@
 
 -module(meddatum).
 
--export([main/1, help/0,
-         true_bucket_name/1, maybe_new_ro/4,
+-export([main/1, help/0, maybe_new_ro/4,
+         true_bucket_name/1,
          ssmix_bucket/1, recept_bucket/1, ssmix_patients_bucket/1,
          check_setup/0,
          setup/2]).
@@ -99,22 +99,6 @@ ssmix_patients_bucket(HospitalID) when is_binary(HospitalID) ->
 ssmix_patients_bucket(HospitalID) ->
     ssmix_patients_bucket(iolist_to_binary(HospitalID)).
 
-%% Maybe new Riak Object
-maybe_new_ro(Client, Bucket, Key, Data) ->
-    case riakc_pb_socket:get(Client, Bucket, Key) of
-        {ok, RiakObj0} ->
-            case riakc_obj:value_count(RiakObj0) of
-                1 ->
-                    riakc_obj:update_value(RiakObj0, Data, ?APPLICATION_JSON);
-                N when N > 1 ->
-                    RiakObj = riakc_obj:new(Bucket, Key,
-                                            Data, ?APPLICATION_JSON),
-                    riakc_obj:set_vclock(RiakObj, riakc_obj:vclock(RiakObj0))
-            end;
-        {error, _E} ->
-            riakc_obj:new(Bucket, Key, Data, ?APPLICATION_JSON)
-    end.
-
 -define(RESULT(N, X), io:format("~s: ~p~n", [(N), (X)])).
 
 setup(Host, Port) ->
@@ -157,7 +141,7 @@ setup(Host, Port) ->
     end,
 
     {B, K} = {{?BUCKET_TYPE, <<"b">>}, <<"k">>},
-    Obj0 = meddatum:maybe_new_ro(C, B, K, <<"{\"test\":1}">>),
+    Obj0 = maybe_new_ro(C, B, K, <<"{\"test\":1}">>),
     ?RESULT("get a test data", riakc_obj:get_contents(Obj0)),
 
     ?RESULT("put a test data", riakc_pb_socket:put(C, Obj0)),
@@ -171,6 +155,14 @@ setup(Host, Port) ->
     ?RESULT("get k/v", riakc_pb_socket:get(C, B, K)),
 
     ok = riakc_pb_socket:stop(C).
+
+maybe_new_ro(C, B, K, D) ->
+    case riakc_pb_socket:get(C, B, K) of
+        {ok, RiakObj0} ->
+            riakc_obj:update_value(RiakObj0, D, ?APPLICATION_JSON);
+        {error, _E} ->
+            riakc_obj:new(B, K, D, ?APPLICATION_JSON)
+    end.
 
 -define(msg(Name), io:format("checking ~s ...", [Name])).
 -define(res(Argv), io:format("ok: ~p.~n", [Argv])).

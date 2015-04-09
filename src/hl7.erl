@@ -20,7 +20,7 @@
 
 -export([from_file/3, from_file/4,
          to_json/1, from_json/1,
-         key/1, bucket/1, make_2i_list/1,
+         key/1, bucket/1, make_2i_list/1, merge/2,
          static_bucket_from_hospital_id/1, bucket_from_hospital_id/1,
          patient_id/1, hospital_id/1,
          check_is_set_done/2, mark_set_as_done/2,
@@ -66,6 +66,8 @@ key(#hl7msg{file=File}) ->
 
 make_2i_list(#hl7msg{date=Date, patient_id=PatientID}) ->
     [{"date", Date}, {"patient_id", PatientID}].
+
+merge(_, New) -> New. %% LRW
 
 patient_id(#hl7msg{patient_id=PatientID}) -> PatientID.
 
@@ -134,8 +136,6 @@ decoder() ->
 
 encoder() ->
     ?JSON_RECORD_ENCODER(hl7msg).
-    %% md_json:encoder([{hl7msg, record_info(fields, hl7msg)}],
-    %%               [{ignore, [null]}]).
 
 from_json(Json) when is_binary(Json) ->
     D = decoder(),
