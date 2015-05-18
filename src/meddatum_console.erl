@@ -216,7 +216,7 @@ parse_dpcs([_Dir, HospitalID, Date|_] = Argv) ->
     {ok, #context{logger=Logger} = Context} = meddatum_console:setup(),
 
     {ok, Files} = dpcs:files_to_parse(Argv),
-    io:format(standard_error, "~p~n", [Files]),
+    io:format(standard_error, "Files to parse: ~p~n", [Files]),
     BinHospitalID = list_to_binary(HospitalID),
     YYYYMM = iolist_to_binary(["20", Date]),
     try

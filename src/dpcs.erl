@@ -211,9 +211,10 @@ files_to_parse([Dir, HospitalID, Date]) ->
 files_to_parse([Dir, _, _|Options]) ->
     case parse_options(Options, []) of
         {ok, Files} ->
-            lists:map(fun({T, File}) ->
-                              {T, filename:join([Dir, File])}
-                      end, Files);
+            {ok,
+             lists:map(fun({File, T}) ->
+                               {T, filename:join([Dir, File])}
+                       end, Files)};
         {error, _} = E -> E
     end.
 
@@ -235,7 +236,7 @@ parse_options(Other, _) ->
                          {ok, [{record_type(), [rec()]}]}.
 parse_files(Files, _HospitalID, YYYYMM, Logger) ->
     lists:foldl(
-      fun({Filename, Mode}, {ok, Records0}) ->
+      fun({Mode, Filename}, {ok, Records0}) ->
               io:format(standard_error, "parsing ~p...~n", [Filename]),
               case dpcs:from_file(Filename, [Mode, YYYYMM], Logger) of
                   {ok, Records} ->
