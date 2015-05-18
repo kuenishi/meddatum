@@ -1,12 +1,12 @@
 -module(dpcs_parser).
 
--export([parse/4, cleanup_fields/2]).
+-export([parse/5, cleanup_fields/2]).
 
 -include_lib("eunit/include/eunit.hrl").
 
 -spec parse(filename:filename(), dpcs:record_type(),
-            binary(), pid()) ->[dpcs:rec()].
-parse(Filename, Mode, Date, Logger) ->
+            binary(), binary(), pid()) ->[dpcs:rec()].
+parse(Filename, Mode, Date, HospitalID, Logger) ->
     {ok, Lines0} = japanese:read_file(Filename),
     Lines = lists:zip(lists:seq(1, length(Lines0)), Lines0),
     Table = ets:new(ef_data, [set, private]),
@@ -22,7 +22,7 @@ parse(Filename, Mode, Date, Logger) ->
               Tokens = re:split(StripLine, "[\t]", [{return, list}, unicode]),
               case parse_tokens(Tokens, Mode, LineNo) of
                   {ok, DPCSRecord0} ->
-                      DPCSRecord = dpcs:update_ym(DPCSRecord0, Date),
+                      DPCSRecord = dpcs:update_shinym(DPCSRecord0, Date),
                       BinKey = dpcs:key(DPCSRecord),
                       case ets:insert_new(Table, {{Mode, BinKey}, DPCSRecord}) of
                           true ->
@@ -39,7 +39,7 @@ parse(Filename, Mode, Date, Logger) ->
               end
       end,
       Lines),
-    [{K, dpcs:maybe_verify(Record, Date)} || {K, Record} <- ets:tab2list(Table)].
+    [{K, dpcs:maybe_verify(Record, HospitalID,  Date)} || {K, Record} <- ets:tab2list(Table)].
 
 
 
@@ -130,20 +130,20 @@ cleanup_fields({FieldName, FieldValue}, Fields) ->
         TrimmedValue ->
             [trans_field({FieldName, TrimmedValue})|Fields]
     end.
-
 -spec trans_field({atom(), string()}) ->
                          {binary(), float()|integer()|binary()}.
 trans_field({FieldName, FieldValue}) when is_atom(FieldName) ->
-    case is_numeric_field(FieldName) of
-        true ->
-            {atom_to_binary(FieldName,utf8),
-             klib:str_to_numeric(FieldValue)};
-        false ->
-            {atom_to_binary(FieldName,utf8),
-             unicode:characters_to_binary(FieldValue,utf8,utf8)}
-    end;
+    Property = atom_to_binary(FieldName,utf8),
+    Value = case is_numeric_field(FieldName) of
+                true ->
+                    klib:str_to_numeric(FieldValue);
+                false when is_list(FieldValue) ->
+                    unicode:characters_to_binary(FieldValue,utf8,utf8);
+                false ->
+                    FieldValue
+            end,
+    {Property, Value};
 trans_field(F) -> F.
-
 
 -spec is_numeric_field(atom()) -> boolean().
 is_numeric_field(ryo) -> true;
@@ -154,11 +154,4 @@ is_numeric_field(actdrg) -> true;
 is_numeric_field(actzai) -> true;
 is_numeric_field(actcnt) -> true;
 is_numeric_field(coefficient) -> true;
-is_numeric_field(smk_index) -> true;
-is_numeric_field(pregweek_cnt ) -> true;
-is_numeric_field(b_weight ) -> true;
-is_numeric_field(birthweek) -> true;
-is_numeric_field(b_index ) -> true;
-is_numeric_field(isolation_days ) -> true;
-is_numeric_field(restraint_days ) -> true;
 is_numeric_field(_) -> false.

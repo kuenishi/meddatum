@@ -13,7 +13,7 @@
          columns/0]).
 
 -export([new/5, merge/2, merge_2/2, update_shinym/2,
-         maybe_verify/2]).
+         maybe_verify/3]).
 
 -export([files_to_parse/1, parse_files/4]).
 
@@ -98,9 +98,9 @@ to_json(#dpcs{fields=Fields, common_fields=CommonFields}) ->
     {ok, JSON}.
 
 -spec from_file(filename:filename(), list(), pid()) -> {ok, [rec()]}.
-from_file(Filename, [Mode, YYYYMM], Logger)
+from_file(Filename, [Mode, YYYYMM, HospitalID], Logger)
   when is_atom(Mode) ->
-    Records0 = dpcs_parser:parse(Filename, Mode, YYYYMM, Logger),
+    Records0 = dpcs_parser:parse(Filename, Mode, YYYYMM, HospitalID, Logger),
     Records = lists:map(fun({_, Record}) -> Record end, Records0),
     {ok, Records}.
 
@@ -153,6 +153,12 @@ columns() -> undefined.
 
 %% =======
 
+maybe_verify(Record = #dpcs{common_fields=CF}, HospitalID, Date) ->
+    case CF#dpcs_common.cocd of
+        HospitalID -> maybe_verify(Record, Date);
+        Wrong -> error({no_cocd_match, Wrong, HospitalID})
+    end.             
+
 %% @doc verify record with date specified via CUI
 -spec maybe_verify(rec(), binary()) -> rec(). %error({no_date_match, binary(), string()}).
 maybe_verify(#dpcs{type=ff1, fields=F} = Record, Date) ->
@@ -203,7 +209,7 @@ new(Type, Cocd, Kanjaid, Nyuymd, Fields0) ->
           fields=Fields}.
 
 -spec update_shinym(rec(), binary()) -> rec().
-update_shinym(Rec = #dpcs{common_fields=CF, type=Type}, Date) ->
+update_shinym(Rec = #dpcs{common_fields=CF}, Date) ->
     CommonFields = CF#dpcs_common{shinym=Date},
     Rec#dpcs{common_fields=CommonFields}.
 
@@ -255,11 +261,11 @@ parse_options(Other, _) ->
 
 -spec parse_files(filename:filename(), binary(), binary(), term()) ->
                          {ok, [{record_type(), [rec()]}]}.
-parse_files(Files, _HospitalID, YYYYMM, Logger) ->
+parse_files(Files, HospitalID, YYYYMM, Logger) ->
     lists:foldl(
       fun({Mode, Filename}, {ok, Records0}) ->
               io:format(standard_error, "parsing ~p...~n", [Filename]),
-              case dpcs:from_file(Filename, [Mode, YYYYMM], Logger) of
+              case dpcs:from_file(Filename, [Mode, YYYYMM, HospitalID], Logger) of
                   {ok, Records} ->
                       %% case check_all(list_to_binary(HospitalID),
                       %%                list_to_binary(Date), Records) of
@@ -272,9 +278,6 @@ parse_files(Files, _HospitalID, YYYYMM, Logger) ->
          (_, Error) ->
               Error
       end, {ok, []}, Files).
-
-
-
 
 %% -spec check_date_hospital(binary(), binary(), rec()) -> ok | {error, atom()}.
 %% check_date_hospital(HospitalID, YYMM,
