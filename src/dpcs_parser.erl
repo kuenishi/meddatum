@@ -39,7 +39,7 @@ parse(Filename, Mode, Date, HospitalID, Logger) ->
               end
       end,
       Lines),
-    [{K, dpcs:maybe_verify(Record, HospitalID,  Date)} || {K, Record} <- ets:tab2list(Table)].
+    [{K, dpcs:maybe_verify(Record, HospitalID, Date)} || {K, Record} <- ets:tab2list(Table)].
 
 
 
@@ -132,6 +132,8 @@ cleanup_fields({FieldName, FieldValue}, Fields) ->
     end.
 -spec trans_field({atom(), string()}) ->
                          {binary(), float()|integer()|binary()}.
+trans_field({ope, _} = F) -> F;
+trans_field({sick, _} = F) -> F;
 trans_field({FieldName, FieldValue}) when is_atom(FieldName) ->
     Property = atom_to_binary(FieldName,utf8),
     Value = case is_numeric_field(FieldName) of

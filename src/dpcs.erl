@@ -31,7 +31,7 @@
           key :: binary(),
           type :: record_type(),
           common_fields :: #dpcs_common{},
-          fields :: proplists:proplist()
+          fields :: orddict:orddict()
          }).
 
 -type rec() :: #dpcs{}.
@@ -206,7 +206,7 @@ new(Type, Cocd, Kanjaid, Nyuymd, Fields0) ->
     #dpcs{key=iolist_to_binary(Key),
           type=Type,
           common_fields=CommonFields,
-          fields=Fields}.
+          fields=orddict:from_list(Fields)}.
 
 -spec update_shinym(rec(), binary()) -> rec().
 update_shinym(Rec = #dpcs{common_fields=CF}, Date) ->
@@ -222,7 +222,12 @@ merge_2(L = #dpcs{key=Key, type=Type,
                 common_fields=CF, fields=LFields},
       _ = #dpcs{key=Key, type=Type,
                 common_fields=CF, fields=RFields}) ->
-    L#dpcs{fields=LFields++RFields};
+    io:format("key: ~p~n", [Key]),
+    Fields = orddict:merge(fun(ope, LV, RV) -> LV++RV;
+                              (sick, LV, RV) -> LV++RV;
+                              (_, V, V) -> V
+                           end, LFields, RFields),
+    L#dpcs{fields=Fields};
 merge_2(L, R) ->
     error({cannot_merge, L, R}).
 
