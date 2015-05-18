@@ -20,9 +20,9 @@ parse(Filename, Mode, Date, Logger) ->
                               L -> L
                           end,
               Tokens = re:split(StripLine, "[\t]", [{return, list}, unicode]),
-              case parse_tokens(Tokens, Mode) of
-                  {ok, DPCSRecord0} ->
-                      DPCSRecord = dpcs:update_shinym(DPCSRecord0, Date),
+              case parse_tokens(Tokens, Mode, LineNo) of
+                  {ok, DPCSRecord} ->
+                      %%DPCSRecord = dpcs:update_ym(DPCSRecord0, Date),
                       BinKey = dpcs:key(DPCSRecord),
                       case ets:insert_new(Table, {{Mode, BinKey}, DPCSRecord}) of
                           true ->
@@ -39,27 +39,30 @@ parse(Filename, Mode, Date, Logger) ->
               end
       end,
       Lines),
-    ets:tab2list(Table).
+    [{K, dpcs:maybe_verify(Record, Date)} || {K, Record} <- ets:tab2list(Table)].
 
--spec parse_tokens([string()], dpcs:record_type()) ->
+
+
+-spec parse_tokens([string()], dpcs:record_type(), non_neg_integer()) ->
                           {ok, {iolist(), term(), term()}} |
                           {ok, {iolist(), term()}} |
                           {error, atom()}.
-parse_tokens(Tokens, ff1) -> parse_ff1_tokens(Tokens);
-parse_tokens(Tokens, ff4) -> parse_ff4_tokens(Tokens);
-parse_tokens(Tokens, dn) -> parse_dn_tokens(Tokens);
-parse_tokens(Tokens, efg) -> parse_ef_tokens(Tokens, efg);
-parse_tokens(Tokens, efn) -> parse_ef_tokens(Tokens, efn).
+parse_tokens(Tokens, ff1, LineNo) -> parse_ff1_tokens(Tokens, LineNo);
+parse_tokens(Tokens, ff4, _) -> parse_ff4_tokens(Tokens);
+parse_tokens(Tokens, dn, _) -> parse_dn_tokens(Tokens);
+parse_tokens(Tokens, efg, _) -> parse_ef_tokens(Tokens, efg);
+parse_tokens(Tokens, efn, _) -> parse_ef_tokens(Tokens, efn).
 
 %% -> {iolist(), proplists:proplist(), {binary(), {[...]}}}
--spec parse_ff1_tokens([string()]) ->
+-spec parse_ff1_tokens([string()], non_neg_integer()) ->
                               {ok, {iolist(), proplists:proplist(),
                                     proplists:proplist()}} |
                               {error, wrong_ff1_tokens}.
-parse_ff1_tokens(Tokens) ->
+parse_ff1_tokens(Tokens, LineNo) ->
     case Tokens of
         [Cocd, Kanjaid, Nyuymd, _Kaisukanrino, _Medical_no, Code , _Version, _Seqno | Payload] ->
-            CodeFields = ff1_matcher:to_list(Code, Payload),
+            %% CodeFields = ff1_matcher:to_list(Code, Payload),
+            CodeFields = ff1_matcher:to_list_2(Code, Payload, LineNo),
             {ok, dpcs:new(ff1, Cocd, Kanjaid, Nyuymd, CodeFields)};
         _ ->
             {error, wrong_ff1_tokens}
@@ -90,7 +93,7 @@ parse_dn_tokens(Tokens) ->
                       {taiymd,Taiymd},{datakb,Datakb},{d_seqno,D_seqno},{rececd, Rececd},
                       {hptenmstcd,Hptenmstcd},{jisymd,Jisymd},{nyugaikb,Nyugaikb},{cotype,Cotype},
                       {dpcstaymd,Dpcstaymd},{dpcendymd, Dpcendymd}, {dpcreckymd, Dpcreckymd}, {dpccd,Dpccd}, {coefficient,Coefficient}],
-            
+
             {ok, dpcs:new(dn, Cocd, Kanjaid, Nyuymd, Fields)};
         _ ->
             {error, wrong_dn_tokens}
@@ -119,6 +122,7 @@ parse_ef_tokens(Tokens, Mode) ->
 -spec cleanup_fields({atom(), binary()},
                     [{binary(),integer()|binary()}]) ->
                            [{binary(), integer()|binary()}].
+cleanup_fields({_, null}, Fields) -> Fields;
 cleanup_fields({FieldName, FieldValue}, Fields) ->
     case string:strip(FieldValue) of
         "" ->
@@ -158,4 +162,3 @@ is_numeric_field(b_index ) -> true;
 is_numeric_field(isolation_days ) -> true;
 is_numeric_field(restraint_days ) -> true;
 is_numeric_field(_) -> false.
-

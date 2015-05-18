@@ -12,7 +12,8 @@
          check_is_set_done/2, mark_set_as_done/2,
          columns/0]).
 
--export([new/5, merge/2, merge_2/2, update_shinym/2]).
+-export([new/5, merge/2, merge_2/2, %%update_ym/2,
+         maybe_verify/2]).
 
 -export([files_to_parse/1, parse_files/4]).
 
@@ -21,8 +22,9 @@
 -record(dpcs_common, {
           cocd :: binary(),
           kanjaid :: binary(),
-          nyuymd :: binary(),
-          shinym :: binary()
+          nyuymd :: binary()
+          %% shinym :: binary(),
+          %% ymd :: binary() %% Valid year/month description to be used as a key for this record
          }).
 
 -record(dpcs, {
@@ -37,13 +39,13 @@
 
 -spec bucket(rec()) -> binary().
 bucket(#dpcs{type = efn}) ->
-    meddatum:true_bucket_name(<<?DPCS_BUCKET/binary, "efndn">>);
+    meddatum:true_bucket_name(<<?DPCS_BUCKET/binary, ":efndn">>);
 bucket(#dpcs{type = efg}) ->
-    meddatum:true_bucket_name(<<?DPCS_BUCKET/binary, "efg">>);
+    meddatum:true_bucket_name(<<?DPCS_BUCKET/binary, ":efg">>);
 bucket(#dpcs{type = dn}) ->
-    meddatum:true_bucket_name(<<?DPCS_BUCKET/binary, "efndn">>);
+    meddatum:true_bucket_name(<<?DPCS_BUCKET/binary, ":efndn">>);
 bucket(#dpcs{type = ff1}) ->
-    meddatum:true_bucket_name(<<?DPCS_BUCKET/binary, "ff">>);
+    meddatum:true_bucket_name(<<?DPCS_BUCKET/binary, ":ff">>);
 bucket(#dpcs{type = ff4}) ->
     meddatum:true_bucket_name(<<?DPCS_BUCKET/binary, "ff">>).
 
@@ -84,8 +86,8 @@ from_json([{<<"kanjaid">>, V}|L], DPCS = #dpcs{common_fields=CF}) ->
     from_json(L, DPCS#dpcs{common_fields=CF#dpcs_common{kanjaid=V}});
 from_json([{<<"nyuymd">>, V}|L], DPCS = #dpcs{common_fields=CF}) ->
     from_json(L, DPCS#dpcs{common_fields=CF#dpcs_common{nyuymd=V}});
-from_json([{<<"shinym">>, V}|L], DPCS = #dpcs{common_fields=CF}) ->
-    from_json(L, DPCS#dpcs{common_fields=CF#dpcs_common{shinym=V}});
+%% from_json([{<<"shinym">>, V}|L], DPCS = #dpcs{common_fields=CF}) ->
+%%     from_json(L, DPCS#dpcs{common_fields=CF#dpcs_common{shinym=V}});
 from_json([{K, V}|L], DPCS = #dpcs{fields=F}) ->
     from_json(L, DPCS#dpcs{fields=[{K,V}|F]}).
 
@@ -126,7 +128,7 @@ is_tombstone(RiakObj) ->
             error({has_siblings, {riakc_obj:bucket(RiakObj),
                                   riakc_obj:key(RiakObj)}})
     end.
-    
+
 
 %% @doc Hereby for dpcs, for a set of files that have same
 %% {HospitalID, Date} is a set of import - thus if all records
@@ -150,6 +152,25 @@ tbk(HospitalID, Date) ->
 columns() -> undefined.
 
 %% =======
+
+%% @doc verify record with date specified via CUI
+-spec maybe_verify(rec(), binary()) -> rec(). %error({no_date_match, binary(), string()}).
+maybe_verify(#dpcs{type=ff1, fields=F} = Record, Date) ->
+    maybe_verify_date_prefix(proplists:get_value(<<"taiymd">>, F), Date, Record);
+maybe_verify(#dpcs{type=ff4, fields=F} = Record, Date) ->
+    maybe_verify_date_prefix(proplists:get_value(<<"taiymd">>, F), Date, Record);
+maybe_verify(#dpcs{type=efg, fields=F} = Record, Date) ->
+    maybe_verify_date_prefix(proplists:get_value(<<"jisymd">>, F), Date, Record);
+maybe_verify(#dpcs{type=efn, fields=F} = Record, Date) ->
+    maybe_verify_date_prefix(proplists:get_value(<<"jisymd">>, F), Date, Record);
+maybe_verify(#dpcs{type=dn, fields=F} = Record, Date) ->
+    maybe_verify_date_prefix(proplists:get_value(<<"jisymd">>, F), Date, Record).
+
+maybe_verify_date_prefix(undefined, Date, _) -> error({no_date_match, Date});
+maybe_verify_date_prefix(<<Date:6/binary, _/binary>>, Date, Record) ->  Record;
+maybe_verify_date_prefix(<<"00000000">>, _, Record) -> Record; %% TODO: is this skipping really okay?
+maybe_verify_date_prefix(YMD, Date, _) -> error({no_date_match, YMD, Date}).
+
 
 -spec new(record_type(),
           Cocd :: binary(),
@@ -181,10 +202,19 @@ new(Type, Cocd, Kanjaid, Nyuymd, Fields0) ->
           common_fields=CommonFields,
           fields=Fields}.
 
--spec update_shinym(rec(), binary()) -> rec().
-update_shinym(Rec = #dpcs{common_fields=CF}, Date) ->
-    CommonFields = CF#dpcs_common{shinym=Date},
-    Rec#dpcs{common_fields=CommonFields}.
+%% -spec update_ym(rec(), binary()) -> rec().
+%% update_ym(Rec = #dpcs{common_fields=CF, type=Type}, Date) ->
+%%     _YM = case Type of
+%%              ff1 -> taiymd;
+%%              ff4 -> taiymd;
+%%              efg -> jisymd;
+%%              efn -> jisymd;
+%%              dn  -> jisymd
+%%          end,
+
+%%     CommonFields = CF#dpcs_common{ymd=Date},
+%%     Rec#dpcs{common_fields=CommonFields}.
+
 
 -spec merge([rec()], rec()) -> rec().
 merge(LList, R) ->
@@ -202,7 +232,7 @@ merge_2(L, R) ->
 files_to_parse([Dir, HospitalID, Date]) ->
     Prefixes = [{"FF1", ff1}, {"FF4", ff4}, {"EFn", efn}, {"EFg", efg},
                 {"Dn", dn}],
-    {ok, 
+    {ok,
      lists:map(fun({Prefix, Mode}) ->
                        Name = [Prefix, $_, HospitalID, $_, Date, ".txt"],
                        {filename:join([Dir, lists:flatten(Name)]), Mode}
@@ -251,6 +281,8 @@ parse_files(Files, _HospitalID, YYYYMM, Logger) ->
          (_, Error) ->
               Error
       end, {ok, []}, Files).
+
+
 
 
 %% -spec check_date_hospital(binary(), binary(), rec()) -> ok | {error, atom()}.

@@ -1,6 +1,7 @@
 -module(ff1_matcher).
 
--export([to_list/2]).
+-include("ff1_types.hrl").
+-export([to_list/2, to_list_2/3]).
 
 to_list("A000010", [ Birthymd, Sex, Postno, _ , _ , _ , _ , _ , _ ]) ->
     [{birthymd, Birthymd},{sex, Sex},{postno, Postno}];
@@ -99,3 +100,33 @@ to_list("M170020", [ _ , Seisin_nyuform, Isolation_days, Restraint_days, _ , _ ,
 to_list("Mzz0010", [ _ , Injucd, _ , _ , _ , _ , _ , _ , Injunk]) ->
     [{injucd, Injucd},{injunk, Injunk}].
 
+
+to_list_2(Code, Tokens, LineNo) ->
+    PayloadDef = proplists:get_value(Code, ?DPCS_CODES),
+    Obj = to_object(PayloadDef, Tokens, LineNo, []),
+    verify_fields(PayloadDef, Obj, LineNo).
+
+to_object([{}], _, _, Acc) -> lists:reverse(Acc);
+to_object([{Property, Idx, Required, Type}|Defs], Tokens, LineNo, Acc0) ->
+    Token = lists:nth(Idx, Tokens),
+    case {Required, Token} of
+        {2, ""} ->  error({required_field, LineNo, Property});
+        _ -> ok
+    end,
+    Value = case {Token, Type} of
+                {"", _} -> null;
+                _ -> Token
+            end,
+    to_object(Defs, Tokens, LineNo, [{Property, Value}|Acc0]).
+
+verify_fields([{}], Obj, _) -> Obj;
+verify_fields([{_, _, 0, _}|Defs], Obj, LineNo) ->
+    verify_fields(Defs, Obj, LineNo);
+verify_fields([{_, _, 2, _}|Defs], Obj, LineNo) ->
+    verify_fields(Defs, Obj, LineNo);
+verify_fields([{Property, _, 1, _}|Defs], Obj, LineNo) ->
+    case proplists:get_value(Property, Obj) of
+        undefined -> error({required_field, LineNo, Property});
+        "" -> error({required_field, LineNo, Property});
+        _ -> verify_fields(Defs, Obj, LineNo)
+    end.

@@ -223,6 +223,7 @@ parse_dpcs([_Dir, HospitalID, Date|_] = Argv) ->
         {ok, ModesRecords} = dpcs:parse_files(Files, BinHospitalID, YYYYMM, Logger),
         lists:foreach(fun({_Mode, Records})->
                               lists:foreach(fun(Record) ->
+                                                    io:format("~p, ~p~n", [dpcs:bucket(Record), dpcs:key(Record)]),
                                                     io:format("~ts~n", [element(2, dpcs:to_json(Record))])
                                             end, Records)
                       end, ModesRecords)
