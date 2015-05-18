@@ -21,8 +21,8 @@ parse(Filename, Mode, Date, Logger) ->
                           end,
               Tokens = re:split(StripLine, "[\t]", [{return, list}, unicode]),
               case parse_tokens(Tokens, Mode, LineNo) of
-                  {ok, DPCSRecord} ->
-                      %%DPCSRecord = dpcs:update_ym(DPCSRecord0, Date),
+                  {ok, DPCSRecord0} ->
+                      DPCSRecord = dpcs:update_ym(DPCSRecord0, Date),
                       BinKey = dpcs:key(DPCSRecord),
                       case ets:insert_new(Table, {{Mode, BinKey}, DPCSRecord}) of
                           true ->

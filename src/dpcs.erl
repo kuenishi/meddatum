@@ -12,7 +12,7 @@
          check_is_set_done/2, mark_set_as_done/2,
          columns/0]).
 
--export([new/5, merge/2, merge_2/2, %%update_ym/2,
+-export([new/5, merge/2, merge_2/2, update_shinym/2,
          maybe_verify/2]).
 
 -export([files_to_parse/1, parse_files/4]).
@@ -22,8 +22,8 @@
 -record(dpcs_common, {
           cocd :: binary(),
           kanjaid :: binary(),
-          nyuymd :: binary()
-          %% shinym :: binary(),
+          nyuymd :: binary(),
+          shinym :: binary()
           %% ymd :: binary() %% Valid year/month description to be used as a key for this record
          }).
 
@@ -86,8 +86,8 @@ from_json([{<<"kanjaid">>, V}|L], DPCS = #dpcs{common_fields=CF}) ->
     from_json(L, DPCS#dpcs{common_fields=CF#dpcs_common{kanjaid=V}});
 from_json([{<<"nyuymd">>, V}|L], DPCS = #dpcs{common_fields=CF}) ->
     from_json(L, DPCS#dpcs{common_fields=CF#dpcs_common{nyuymd=V}});
-%% from_json([{<<"shinym">>, V}|L], DPCS = #dpcs{common_fields=CF}) ->
-%%     from_json(L, DPCS#dpcs{common_fields=CF#dpcs_common{shinym=V}});
+from_json([{<<"shinym">>, V}|L], DPCS = #dpcs{common_fields=CF}) ->
+    from_json(L, DPCS#dpcs{common_fields=CF#dpcs_common{shinym=V}});
 from_json([{K, V}|L], DPCS = #dpcs{fields=F}) ->
     from_json(L, DPCS#dpcs{fields=[{K,V}|F]}).
 
@@ -202,19 +202,10 @@ new(Type, Cocd, Kanjaid, Nyuymd, Fields0) ->
           common_fields=CommonFields,
           fields=Fields}.
 
-%% -spec update_ym(rec(), binary()) -> rec().
-%% update_ym(Rec = #dpcs{common_fields=CF, type=Type}, Date) ->
-%%     _YM = case Type of
-%%              ff1 -> taiymd;
-%%              ff4 -> taiymd;
-%%              efg -> jisymd;
-%%              efn -> jisymd;
-%%              dn  -> jisymd
-%%          end,
-
-%%     CommonFields = CF#dpcs_common{ymd=Date},
-%%     Rec#dpcs{common_fields=CommonFields}.
-
+-spec update_shinym(rec(), binary()) -> rec().
+update_shinym(Rec = #dpcs{common_fields=CF, type=Type}, Date) ->
+    CommonFields = CF#dpcs_common{shinym=Date},
+    Rec#dpcs{common_fields=CommonFields}.
 
 -spec merge([rec()], rec()) -> rec().
 merge(LList, R) ->
