@@ -131,8 +131,6 @@ from_file(Filename, Tree, _, PostProcessor)->
 
 decoder() ->
     ?JSON_RECORD_DECODER(hl7msg).
-    %% md_json:decoder([{hl7msg, record_info(fields, hl7msg)}],
-    %%               [{ignore, [null]}]).
 
 encoder() ->
     ?JSON_RECORD_ENCODER(hl7msg).
@@ -154,8 +152,6 @@ mark_set_as_done(_, _) -> ok.
 %% @doc return schema for presto-riak. The format is JSON.
 columns() ->
     [
-     %%[{name, segments},    {type, 'varchar'}, {index, true}]
-     %%[{name, segments},    {type, 'array'}, {index, false}]
      [{name, hospital_id}, {type, 'varchar'}, {index, false}],
      [{name, patient_id},  {type, 'varchar'}, {index, true}],
      [{name, file},        {type, 'varchar'}, {index, false}],
@@ -165,9 +161,43 @@ columns() ->
     ].
 
 subtables() ->
-    [].
-    %% [{<<"subtables">>,
-    %%  lists:map(fun({Name, _Type}) ->
-    %%                    {list_to_binary(Name), <<"boom">>}
-    %%            end, ?HL7_TYPES)
-    %%  }].
+   Subtables = 
+        lists:map(fun({Name0, Type}) ->
+                          Name = list_to_binary(Name0),
+                          SubtableCols = subcols(Type),
+                          {[{name, Name},
+                            {path, <<"$.segments[?(@.segid=='", Name/binary, "')]">>},
+                            {columns, SubtableCols}]}
+                  end, ?HL7_TYPES),
+    [{<<"subtables">>, Subtables}].
+
+subcols(ColDefs) ->
+    [ begin
+          {[{name, unicode:characters_to_binary(Name)},
+            {type, type(Type)}, {index, false},
+            {comment, unicode:characters_to_binary(Comment)}]}
+      end || {Name, Type, _Len, Comment} <- ColDefs ].
+
+type({maybe, Type}) -> type(Type);
+type('ST') -> <<"varchar">>;
+type('TX') -> <<"varchar">>;
+type('FT') -> <<"varchar">>;
+type('NM') -> <<"bigint">>;
+type('IS') -> <<"varchar">>;
+type('ID') -> <<"varchar">>;
+type('DT') -> <<"varchar">>;
+type('TM') -> <<"varchar">>;
+type('DTM') -> <<"varchar">>;
+type('SI') -> <<"bigint">>;
+type('*') -> <<"varchar">>;
+type('FN') -> <<"varchar">>;
+type('SAD') -> <<"varchar">>;
+type('SPS') -> <<"varchar">>;
+type('AUI') -> <<"varchar">>;
+
+%% Structured types, how to handle?
+type(T) ->
+    case proplists:get_value(T, ?HL7_PRIMITIVE_TYPES) of
+        undefined -> error(unknown_type);
+        _ -> <<"some structured type">>
+    end.
