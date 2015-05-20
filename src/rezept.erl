@@ -206,7 +206,7 @@ subtables() ->
     %% is ?REZEPT_COMMON_RECORDS. So duplication is removed by sets
     RecordTypes = sets:union(sets:from_list(?DPC_RECORD_TYPES),
                              sets:from_list(?MED_RECORD_TYPES)),
-    [{<<"subtables">>,
+    [{subtables,
       lists:map(fun(C) -> recept_record_to_presto_nested_column(C) end,
                 sets:to_list(RecordTypes))}].
 

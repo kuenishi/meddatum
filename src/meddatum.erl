@@ -42,10 +42,16 @@ main(["show-schema", "ssmix"]) ->
     meddatum_sql_schema:create(ssmix);
 main(["show-schema", "recept"]) ->
     meddatum_sql_schema:create(recept);
+main(["show-schema", "dpcs"]) ->
+    meddatum_sql_schema:create(dpcs);
 main(["check-schema"]) ->
     meddatum_sql_schema:check();
 main(["setup-schema"]) ->
     meddatum_sql_schema:setup();
+main(["check-schema", HospitalID]) ->
+    meddatum_sql_schema:check(HospitalID);
+main(["setup-schema", HospitalID]) ->
+    meddatum_sql_schema:setup(HospitalID);
 main(["help"]) -> help();
 main(_) -> help().
 
@@ -65,7 +71,8 @@ help() ->
               "meddatum search <keyword> (prints all keys matched)~n"
               "meddatum [help]~n"
               "experimental:~n"
-              "meddatum show-schema [ssmix-static|ssmix|recept]~n"
+              "meddatum show-schema [ssmix-static|ssmix|recept|dpcs]~n"
+              "meddatum show-schema dpcs [efndn|efg|ff]~n"
               "meddatum ckeck-schema (checks tabledef of ssmix, recept in Riak)~n"
               "meddatum setup-schema (creates tabledef on ssmix, recept)~n"
              ).

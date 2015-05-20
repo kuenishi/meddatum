@@ -12,7 +12,7 @@
          from_file/3, from_file/4, merge/2,
          check_is_set_done/2, mark_set_as_done/2,
          stay/1, wards/1,
-         columns/0]).
+         columns/0, subtables/0]).
 
 -record(dpcs_ff1, {
           key :: binary(),
@@ -124,6 +124,9 @@ tbk(HospitalID, Date) ->
 
 -spec columns() -> list().
 columns() -> undefined.
+
+-spec subtables() -> tmp.
+subtables() -> undefined.
 
 %% =======
 

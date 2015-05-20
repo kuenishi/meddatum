@@ -33,12 +33,24 @@ recept_tabledef() ->
                    ] ++ rezept:subtables()},
     jsone:encode(ReceptTable, [native_utf8]).
 
+dpcs_tabledef(RecordType)
+  when RecordType =:= <<"efndn">> orelse
+       RecordType =:= <<"efg">> orelse
+       RecordType =:= <<"ff">> ->
+    %% Bucket names: dpcs:efndn / dpcs:efg / dpcs:ff
+    BucketName = <<"dpcs:", RecordType/binary>>,
+    Table = {[{name, BucketName},
+              {columns, dpcs:columns()},
+              {subtables, dpcs:subtables()}]},
+    jsone:encode(Table, [native_utf8]).
+
 create(Type) ->
     ok = io:setopts([{encoding,utf8}]),
     Text= case Type of
               static -> static_tabledef();
               ssmix ->  normal_tabledef();
-              recept -> recept_tabledef()
+              recept -> recept_tabledef();
+              dpcs ->   dpcs_tabledef(todo)
           end,
     io:format("~ts~n", [Text]).
 

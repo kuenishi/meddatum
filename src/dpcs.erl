@@ -10,7 +10,7 @@
          patient_id/1, hospital_id/1,
          from_file/3, from_file/4,
          check_is_set_done/2, mark_set_as_done/2,
-         columns/0]).
+         columns/0, subtables/0]).
 
 -export([new/5, merge/2, update_shinym/2,
          maybe_verify/3]).
@@ -150,8 +150,19 @@ tbk(HospitalID, Date) ->
     BinKey = iolist_to_binary(Key),
     {BT, BinKey}.
 
--spec columns() -> list().
-columns() -> undefined.
+-spec columns() -> [md_record:column()].
+columns() ->
+    [
+     {[{name, date},        {type, 'varchar'}, {index, true}]},
+     {[{name, patient_id},  {type, 'varchar'}, {index, true}]},
+     {[{name, hospital_id}, {type, 'varchar'}, {index, false}]},
+     {[{name, file},        {type, 'varchar'}, {index, false}]},
+     {[{name, checksum},    {type, 'varchar'}, {index, false}]}
+     ].
+
+-spec subtables() -> [md_record:subtable()].
+subtables() ->
+    [].
 
 %% =======
 
