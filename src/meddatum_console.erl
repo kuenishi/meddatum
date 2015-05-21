@@ -141,7 +141,9 @@ import_dpcs([_Dir, HospitalID, Date|_] = Argv, Force) ->
                     {ok, Records} ->
                         treehugger:log(Logger, info,
                                        "parsing ~p finished", [Files]),
-                        lists:foreach(fun(Record)->
+                        lists:foreach(fun({ff1, Record}) ->
+                                              ok = md_record:put_json(C, Record, dpcs_ff1, Logger);
+                                         ({_, _} = Record) ->
                                               ok = md_record:put_json(C, Record, dpcs, Logger)
                                       end, Records),
                         case md_record:mark_set_as_done(C, dpcs, Identifier) of
@@ -221,12 +223,17 @@ parse_dpcs([_Dir, HospitalID, Date|_] = Argv) ->
     YYYYMM = iolist_to_binary(["20", Date]),
     try
         {ok, ModesRecords} = dpcs:parse_files(Files, BinHospitalID, YYYYMM, Logger),
-        lists:foreach(fun({_Mode, Records})->
-                              lists:foreach(fun(Record) ->
-                                                    io:format("~p, ~p~n", [dpcs:bucket(Record), dpcs:key(Record)]),
-                                                    io:format("~ts~n", [element(2, dpcs:to_json(Record))])
-                                            end, Records)
-                      end, ModesRecords)
+        io:format("["),
+        lists:foreach(fun({ff1, Records}) ->
+                              [begin
+                                   io:format("~ts,~n", [element(2, dpcs_ff1:to_json(Record))])
+                               end || Record <- Records];
+                         ({_, Records}) ->
+                              [begin
+                                   io:format("~ts,~n", [element(2, dpcs:to_json(Record))])
+                               end || Record <- Records]
+                      end, ModesRecords),
+        io:format("null]")
     after
         meddatum_console:teardown(Context)
     end;

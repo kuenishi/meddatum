@@ -61,8 +61,7 @@ parse_tokens(Tokens, efn, _) -> parse_ef_tokens(Tokens, efn).
 parse_ff1_tokens(Tokens, LineNo) ->
     case Tokens of
         [Cocd, Kanjaid, Nyuymd, _Kaisukanrino, _Medical_no, Code , _Version, _Seqno | Payload] ->
-            %% CodeFields = ff1_matcher:to_list(Code, Payload),
-            CodeFields = ff1_matcher:to_list_2(Code, Payload, LineNo),
+            CodeFields = ff1_matcher:to_list(Code, Payload, LineNo),
             {ok, dpcs:new(ff1, Cocd, Kanjaid, Nyuymd, CodeFields)};
         _ ->
             {error, wrong_ff1_tokens}
