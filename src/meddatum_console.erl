@@ -215,7 +215,7 @@ parse_recept(_) -> meddatum:help().
 
 parse_dpcs([_Dir, HospitalID, Date|_] = Argv) ->
     io:setopts([{encoding, unicode}]),
-    {ok, #context{logger=Logger} = Context} = meddatum_console:setup(),
+    {ok, #context{logger=Logger} = Context} = meddatum_console:setup(false),
 
     {ok, Files} = dpcs:files_to_parse(Argv),
     io:format(standard_error, "Files to parse: ~p~n", [Files]),
