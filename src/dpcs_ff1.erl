@@ -127,7 +127,7 @@ parse_line(Line, Date, #ctx{
     Fields1 = ff1_matcher:to_list(Code, Payload, LineNo),
     Fields = lists:foldl(fun dpcs_parser:cleanup_fields/2, [], Fields1),
     Ctx#ctx{
-      current=new(Cocd, Kanjaid, Nyuymd, Date),
+      current=new(Cocd, Kanjaid, Nyuymd, Date, Kaisukanrino),
       current_fields=Fields,
       current_kaisukanrino=Kaisukanrino,
       current_medicalno=MedicalNo,
@@ -198,7 +198,7 @@ parse_line(Line, Date, #ctx{current=Current,
                             end,
               
               Ctx#ctx{
-                current=new(Cocd, Kanjaid, Nyuymd, Date),
+                current=new(Cocd, Kanjaid, Nyuymd, Date, Kaisukanrino),
                 current_fields=Fields,
                 current_kaisukanrino=Kaisukanrino,
                 current_medicalno=MedicalNo,
@@ -210,9 +210,10 @@ parse_line(Line, Date, #ctx{current=Current,
 -spec new(Cocd :: iolist(),
           Kanjaid :: iolist(),
           Nyuymd :: iolist(),
-          Date::binary()) -> #dpcs_ff1{}.
-new(Cocd, Kanjaid, Nyuymd, Date) ->
-    Key = iolist_to_binary([Cocd, $:, Kanjaid, $:, Nyuymd]),
+          Date::binary(),
+          Kaisukanrino :: iolist()) -> #dpcs_ff1{}.
+new(Cocd, Kanjaid, Nyuymd, Date, Kaisukanrino) ->
+    Key = iolist_to_binary([Cocd, $:, Kanjaid, $:, Nyuymd, $:, Kaisukanrino]),
     #dpcs_ff1{key=iolist_to_binary(Key),
               cocd=iolist_to_binary(Cocd),
               kanjaid=iolist_to_binary(Kanjaid),
