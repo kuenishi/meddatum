@@ -15,7 +15,7 @@
 -export([new/5, merge/2, merge_2/2, update_shinym/2,
          maybe_verify/3]).
 
--export([files_to_parse/1, parse_files/4]).
+-export([files_to_parse/1, parse_files/4, maybe_verify_date_prefix/3]).
 
 -type record_type() :: ff1|ff4|efg|efn|dn.
 

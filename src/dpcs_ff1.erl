@@ -18,9 +18,10 @@
           cocd :: binary(),
           kanjaid :: binary(),
           nyuymd :: binary(),
+          taiymd :: binary(),
           shinym :: binary(),
           stay = null :: {orddict:orddict()}, %% 親様式1
-          wards = [] :: [orddict:orddict()] %% 子様式1
+          wards = [] :: [{orddict:orddict()}] %% 子様式1
          }).
 
 -record(ctx,
@@ -134,11 +135,11 @@ parse_line(Line, Date, #ctx{
       line_no=LineNo+1};
 
 parse_line(Line, Date, #ctx{current=Current,
-                      %% current_kaisukanrino = Kaisukanrino0,
-                      current_medicalno = MedicalNo0,
-                      current_fields = Fields0,
-                      records = Records0,
-                      line_no=LineNo} = Ctx) ->
+                            %% current_kaisukanrino = Kaisukanrino0,
+                            current_medicalno = MedicalNo0,
+                            current_fields = Fields0,
+                            records = Records0,
+                            line_no=LineNo} = Ctx) ->
     Tokens = re:split(Line, "[\t]", [{return, list}, unicode]),
     #dpcs_ff1{
        cocd=Cocd0Str, kanjaid=Kanjaid0Str, nyuymd=Nyuymd0Str,
@@ -155,7 +156,7 @@ parse_line(Line, Date, #ctx{current=Current,
               Fields1 = ff1_matcher:to_list(Code, Payload, LineNo),
               Fields = lists:foldl(fun dpcs_parser:cleanup_fields/2, [], Fields1),
               Ctx#ctx{current_fields=merge_fields(Fields, Fields0)};
-          
+
           %% New MedicalNo - new one but same key
           [Cocd0, Kanjaid0, Nyuymd0, "0", MedicalNo, Code ,
            _Version, _Seqno | Payload] ->
@@ -196,7 +197,7 @@ parse_line(Line, Date, #ctx{current=Current,
                                              |Wards0],
                                     [finalize(Current#dpcs_ff1{wards=Wards})]
                             end,
-              
+
               Ctx#ctx{
                 current=new(Cocd, Kanjaid, Nyuymd, Date, Kaisukanrino),
                 current_fields=Fields,
@@ -220,8 +221,18 @@ new(Cocd, Kanjaid, Nyuymd, Date, Kaisukanrino) ->
               nyuymd=iolist_to_binary(Nyuymd),
               shinym=Date}.
 
-finalize(DPCS) -> %% = #dpcs_ff1{stay={Stay}, wards=Wards}) ->
-    DPCS.    
+finalize(DPCS = #dpcs_ff1{stay={Stay}, shinym=Date}) -> %% = #dpcs_ff1{stay={Stay}, wards=Wards}) ->
+    Taiymd = case proplists:get_valie(taiymd, Stay) of
+                 undefined ->
+                     case proplists:get_valie(<<"taiymd">>, Stay) of
+                         undefined -> error({no_taiymd, Stay});
+                         T1 ->        T1
+                     end;
+                 T ->
+                     T
+             end,
+    dpcs:maybe_verify_date_prefix(Date, Taiymd),
+    DPCS#dpcs_ff1{taiymd=Taiymd}
 
 -spec merge(#dpcs_ff1{}, #dpcs_ff1{}) -> #dpcs_ff1{}.
 merge(_, _) ->
