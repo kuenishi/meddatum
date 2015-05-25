@@ -1,3 +1,4 @@
+%% -*- coding: utf-8 -*-
 %%
 %% Copyright (C) 2013-2013 UENISHI Kota
 %%
@@ -97,8 +98,7 @@ convert(Char) when 0 =< Char andalso Char =< 255 ->
 -ifdef(TEST).
 
 unicode_test() ->
-    UnicodeString = unicode:characters_to_list(<<"０１２３４５６７８９ａｚＡＺ">>),
-    ?assertEqual("0123456789azAZ", hankaku(UnicodeString)),
+    ?assertEqual("0123456789azAZ", hankaku("０１２３４５６７８９ａｚＡＺ")),
     ?assertEqual("0123456789azAZ", hankaku("0123456789azAZ")).
 
 -endif.
