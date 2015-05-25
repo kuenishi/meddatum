@@ -221,18 +221,26 @@ new(Cocd, Kanjaid, Nyuymd, Date, Kaisukanrino) ->
               nyuymd=iolist_to_binary(Nyuymd),
               shinym=Date}.
 
-finalize(DPCS = #dpcs_ff1{stay={Stay}, shinym=Date}) -> %% = #dpcs_ff1{stay={Stay}, wards=Wards}) ->
-    Taiymd = case proplists:get_valie(taiymd, Stay) of
+finalize(DPCS = #dpcs_ff1{stay={Stay}, shinym=Date}) ->
+    Taiymd = case proplists:get_value(taiymd, Stay) of
                  undefined ->
-                     case proplists:get_valie(<<"taiymd">>, Stay) of
+                     case proplists:get_value(<<"taiymd">>, Stay) of
                          undefined -> error({no_taiymd, Stay});
                          T1 ->        T1
                      end;
                  T ->
                      T
              end,
-    dpcs:maybe_verify_date_prefix(Date, Taiymd),
-    DPCS#dpcs_ff1{taiymd=Taiymd}
+    dpcs:maybe_verify_date_prefix(Taiymd, Date, DPCS),
+    DPCS#dpcs_ff1{taiymd=Taiymd};
+finalize(DPCS = #dpcs_ff1{stay=null, wards=_Wards}) ->
+    %% TODO: Error path ...
+    %% lists:foldl(fun(DPCS = #dpcs_ff1{stay=null, wards=[H|T]}, AccWards) ->
+    %%                     case proplists:get_value(taiymd, H) of
+    %%                         undefined -> [H|AccWards]
+    %% Taiymd -> {ok, DPCS#dpcs_ff1{
+    DPCS#dpcs_ff1{stay=null}.
+
 
 -spec merge(#dpcs_ff1{}, #dpcs_ff1{}) -> #dpcs_ff1{}.
 merge(_, _) ->

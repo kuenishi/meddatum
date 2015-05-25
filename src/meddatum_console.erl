@@ -215,28 +215,24 @@ parse_recept(_) -> meddatum:help().
 
 parse_dpcs([_Dir, HospitalID, Date|_] = Argv) ->
     io:setopts([{encoding, unicode}]),
-    {ok, #context{logger=Logger} = Context} = meddatum_console:setup(false),
+    {ok, #context{logger=Logger} = _Context} = meddatum_console:setup(false),
 
     {ok, Files} = dpcs:files_to_parse(Argv),
     io:format(standard_error, "Files to parse: ~p~n", [Files]),
     BinHospitalID = list_to_binary(HospitalID),
     YYYYMM = iolist_to_binary(["20", Date]),
-    try
-        {ok, ModesRecords} = dpcs:parse_files(Files, BinHospitalID, YYYYMM, Logger),
-        io:format("["),
-        lists:foreach(fun({ff1, Records}) ->
-                              [begin
-                                   io:format("~ts,~n", [element(2, dpcs_ff1:to_json(Record))])
-                               end || Record <- Records];
-                         ({_, Records}) ->
-                              [begin
-                                   io:format("~ts,~n", [element(2, dpcs:to_json(Record))])
-                               end || Record <- Records]
-                      end, ModesRecords),
-        io:format("null]")
-    after
-        meddatum_console:teardown(Context)
-    end;
+    {ok, ModesRecords} = dpcs:parse_files(Files, BinHospitalID, YYYYMM, Logger),
+    io:format("["),
+    lists:foreach(fun({ff1, Records}) ->
+                          [begin
+                               io:format("~ts,~n", [element(2, dpcs_ff1:to_json(Record))])
+                           end || Record <- Records];
+                     ({_, Records}) ->
+                          [begin
+                               io:format("~ts,~n", [element(2, dpcs:to_json(Record))])
+                           end || Record <- Records]
+                  end, ModesRecords),
+    io:format("null]");
 
 parse_dpcs(_) -> meddatum:help().
 
