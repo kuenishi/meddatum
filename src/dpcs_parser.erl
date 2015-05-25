@@ -1,12 +1,12 @@
 -module(dpcs_parser).
 
--export([parse/4, cleanup_fields/2]).
+-export([parse/5, cleanup_fields/2]).
 
 -include_lib("eunit/include/eunit.hrl").
 
 -spec parse(filename:filename(), dpcs:record_type(),
-            binary(), pid()) ->[dpcs:rec()].
-parse(Filename, Mode, Date, Logger) ->
+            binary(), binary(), pid()) ->[dpcs:rec()].
+parse(Filename, Mode, Date, HospitalID, Logger) ->
     {ok, Lines0} = japanese:read_file(Filename),
     Lines = lists:zip(lists:seq(1, length(Lines0)), Lines0),
     Table = ets:new(ef_data, [set, private]),
@@ -20,7 +20,7 @@ parse(Filename, Mode, Date, Logger) ->
                               L -> L
                           end,
               Tokens = re:split(StripLine, "[\t]", [{return, list}, unicode]),
-              case parse_tokens(Tokens, Mode) of
+              case parse_tokens(Tokens, Mode, LineNo) of
                   {ok, DPCSRecord0} ->
                       DPCSRecord = dpcs:update_shinym(DPCSRecord0, Date),
                       BinKey = dpcs:key(DPCSRecord),
@@ -39,27 +39,29 @@ parse(Filename, Mode, Date, Logger) ->
               end
       end,
       Lines),
-    ets:tab2list(Table).
+    [{K, dpcs:maybe_verify(Record, HospitalID, Date)} || {K, Record} <- ets:tab2list(Table)].
 
--spec parse_tokens([string()], dpcs:record_type()) ->
+
+
+-spec parse_tokens([string()], dpcs:record_type(), non_neg_integer()) ->
                           {ok, {iolist(), term(), term()}} |
                           {ok, {iolist(), term()}} |
                           {error, atom()}.
-parse_tokens(Tokens, ff1) -> parse_ff1_tokens(Tokens);
-parse_tokens(Tokens, ff4) -> parse_ff4_tokens(Tokens);
-parse_tokens(Tokens, dn) -> parse_dn_tokens(Tokens);
-parse_tokens(Tokens, efg) -> parse_ef_tokens(Tokens, efg);
-parse_tokens(Tokens, efn) -> parse_ef_tokens(Tokens, efn).
+parse_tokens(Tokens, ff1, LineNo) -> parse_ff1_tokens(Tokens, LineNo);
+parse_tokens(Tokens, ff4, _) -> parse_ff4_tokens(Tokens);
+parse_tokens(Tokens, dn, _) -> parse_dn_tokens(Tokens);
+parse_tokens(Tokens, efg, _) -> parse_ef_tokens(Tokens, efg);
+parse_tokens(Tokens, efn, _) -> parse_ef_tokens(Tokens, efn).
 
 %% -> {iolist(), proplists:proplist(), {binary(), {[...]}}}
--spec parse_ff1_tokens([string()]) ->
+-spec parse_ff1_tokens([string()], non_neg_integer()) ->
                               {ok, {iolist(), proplists:proplist(),
                                     proplists:proplist()}} |
                               {error, wrong_ff1_tokens}.
-parse_ff1_tokens(Tokens) ->
+parse_ff1_tokens(Tokens, LineNo) ->
     case Tokens of
         [Cocd, Kanjaid, Nyuymd, _Kaisukanrino, _Medical_no, Code , _Version, _Seqno | Payload] ->
-            CodeFields = ff1_matcher:to_list(Code, Payload),
+            CodeFields = ff1_matcher:to_list(Code, Payload, LineNo),
             {ok, dpcs:new(ff1, Cocd, Kanjaid, Nyuymd, CodeFields)};
         _ ->
             {error, wrong_ff1_tokens}
@@ -90,7 +92,7 @@ parse_dn_tokens(Tokens) ->
                       {taiymd,Taiymd},{datakb,Datakb},{d_seqno,D_seqno},{rececd, Rececd},
                       {hptenmstcd,Hptenmstcd},{jisymd,Jisymd},{nyugaikb,Nyugaikb},{cotype,Cotype},
                       {dpcstaymd,Dpcstaymd},{dpcendymd, Dpcendymd}, {dpcreckymd, Dpcreckymd}, {dpccd,Dpccd}, {coefficient,Coefficient}],
-            
+
             {ok, dpcs:new(dn, Cocd, Kanjaid, Nyuymd, Fields)};
         _ ->
             {error, wrong_dn_tokens}
@@ -119,6 +121,7 @@ parse_ef_tokens(Tokens, Mode) ->
 -spec cleanup_fields({atom(), binary()},
                     [{binary(),integer()|binary()}]) ->
                            [{binary(), integer()|binary()}].
+cleanup_fields({_, null}, Fields) -> Fields;
 cleanup_fields({FieldName, FieldValue}, Fields) ->
     case string:strip(FieldValue) of
         "" ->
@@ -126,20 +129,22 @@ cleanup_fields({FieldName, FieldValue}, Fields) ->
         TrimmedValue ->
             [trans_field({FieldName, TrimmedValue})|Fields]
     end.
-
 -spec trans_field({atom(), string()}) ->
                          {binary(), float()|integer()|binary()}.
+trans_field({ope, _} = F) -> F;
+trans_field({sick, _} = F) -> F;
 trans_field({FieldName, FieldValue}) when is_atom(FieldName) ->
-    case is_numeric_field(FieldName) of
-        true ->
-            {atom_to_binary(FieldName,utf8),
-             klib:str_to_numeric(FieldValue)};
-        false ->
-            {atom_to_binary(FieldName,utf8),
-             unicode:characters_to_binary(FieldValue,utf8,utf8)}
-    end;
+    Property = atom_to_binary(FieldName,utf8),
+    Value = case is_numeric_field(FieldName) of
+                true ->
+                    klib:str_to_numeric(FieldValue);
+                false when is_list(FieldValue) ->
+                    unicode:characters_to_binary(FieldValue,utf8,utf8);
+                false ->
+                    FieldValue
+            end,
+    {Property, Value};
 trans_field(F) -> F.
-
 
 -spec is_numeric_field(atom()) -> boolean().
 is_numeric_field(ryo) -> true;
@@ -150,12 +155,4 @@ is_numeric_field(actdrg) -> true;
 is_numeric_field(actzai) -> true;
 is_numeric_field(actcnt) -> true;
 is_numeric_field(coefficient) -> true;
-is_numeric_field(smk_index) -> true;
-is_numeric_field(pregweek_cnt ) -> true;
-is_numeric_field(b_weight ) -> true;
-is_numeric_field(birthweek) -> true;
-is_numeric_field(b_index ) -> true;
-is_numeric_field(isolation_days ) -> true;
-is_numeric_field(restraint_days ) -> true;
 is_numeric_field(_) -> false.
-

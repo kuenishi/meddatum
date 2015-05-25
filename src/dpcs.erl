@@ -12,24 +12,21 @@
          check_is_set_done/2, mark_set_as_done/2,
          columns/0]).
 
--export([new/5, merge/2, merge_2/2, update_shinym/2]).
+-export([new/5, merge/2, merge_2/2, update_shinym/2,
+         maybe_verify/3]).
 
--export([files_to_parse/1, parse_files/4]).
+-export([files_to_parse/1, parse_files/4, maybe_verify_date_prefix/3]).
 
 -type record_type() :: ff1|ff4|efg|efn|dn.
-
--record(dpcs_common, {
-          cocd :: binary(),
-          kanjaid :: binary(),
-          nyuymd :: binary(),
-          shinym :: binary()
-         }).
 
 -record(dpcs, {
           key :: binary(),
           type :: record_type(),
-          common_fields :: #dpcs_common{},
-          fields :: proplists:proplist()
+          cocd :: binary(),
+          kanjaid :: binary(),
+          nyuymd :: binary(),
+          shinym :: binary(),
+          fields
          }).
 
 -type rec() :: #dpcs{}.
@@ -37,15 +34,13 @@
 
 -spec bucket(rec()) -> binary().
 bucket(#dpcs{type = efn}) ->
-    meddatum:true_bucket_name(<<?DPCS_BUCKET/binary, "efndn">>);
+    meddatum:true_bucket_name(<<?DPCS_BUCKET/binary, ":efndn">>);
 bucket(#dpcs{type = efg}) ->
-    meddatum:true_bucket_name(<<?DPCS_BUCKET/binary, "efg">>);
+    meddatum:true_bucket_name(<<?DPCS_BUCKET/binary, ":efg">>);
 bucket(#dpcs{type = dn}) ->
-    meddatum:true_bucket_name(<<?DPCS_BUCKET/binary, "efndn">>);
-bucket(#dpcs{type = ff1}) ->
-    meddatum:true_bucket_name(<<?DPCS_BUCKET/binary, "ff">>);
+    meddatum:true_bucket_name(<<?DPCS_BUCKET/binary, ":efndn">>);
 bucket(#dpcs{type = ff4}) ->
-    meddatum:true_bucket_name(<<?DPCS_BUCKET/binary, "ff">>).
+    meddatum:true_bucket_name(<<?DPCS_BUCKET/binary, ":ff">>).
 
 -spec key(rec()) -> binary().
 key(#dpcs{key=Key}) -> Key.
@@ -56,10 +51,10 @@ make_2i_list(Rec) ->
     [{"kanjaid", patient_id(Rec)}].
 
 -spec hospital_id(rec()) -> binary().
-hospital_id(#dpcs{common_fields=#dpcs_common{cocd=HospitalID}}) -> HospitalID.
+hospital_id(#dpcs{cocd=HospitalID}) -> HospitalID.
 
 -spec patient_id(rec()) -> binary().
-patient_id(#dpcs{common_fields=#dpcs_common{kanjaid=PatientID}}) -> PatientID.
+patient_id(#dpcs{kanjaid=PatientID}) -> PatientID.
 
 -spec from_json(binary()) -> rec().
 from_json(JSON) ->
@@ -71,34 +66,32 @@ from_json([{<<"key">>, Key}|L], DPCS) ->
     from_json(L, DPCS#dpcs{key=Key});
 from_json([{<<"type">>, Type}|L], DPCS) ->
     T = case binary_to_existing_atom(Type, utf8) of
-            ff1 -> ff1;
             ff4 -> ff4;
             efg -> efg;
             efn -> efn;
             dn -> dn
         end,
     from_json(L, DPCS#dpcs{type=T});
-from_json([{<<"cocd">>, V}|L], DPCS = #dpcs{common_fields=CF}) ->
-    from_json(L, DPCS#dpcs{common_fields=CF#dpcs_common{cocd=V}});
-from_json([{<<"kanjaid">>, V}|L], DPCS = #dpcs{common_fields=CF}) ->
-    from_json(L, DPCS#dpcs{common_fields=CF#dpcs_common{kanjaid=V}});
-from_json([{<<"nyuymd">>, V}|L], DPCS = #dpcs{common_fields=CF}) ->
-    from_json(L, DPCS#dpcs{common_fields=CF#dpcs_common{nyuymd=V}});
-from_json([{<<"shinym">>, V}|L], DPCS = #dpcs{common_fields=CF}) ->
-    from_json(L, DPCS#dpcs{common_fields=CF#dpcs_common{shinym=V}});
+from_json([{<<"cocd">>, V}|L], DPCS) ->
+    from_json(L, DPCS#dpcs{cocd=V});
+from_json([{<<"kanjaid">>, V}|L], DPCS) ->
+    from_json(L, DPCS#dpcs{kanjaid=V});
+from_json([{<<"nyuymd">>, V}|L], DPCS) ->
+    from_json(L, DPCS#dpcs{nyuymd=V});
+from_json([{<<"shinym">>, V}|L], DPCS) ->
+    from_json(L, DPCS#dpcs{shinym=V});
 from_json([{K, V}|L], DPCS = #dpcs{fields=F}) ->
     from_json(L, DPCS#dpcs{fields=[{K,V}|F]}).
 
 -spec to_json(rec()) -> {ok, binary()}.
-to_json(#dpcs{fields=Fields, common_fields=CommonFields}) ->
-    CFList = (?JSON_RECORD_OPENER(dpcs_common))(CommonFields),
-    JSON = jsone:encode({CFList++Fields}, [native_utf8]),
+to_json(#dpcs{fields=Fields}) ->
+    JSON = jsone:encode({Fields}, [native_utf8]),
     {ok, JSON}.
 
 -spec from_file(filename:filename(), list(), pid()) -> {ok, [rec()]}.
-from_file(Filename, [Mode, YYYYMM], Logger)
+from_file(Filename, [Mode, YYYYMM, HospitalID], Logger)
   when is_atom(Mode) ->
-    Records0 = dpcs_parser:parse(Filename, Mode, YYYYMM, Logger),
+    Records0 = dpcs_parser:parse(Filename, Mode, YYYYMM, HospitalID, Logger),
     Records = lists:map(fun({_, Record}) -> Record end, Records0),
     {ok, Records}.
 
@@ -126,7 +119,7 @@ is_tombstone(RiakObj) ->
             error({has_siblings, {riakc_obj:bucket(RiakObj),
                                   riakc_obj:key(RiakObj)}})
     end.
-    
+
 
 %% @doc Hereby for dpcs, for a set of files that have same
 %% {HospitalID, Date} is a set of import - thus if all records
@@ -151,6 +144,28 @@ columns() -> undefined.
 
 %% =======
 
+maybe_verify(Record, HospitalID, Date) ->
+    case Record#dpcs.cocd of
+        HospitalID -> maybe_verify(Record, Date);
+        Wrong -> error({no_cocd_match, Wrong, HospitalID})
+    end.             
+
+%% @doc verify record with date specified via CUI
+-spec maybe_verify(rec(), binary()) -> rec(). %error({no_date_match, binary(), string()}).
+maybe_verify(#dpcs{type=ff4, fields=F} = Record, Date) ->
+    maybe_verify_date_prefix(proplists:get_value(<<"taiymd">>, F), Date, Record);
+maybe_verify(#dpcs{type=efg, fields=F} = Record, Date) ->
+    maybe_verify_date_prefix(proplists:get_value(<<"jisymd">>, F), Date, Record);
+maybe_verify(#dpcs{type=efn, fields=F} = Record, Date) ->
+    maybe_verify_date_prefix(proplists:get_value(<<"jisymd">>, F), Date, Record);
+maybe_verify(#dpcs{type=dn, fields=F} = Record, Date) ->
+    maybe_verify_date_prefix(proplists:get_value(<<"jisymd">>, F), Date, Record).
+
+maybe_verify_date_prefix(undefined, Date, _) -> error({no_date_match, Date});
+maybe_verify_date_prefix(<<Date:6/binary, _/binary>>, Date, Record) ->  Record;
+maybe_verify_date_prefix(<<"00000000">>, _, Record) -> Record; %% TODO: is this skipping really okay?
+maybe_verify_date_prefix(YMD, Date, _) -> error({no_date_match, YMD, Date}).
+
 -spec new(record_type(),
           Cocd :: binary(),
           Kanjaid :: binary(),
@@ -158,33 +173,35 @@ columns() -> undefined.
           proplists:proplist()) -> rec().
 new(Type, Cocd, Kanjaid, Nyuymd, Fields0) ->
     Key = case Type of
-              ff1 -> iolist_to_binary([Cocd, $:, Kanjaid, $:, Nyuymd]);
-              ff4 -> iolist_to_binary([Cocd, $:, Kanjaid, $:, Nyuymd]);
-              efn ->
+              ff4 ->
+                  iolist_to_binary([Cocd, $:, Kanjaid, $:, Nyuymd]);
+              EF when EF=:= efn orelse EF =:= efg ->
                   Jisymd = proplists:get_value(jisymd, Fields0),
-                  iolist_to_binary([Cocd, $:, Kanjaid, $:, Nyuymd, $:, Jisymd]);
-              efg ->
-                  Jisymd = proplists:get_value(jisymd, Fields0),
-                  iolist_to_binary([Cocd, $:, Kanjaid, $:, Jisymd]);
+                  Datakb = proplists:get_value(datakb, Fields0),
+                  D_seqno = proplists:get_value(d_seqno, Fields0),
+                  Actdetno = proplists:get_value(actdetno, Fields0),
+                  iolist_to_binary([Cocd, $:, Kanjaid, $:, Nyuymd, $:,
+                                    Jisymd, $:, Datakb, $:, D_seqno, $:,
+                                    Actdetno]);
               dn ->
                   Jisymd = proplists:get_value(jisymd, Fields0),
-                  iolist_to_binary([Cocd, $:, Kanjaid, $:, Nyuymd, $:, Jisymd])
+                  Datakb = proplists:get_value(datakb, Fields0),
+                  D_seqno = proplists:get_value(d_seqno, Fields0),
+                  iolist_to_binary([Cocd, $:, Kanjaid, $:, Nyuymd, $:,
+                                    Jisymd, $:, Datakb, $:, D_seqno])
           end,
-    CommonFields =
-              #dpcs_common{cocd=iolist_to_binary(Cocd),
-                           kanjaid=iolist_to_binary(Kanjaid),
-                           nyuymd=iolist_to_binary(Nyuymd)},
     Fields = lists:foldl(fun dpcs_parser:cleanup_fields/2, [], Fields0),
 
     #dpcs{key=iolist_to_binary(Key),
           type=Type,
-          common_fields=CommonFields,
-          fields=Fields}.
+          cocd=iolist_to_binary(Cocd),
+          kanjaid=iolist_to_binary(Kanjaid),
+          nyuymd=iolist_to_binary(Nyuymd),
+          fields=orddict:from_list(Fields)}.
 
 -spec update_shinym(rec(), binary()) -> rec().
-update_shinym(Rec = #dpcs{common_fields=CF}, Date) ->
-    CommonFields = CF#dpcs_common{shinym=Date},
-    Rec#dpcs{common_fields=CommonFields}.
+update_shinym(Rec, Date) ->
+    Rec#dpcs{shinym=Date}.
 
 -spec merge([rec()], rec()) -> rec().
 merge(LList, R) ->
@@ -192,28 +209,34 @@ merge(LList, R) ->
 
 -spec merge_2(L::rec(), R::rec()) -> rec().
 merge_2(L = #dpcs{key=Key, type=Type,
-                common_fields=CF, fields=LFields},
+                  fields=LFields},
       _ = #dpcs{key=Key, type=Type,
-                common_fields=CF, fields=RFields}) ->
-    L#dpcs{fields=LFields++RFields};
+                fields=RFields}) ->
+    io:format("key: ~p~n", [Key]),
+    Fields = orddict:merge(fun(ope, LV, RV) -> LV++RV;
+                              (sick, LV, RV) -> LV++RV;
+                              (_, V, V) -> V
+                           end, LFields, RFields),
+    L#dpcs{fields=Fields};
 merge_2(L, R) ->
     error({cannot_merge, L, R}).
 
 files_to_parse([Dir, HospitalID, Date]) ->
     Prefixes = [{"FF1", ff1}, {"FF4", ff4}, {"EFn", efn}, {"EFg", efg},
                 {"Dn", dn}],
-    {ok, 
+    {ok,
      lists:map(fun({Prefix, Mode}) ->
                        Name = [Prefix, $_, HospitalID, $_, Date, ".txt"],
-                       {filename:join([Dir, lists:flatten(Name)]), Mode}
+                       {Mode, filename:join([Dir, lists:flatten(Name)])}
                end,
                Prefixes)};
 files_to_parse([Dir, _, _|Options]) ->
     case parse_options(Options, []) of
         {ok, Files} ->
-            lists:map(fun({T, File}) ->
-                              {T, filename:join([Dir, File])}
-                      end, Files);
+            {ok,
+             lists:map(fun({File, T}) ->
+                               {T, filename:join([Dir, File])}
+                       end, Files)};
         {error, _} = E -> E
     end.
 
@@ -231,26 +254,30 @@ parse_options(["-Dn", Filename|Rest], Acc) ->
 parse_options(Other, _) ->
     {error, {wrong_options, Other}}.
 
--spec parse_files(filename:filename(), binary(), binary(), term()) ->
+-spec parse_files([{record_type(), filename:filename()}],
+                  binary(), binary(), term()) ->
                          {ok, [{record_type(), [rec()]}]}.
-parse_files(Files, _HospitalID, YYYYMM, Logger) ->
+parse_files(Files, HospitalID, YYYYMM, Logger) ->
     lists:foldl(
-      fun({Filename, Mode}, {ok, Records0}) ->
+      fun({ff1, Filename}, {ok, Records0}) ->
               io:format(standard_error, "parsing ~p...~n", [Filename]),
-              case dpcs:from_file(Filename, [Mode, YYYYMM], Logger) of
+              case dpcs_ff1:from_file(Filename, [YYYYMM, HospitalID], Logger) of
                   {ok, Records} ->
-                      %% case check_all(list_to_binary(HospitalID),
-                      %%                list_to_binary(Date), Records) of
+                      {ok, [{ff1, Records}|Records0]};
+                  Error1 ->
+                      {error, {Error1, Filename}}
+              end;
+         ({Mode, Filename}, {ok, Records0}) ->
+              io:format(standard_error, "parsing ~p...~n", [Filename]),
+              case dpcs:from_file(Filename, [Mode, YYYYMM, HospitalID], Logger) of
+                  {ok, Records} ->
                       {ok, [{Mode, Records}|Records0]};
-                      %%     Error1 -> {error, {Error1, Filename}}
-                      %% end;
                   Error2 ->
                       {error, {Error2, Filename}}
               end;
          (_, Error) ->
               Error
       end, {ok, []}, Files).
-
 
 %% -spec check_date_hospital(binary(), binary(), rec()) -> ok | {error, atom()}.
 %% check_date_hospital(HospitalID, YYMM,

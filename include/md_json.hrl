@@ -18,7 +18,8 @@
                 List__ = [{F__,V__} ||
                              {F__,V__} <- lists:zip(Fields__, Values__),
                              V__ =/= undefined, V__ =/= null],
-                jsone:encode({List__}, [native_utf8])
+                R = jsone:encode({List__}, [native_utf8]),
+                R
         end).
 
 -define(JSON_RECORD_DECODER(RecordName__),
