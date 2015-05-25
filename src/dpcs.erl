@@ -175,12 +175,20 @@ new(Type, Cocd, Kanjaid, Nyuymd, Fields0) ->
     Key = case Type of
               ff4 ->
                   iolist_to_binary([Cocd, $:, Kanjaid, $:, Nyuymd]);
-              efg ->
+              EF when EF=:= efn orelse EF =:= efg ->
                   Jisymd = proplists:get_value(jisymd, Fields0),
-                  iolist_to_binary([Cocd, $:, Kanjaid, $:, Jisymd]);
-              _ ->
+                  Datakb = proplists:get_value(datakb, Fields0),
+                  D_seqno = proplists:get_value(d_seqno, Fields0),
+                  Actdetno = proplists:get_value(actdetno, Fields0),
+                  iolist_to_binary([Cocd, $:, Kanjaid, $:, Nyuymd, $:,
+                                    Jisymd, $:, Datakb, $:, D_seqno, $:,
+                                    Actdetno]);
+              dn ->
                   Jisymd = proplists:get_value(jisymd, Fields0),
-                  iolist_to_binary([Cocd, $:, Kanjaid, $:, Nyuymd, $:, Jisymd])
+                  Datakb = proplists:get_value(datakb, Fields0),
+                  D_seqno = proplists:get_value(d_seqno, Fields0),
+                  iolist_to_binary([Cocd, $:, Kanjaid, $:, Nyuymd, $:,
+                                    Jisymd, $:, Datakb, $:, D_seqno])
           end,
     Fields = lists:foldl(fun dpcs_parser:cleanup_fields/2, [], Fields0),
 
