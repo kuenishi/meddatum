@@ -222,25 +222,40 @@ new(Cocd, Kanjaid, Nyuymd, Date, Kaisukanrino) ->
               shinym=Date}.
 
 finalize(DPCS = #dpcs_ff1{stay={Stay}, shinym=Date}) ->
-    Taiymd = case proplists:get_value(taiymd, Stay) of
-                 undefined ->
-                     case proplists:get_value(<<"taiymd">>, Stay) of
-                         undefined -> error({no_taiymd, Stay});
-                         T1 ->        T1
-                     end;
-                 T ->
-                     T
-             end,
-    dpcs:maybe_verify_date_prefix(Taiymd, Date, DPCS),
-    DPCS#dpcs_ff1{taiymd=Taiymd};
-finalize(DPCS = #dpcs_ff1{stay=null, wards=_Wards}) ->
-    %% TODO: Error path ...
-    %% lists:foldl(fun(DPCS = #dpcs_ff1{stay=null, wards=[H|T]}, AccWards) ->
-    %%                     case proplists:get_value(taiymd, H) of
-    %%                         undefined -> [H|AccWards]
-    %% Taiymd -> {ok, DPCS#dpcs_ff1{
-    DPCS#dpcs_ff1{stay=null}.
+    case verify_taiymd(Stay, Date, false) of
+        {ok, Taiymd} ->
+            DPCS#dpcs_ff1{taiymd=Taiymd};
+        {error, _} ->
+            case taiymd_from_wards(DPCS) of
+                {ok, Taiymd} ->
+                    DPCS#dpcs_ff1{taiymd=Taiymd};
+                {error, E} ->
+                    error(E)
+            end
+    end;
+finalize(DPCS = #dpcs_ff1{stay=null}) ->
+    case taiymd_from_wards(DPCS) of
+        {ok, Taiymd} ->
+            DPCS#dpcs_ff1{taiymd=Taiymd};
+        {error, E} ->
+            error(E)
+    end.
 
+taiymd_from_wards(#dpcs_ff1{wards=Wards, shinym=Date}) ->
+    F = fun(_Ward, {ok, _} = Ans) ->
+                Ans;
+           ({Ward}, {error, _}) ->
+                verify_taiymd(Ward, Date, true)
+        end,
+    lists:foldl(F, {error, none}, Wards).
+
+verify_taiymd(Proplist, Date, Allow00000000) ->
+    case proplists:get_value(<<"taiymd">>, Proplist) of
+        undefined -> {error, undefined};
+        <<Date:6/binary, _/binary>> = Taiymd -> {ok, Taiymd};
+        <<"00000000">> when Allow00000000 -> {ok, <<"00000000">>};
+        _ -> {error, nomatch}
+    end.
 
 -spec merge(#dpcs_ff1{}, #dpcs_ff1{}) -> #dpcs_ff1{}.
 merge(_, _) ->
