@@ -88,13 +88,15 @@ to_json(#dpcs{fields=Fields}) ->
     JSON = jsone:encode({Fields}, [native_utf8]),
     {ok, JSON}.
 
--spec from_file(filename:filename(), list(), pid()) -> {ok, [rec()]}.
+-spec from_file(filename:filename(), list(), pid()) -> {ok, [rec()]} | {error, term()}.
 from_file(Filename, [Mode, YYYYMM, HospitalID], Logger)
   when is_atom(Mode) ->
-    Records0 = dpcs_parser:parse(Filename, Mode, YYYYMM, HospitalID, Logger),
-    Records = lists:map(fun({_, Record}) -> Record end, Records0),
-    {ok, Records}.
-
+    case dpcs_parser:parse(Filename, Mode, YYYYMM, HospitalID, Logger) of
+        {error, _} = E -> E;
+        Records0 ->
+            Records = lists:map(fun({_, Record}) -> Record end, Records0),
+            {ok, Records}
+    end.
 
 -spec from_file(filename:filename(), list(), pid(), fun()) -> {ok, rec()}.
 from_file(Filename, List, Logger, _) ->

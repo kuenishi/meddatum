@@ -11,6 +11,7 @@
          patient_id/1, hospital_id/1,
          from_file/3, from_file/4, merge/2,
          check_is_set_done/2, mark_set_as_done/2,
+         stay/1, wards/1,
          columns/0]).
 
 -record(dpcs_ff1, {
@@ -33,6 +34,13 @@
           current_fields = [],
           records = [] :: [#dpcs_ff1{}]
         }).
+
+-spec stay(#dpcs_ff1{}) -> orddict:orddict().
+stay(#dpcs_ff1{stay={Stay}}) -> Stay;
+stay(#dpcs_ff1{stay=null}) -> null.
+
+-spec wards(#dpcs_ff1{}) -> [{orddict:orddict()}].
+wards(#dpcs_ff1{wards=Wards}) -> Wards.
 
 -spec bucket(#dpcs_ff1{}) -> binary().
 bucket(#dpcs_ff1{} = _) ->
