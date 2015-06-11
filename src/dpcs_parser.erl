@@ -7,7 +7,12 @@
 -spec parse(filename:filename(), dpcs:record_type(),
             binary(), binary(), pid()) ->[dpcs:rec()].
 parse(Filename, Mode, Date, HospitalID, Logger) ->
-    {ok, Lines0} = japanese:read_file(Filename),
+    case japanese:read_file(Filename) of
+        {ok, Lines0} -> parse_1(Filename, Lines0, Mode, Date, HospitalID, Logger);
+        E -> E
+    end.
+
+parse_1(Filename, Lines0, Mode, Date, HospitalID, Logger) ->
     Lines = lists:zip(lists:seq(1, length(Lines0)), Lines0),
     Table = ets:new(ef_data, [set, private]),
     lists:foreach(

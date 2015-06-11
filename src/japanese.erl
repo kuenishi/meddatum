@@ -29,23 +29,18 @@
 %% @doc read a Shift_JIS/EUC-JP files and convert them with nkf
 -spec read_file(filename:filename()) -> {ok, [string()]}.
 read_file(File) ->
-    {ok, Lines} = fold_all_lines(File, fun(Line, Acc) -> [Line|Acc] end, []),
-    {ok, lists:reverse(Lines)}.
-    %% Command = "nkf -w " ++ File,
-    %% Port = open_port({spawn, Command}, [stream,in,binary,eof]),
-    %% {ok, Lines} = get_all_lines(Port, <<>>),
-    %% port_close(Port),
-    %% {ok, Lines}.
-
-%% get_all_lines(Port, Binary) ->
-%%     receive
-%%         {Port, {data, Data}} ->
-%%             get_all_lines(Port, <<Binary/binary, Data/binary>>);
-%%         {Port, eof} ->
-%%             FileContent = unicode:characters_to_list(Binary),
-%%             Lines = string:tokens(FileContent, "\r"),
-%%             {ok, Lines}
-%%     end.
+    %% I know here's some race condition where an external system can
+    %% remove file between the read_file_info/1 and actual file read
+    %% by nkf, consecently fild_all_lines/3 returns just `{ok,
+    %% []}'. it should return some error when file does not exist, but
+    %% it's a TODO in future.
+    case file:read_file_info(File) of
+        {ok, _} ->
+            {ok, Lines} = fold_all_lines(File, fun(Line, Acc) -> [Line|Acc] end, []),
+            {ok, lists:reverse(Lines)};
+        E ->
+            E
+    end.
 
 -spec fold_all_lines(filename:filename(), fun(), term()) -> {ok, term()}.
 fold_all_lines(File, Fun, Ctx0) ->
@@ -82,7 +77,6 @@ handle_lines([H|L], Fun, Acc0) ->
 
 hankaku(UnicodeString) ->
     [ convert(UnicodeChar) || UnicodeChar <- UnicodeString ].
-
 
 convert(UnicodeInt) when 65296 =< UnicodeInt andalso UnicodeInt =< 65306 ->
     UnicodeInt - 65296 + $0;
