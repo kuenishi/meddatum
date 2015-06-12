@@ -73,7 +73,9 @@ to_json(DPCS) ->
 from_file(Filename, [YYYYMM, _HospitalID], _Logger) ->
     F = fun(Line, Ctx) ->  parse_line(Line, YYYYMM, Ctx) end,
     {ok, Ctx1} = japanese:fold_all_lines(Filename, F, #ctx{}),
-    #ctx{records=Records, line_no=_LineNo} = Ctx1,
+    #ctx{records=Records0, line_no=_LineNo} = Ctx1,
+    Records1 = lists:sort(fun(L, R) -> dpcs_ff1:key(L) < dpcs_ff1:key(R) end, Records0),
+    Records = merge_same_keys(Records1, []),
     {ok, lists:reverse(Records)}.
 
 -spec from_file(filename:filename(), list(), pid(), fun()) -> {ok, #dpcs_ff1{}}.
@@ -213,8 +215,21 @@ parse_line(Line, Date, #ctx{current=Current,
                 current_medicalno=MedicalNo,
                 records=RecordToAdd ++ Records0}
     end,
-
     C#ctx{line_no = LineNo+1}.
+
+%% @doc The data file may have records that should be same key but in
+%% un-sorted order; merge all of them here.
+merge_same_keys([], Acc) ->
+    Acc;
+merge_same_keys([H|L], []) ->
+    merge_same_keys(L, [H]);
+merge_same_keys([H1|L1], [H2|L2] = Acc) ->
+    case {dpcs_ff1:key(H1), dpcs_ff1:key(H2)} of
+        {K, K} ->
+            merge_same_keys(L1, [dpcs_ff1:merge(H1, H2)|L2]);
+        _ ->
+            merge_same_keys(L1, [H1|Acc])
+    end.
 
 -spec new(Cocd :: iolist(),
           Kanjaid :: iolist(),
@@ -266,8 +281,15 @@ verify_taiymd(Proplist, Date, Allow00000000) ->
     end.
 
 -spec merge(#dpcs_ff1{}, #dpcs_ff1{}) -> #dpcs_ff1{}.
-merge(_, _) ->
-    fail.
+merge(#dpcs_ff1{key=K, cocd=C, kanjaid=Kid, stay=Stay1, wards=Wards1} = L,
+      #dpcs_ff1{key=K, cocd=C, kanjaid=Kid, stay=Stay2, wards=Wards2}) ->
+    Stay = case {Stay1, Stay2} of
+               {_, null} -> Stay1;
+               {null, _} -> Stay2;
+               {{S1}, {S2}} -> {orddict:merge(S1, S2)}
+           end,
+    Wards = Wards1 ++ Wards2,
+    L#dpcs_ff1{stay=Stay, wards=Wards}.
 
 -spec merge_fields(orddict:orddict(), orddict:orddict()) -> orddict:orddict().
 merge_fields(LFields, RFields) ->
