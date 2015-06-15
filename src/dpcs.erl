@@ -17,6 +17,8 @@
 
 -export([files_to_parse/1, parse_files/4, maybe_verify_date_prefix/3]).
 
+-export([parse_and_import/4]).
+
 -type record_type() :: ff1|ff4|efg|efn|dn.
 
 -record(dpcs, {
@@ -289,6 +291,46 @@ parse_files(Files, HospitalID, YYYYMM, Logger) ->
          (_, Error) ->
               Error
       end, {ok, []}, Files).
+
+parse_and_import([_Dir, HospitalID, Date|_] = Argv, C, Logger, Force) ->
+    Identifier = {HospitalID, Date},
+
+    {ok, Files} = dpcs:files_to_parse(Argv),
+    io:format(standard_error, "Files to parse: ~p~n", [Files]),
+    BinHospitalID = list_to_binary(HospitalID),
+    YYYYMM = iolist_to_binary(["20", Date]),
+
+    treehugger:log(Logger, info, "parsing ~p (force: ~p)", [Files, Force]),
+    case Force of
+        true -> ok;
+        false ->
+            case md_record:check_is_set_done(C, dpcs, Identifier) of
+                true ->
+                    treehugger:log(Logger, info, "~p is already in the database.", [Identifier]),
+                    halt(0);
+                false ->
+                    ok
+            end
+    end,
+    {ok, RecordsList} = dpcs:parse_files(Files, BinHospitalID, YYYYMM, Logger),
+    treehugger:log(Logger, info, "parsing ~p finished", [Files]),
+    lists:foreach(fun({ff1, Records}) ->
+                          [begin
+                               ok = md_record:put_json(C, Record, dpcs_ff1, Logger)
+                           end || Record <- Records];
+                     ({_, Records}) ->
+                          [begin
+                               ok = md_record:put_json(C, Record, dpcs, Logger)
+                           end || Record <- Records]
+                  end, RecordsList),
+    case md_record:mark_set_as_done(C, dpcs, Identifier) of
+        true ->
+            treehugger:log(Logger, info, "wrote ~p records into Riak.",
+                           [length(RecordsList)]);
+        Error ->
+            treehugger:log(Logger, error, "failed writing ~p records into Riak: ~p",
+                           [length(RecordsList), Error])
+    end.
 
 %% -spec check_date_hospital(binary(), binary(), rec()) -> ok | {error, atom()}.
 %% check_date_hospital(HospitalID, YYMM,
