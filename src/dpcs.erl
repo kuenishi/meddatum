@@ -26,7 +26,7 @@
           kanjaid :: binary(),
           nyuymd :: binary(),
           shinym :: binary(),
-          fields
+          fields = [] :: list()
          }).
 
 -type rec() :: #dpcs{}.
@@ -61,7 +61,8 @@ from_json(JSON) ->
     {List} = jsone:decode(JSON),
     from_json(List, #dpcs{}).
 
-from_json([], DPCS) -> DPCS;
+from_json([], DPCS = #dpcs{fields=F}) ->
+    DPCS#dpcs{fields=orddict:from_list(F)};
 from_json([{<<"key">>, Key}|L], DPCS) ->
     from_json(L, DPCS#dpcs{key=Key});
 from_json([{<<"type">>, Type}|L], DPCS) ->
@@ -84,7 +85,10 @@ from_json([{K, V}|L], DPCS = #dpcs{fields=F}) ->
     from_json(L, DPCS#dpcs{fields=[{K,V}|F]}).
 
 -spec to_json(rec()) -> {ok, binary()}.
-to_json(#dpcs{fields=Fields}) ->
+to_json(#dpcs{key=Key, type=Type, cocd=Cocd, kanjaid=Kanjaid,
+              nyuymd=Nyuymd, shinym=Shinym, fields=Fields0}) ->
+    Fields = [{key, Key}, {type, Type}, {cocd, Cocd}, {kanjaid, Kanjaid},
+              {nyuymd, Nyuymd}, {shinym, Shinym}] ++ Fields0,
     JSON = jsone:encode({Fields}, [native_utf8]),
     {ok, JSON}.
 

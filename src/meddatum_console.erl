@@ -131,7 +131,7 @@ import_dpcs([_Dir, HospitalID, Date|_] = Argv, Force) ->
         {ok, Files} ->
             {ok, #context{logger=Logger,
                           riakc=C} = Context} = meddatum_console:setup(),
-            treehugger:log(Logger, info, "parsing ~s", [Files]),
+            treehugger:log(Logger, info, "parsing ~p", [Files]),
             case Force of
                 true -> ok;
                 false -> md_record:check_is_set_done(C, dpcs, Identifier)
