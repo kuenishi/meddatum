@@ -273,7 +273,7 @@ parse_options(Other, _) ->
 parse_files(Files, HospitalID, YYYYMM, Logger) ->
     lists:foldl(
       fun({ff1, Filename}, {ok, Records0}) ->
-              io:format(standard_error, "parsing ~p...~n", [Filename]),
+              treehugger:log(Logger, debug, "parsing ~p...~n", [Filename]),
               case dpcs_ff1:from_file(Filename, [YYYYMM, HospitalID], Logger) of
                   {ok, Records} ->
                       {ok, [{ff1, Records}|Records0]};
@@ -281,7 +281,7 @@ parse_files(Files, HospitalID, YYYYMM, Logger) ->
                       {error, {Error1, Filename}}
               end;
          ({Mode, Filename}, {ok, Records0}) ->
-              io:format(standard_error, "parsing ~p...~n", [Filename]),
+              treehugger:log(Logger, debug, "parsing ~p...~n", [Filename]),
               case dpcs:from_file(Filename, [Mode, YYYYMM, HospitalID], Logger) of
                   {ok, Records} ->
                       {ok, [{Mode, Records}|Records0]};
@@ -296,7 +296,7 @@ parse_and_import([_Dir, HospitalID, Date|_] = Argv, C, Logger, Force) ->
     Identifier = {HospitalID, Date},
 
     {ok, Files} = dpcs:files_to_parse(Argv),
-    io:format(standard_error, "Files to parse: ~p~n", [Files]),
+    treehugger:log(Logger, info, "Files to parse: ~p~n", [Files]),
     BinHospitalID = list_to_binary(HospitalID),
     YYYYMM = iolist_to_binary(["20", Date]),
 
@@ -307,7 +307,7 @@ parse_and_import([_Dir, HospitalID, Date|_] = Argv, C, Logger, Force) ->
             case md_record:check_is_set_done(C, dpcs, Identifier) of
                 true ->
                     treehugger:log(Logger, info, "~p is already in the database.", [Identifier]),
-                    halt(0);
+                    throw({already_imported, Identifier});
                 false ->
                     ok
             end
@@ -317,19 +317,22 @@ parse_and_import([_Dir, HospitalID, Date|_] = Argv, C, Logger, Force) ->
     lists:foreach(fun({ff1, Records}) ->
                           [begin
                                ok = md_record:put_json(C, Record, dpcs_ff1, Logger)
-                           end || Record <- Records];
-                     ({_, Records}) ->
+                           end || Record <- Records],
+                          treehugger:log(Logger, info, "wrote ~p ff1 records into Riak.",
+                                         [length(Records)]);
+                     ({Type, Records}) ->
                           [begin
                                ok = md_record:put_json(C, Record, dpcs, Logger)
-                           end || Record <- Records]
+                           end || Record <- Records],
+                          treehugger:log(Logger, info, "wrote ~p ~p records into Riak.",
+                                         [Type, length(Records)])
                   end, RecordsList),
     case md_record:mark_set_as_done(C, dpcs, Identifier) of
-        true ->
-            treehugger:log(Logger, info, "wrote ~p records into Riak.",
-                           [length(RecordsList)]);
+        ok ->
+            ok;
         Error ->
-            treehugger:log(Logger, error, "failed writing ~p records into Riak: ~p",
-                           [length(RecordsList), Error])
+            treehugger:log(Logger, error, "failed writing records into Riak: ~p", [Error]),
+            throw(Error)
     end.
 
 %% -spec check_date_hospital(binary(), binary(), rec()) -> ok | {error, atom()}.
