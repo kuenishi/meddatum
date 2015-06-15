@@ -124,41 +124,46 @@ import_recept([Mode0, Filename]) ->
 import_recept(_) -> meddatum:help().
 
 import_dpcs([_Dir, HospitalID, Date|_] = Argv, Force) ->
-
     Identifier = {HospitalID, Date},
-    case dpcs:files_to_parse(Argv) of
-        {error, _} = E -> E;
-        {ok, Files} ->
-            {ok, #context{logger=Logger,
-                          riakc=C} = Context} = meddatum_console:setup(),
-            treehugger:log(Logger, info, "parsing ~p", [Files]),
-            case Force of
-                true -> ok;
-                false -> md_record:check_is_set_done(C, dpcs, Identifier)
-            end,
-            try
-                case dpcs:parse_files(Files, HospitalID, Date, Logger) of
-                    {ok, Records} ->
-                        treehugger:log(Logger, info,
-                                       "parsing ~p finished", [Files]),
-                        lists:foreach(fun({ff1, Record}) ->
-                                              ok = md_record:put_json(C, Record, dpcs_ff1, Logger);
-                                         ({_, _} = Record) ->
-                                              ok = md_record:put_json(C, Record, dpcs, Logger)
-                                      end, Records),
-                        case md_record:mark_set_as_done(C, dpcs, Identifier) of
-                            true ->
-                                treehugger:log(Logger, info, "wrote ~p records into Riak.", [length(Records)]);
-                            _ ->
-                                treehugger:log(Logger, info, "failed writing records into Riak.", [length(Records)])
-                        end
-                end
-            catch E:T ->
-                    treehugger:log(Logger, error,
-                                   "~p:~p ~w", [E, T, erlang:get_stacktrace()])
-            after
-                meddatum_console:teardown(Context)
-            end
+    io:setopts([{encoding, unicode}]),
+
+    {ok, Files} = dpcs:files_to_parse(Argv),
+    io:format(standard_error, "Files to parse: ~p~n", [Files]),
+    BinHospitalID = list_to_binary(HospitalID),
+    YYYYMM = iolist_to_binary(["20", Date]),
+
+    {ok, #context{logger=Logger,
+                  riakc=C} = Context} = meddatum_console:setup(),
+    treehugger:log(Logger, info, "parsing ~p", [Files]),
+    case Force of
+        true -> ok;
+        false -> md_record:check_is_set_done(C, dpcs, Identifier)
+    end,
+    try
+        {ok, RecordsList} = dpcs:parse_files(Files, BinHospitalID, YYYYMM, Logger),
+        treehugger:log(Logger, info, "parsing ~p finished", [Files]),
+        lists:foreach(fun({ff1, Records}) ->
+                              [begin
+                                   ok = md_record:put_json(C, Record, dpcs_ff1, Logger)
+                               end || Record <- Records];
+                         ({_, Records}) ->
+                              [begin
+                                   ok = md_record:put_json(C, Record, dpcs, Logger)
+                               end || Record <- Records]
+                      end, RecordsList),
+        case md_record:mark_set_as_done(C, dpcs, Identifier) of
+            true ->
+                treehugger:log(Logger, info, "wrote ~p records into Riak.",
+                               [length(RecordsList)]);
+            Error ->
+                treehugger:log(Logger, error, "failed writing ~p records into Riak: ~p",
+                               [length(RecordsList), Error])
+        end
+    catch E:T ->
+            treehugger:log(Logger, error,
+                           "~p:~p ~w", [E, T, erlang:get_stacktrace()])
+    after
+        meddatum_console:teardown(Context)
     end;
 
 import_dpcs(_, _) -> meddatum:help().

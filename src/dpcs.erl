@@ -12,7 +12,7 @@
          check_is_set_done/2, mark_set_as_done/2,
          columns/0]).
 
--export([new/5, merge/2, merge_2/2, update_shinym/2,
+-export([new/5, merge/2, update_shinym/2,
          maybe_verify/3]).
 
 -export([files_to_parse/1, parse_files/4, maybe_verify_date_prefix/3]).
@@ -43,7 +43,8 @@ bucket(#dpcs{type = ff4}) ->
     meddatum:true_bucket_name(<<?DPCS_BUCKET/binary, ":ff">>).
 
 -spec key(rec()) -> binary().
-key(#dpcs{key=Key}) -> Key.
+key(#dpcs{key=Key}) -> Key;
+key(_E) -> error(_E).
 
 %% TODO
 -spec make_2i_list(rec()) -> [{string(), binary()|integer()}].
@@ -209,22 +210,18 @@ new(Type, Cocd, Kanjaid, Nyuymd, Fields0) ->
 update_shinym(Rec, Date) ->
     Rec#dpcs{shinym=Date}.
 
--spec merge([rec()], rec()) -> rec().
-merge(LList, R) ->
-    lists:foldl(fun merge_2/2, R, LList).
-
--spec merge_2(L::rec(), R::rec()) -> rec().
-merge_2(L = #dpcs{key=Key, type=Type,
-                  fields=LFields},
+-spec merge(rec(), rec()) -> rec().
+merge(L = #dpcs{key=Key, type=Type,
+                fields=LFields},
       _ = #dpcs{key=Key, type=Type,
                 fields=RFields}) ->
-    io:format("key: ~p~n", [Key]),
+    io:format("merging key: ~p~n", [Key]),
     Fields = orddict:merge(fun(ope, LV, RV) -> LV++RV;
                               (sick, LV, RV) -> LV++RV;
                               (_, V, V) -> V
                            end, LFields, RFields),
     L#dpcs{fields=Fields};
-merge_2(L, R) ->
+merge(L, R) ->
     error({cannot_merge, L, R}).
 
 files_to_parse([Dir, HospitalID, Date]) ->
