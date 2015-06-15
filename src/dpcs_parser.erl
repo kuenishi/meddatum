@@ -34,7 +34,7 @@ parse_1(Filename, Lines0, Mode, Date, HospitalID, Logger) ->
                               ok;
                           false ->
                               PrevDPCSRecord = ets:lookup_element(Table, {Mode, BinKey}, 2),
-                              NewDPCSRecord = dpcs:merge_2(DPCSRecord, PrevDPCSRecord),
+                              NewDPCSRecord = dpcs:merge([DPCSRecord], PrevDPCSRecord),
                               ets:insert(Table, {{Mode, BinKey}, NewDPCSRecord})
                       end;
                   Error ->

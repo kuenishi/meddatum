@@ -111,7 +111,7 @@ check_is_set_done(C, {HospitalID, Date}) ->
     {BT, Key} = tbk(HospitalID, Date),
     case riakc_pb_socket:get(C, BT, Key, [{pr,all}]) of
         {error, notfound} -> false;
-        {ok, RiakObj} -> is_tombstone(RiakObj)
+        {ok, RiakObj} -> not is_tombstone(RiakObj)
     end.
 
 is_tombstone(RiakObj) ->
@@ -210,18 +210,28 @@ new(Type, Cocd, Kanjaid, Nyuymd, Fields0) ->
 update_shinym(Rec, Date) ->
     Rec#dpcs{shinym=Date}.
 
--spec merge(rec(), rec()) -> rec().
-merge(L = #dpcs{key=Key, type=Type,
-                fields=LFields},
+-spec merge([rec()], rec()) -> rec().
+merge([], R) -> R;
+merge([L = #dpcs{key=Key, type=Type,
+                 fields=LFields}|H],
       _ = #dpcs{key=Key, type=Type,
                 fields=RFields}) ->
-    io:format("merging key: ~p~n", [Key]),
     Fields = orddict:merge(fun(ope, LV, RV) -> LV++RV;
                               (sick, LV, RV) -> LV++RV;
-                              (_, V, V) -> V
+                              (_, V, V) -> V;
+                              (_, _, V) -> V %% This is actually overwrite
+                              %% (_, V1, V2) when is_float(V1) andalso is_float(V2) ->
+                              %%      case abs(V1 - V2) of
+                              %%          Diff when Diff < 0.0000001 ->
+                              %%              V1;
+                              %%          _ ->
+                              %%              V2 %% Assuming overwrite
+                              %%      end
                            end, LFields, RFields),
-    L#dpcs{fields=Fields};
+    merge(H, L#dpcs{fields=Fields});
 merge(L, R) ->
+    io:format("~p, ~p", [dpcs:key(L), dpcs:key(R)]),
+    io:format("~p, ~p", [dpcs:type(L), dpcs:type(R)]),
     error({cannot_merge, L, R}).
 
 files_to_parse([Dir, HospitalID, Date]) ->
