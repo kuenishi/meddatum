@@ -230,8 +230,6 @@ merge([L = #dpcs{key=Key, type=Type,
                            end, LFields, RFields),
     merge(H, L#dpcs{fields=Fields});
 merge(L, R) ->
-    io:format("~p, ~p", [dpcs:key(L), dpcs:key(R)]),
-    io:format("~p, ~p", [dpcs:type(L), dpcs:type(R)]),
     error({cannot_merge, L, R}).
 
 files_to_parse([Dir, HospitalID, Date]) ->
