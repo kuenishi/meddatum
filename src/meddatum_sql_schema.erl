@@ -5,52 +5,44 @@
 
 -include("meddatum.hrl").
 
--export([create/2, check/1, setup/1]).
+-export([create/1, check/0, setup/0]).
 
 %% meta structures are here
 -define(PRESTO_SCHEMA_BUCKET, <<"__presto_schema">>).
 %% all tables' name should be here
 -define(PRESTO_SCHEMA_KEY, <<"__schema">>).
 
-static_tabledef(HospitalID) ->
-    {_BType0, BucketName0} = hl7:static_bucket_from_hospital_id(HospitalID),
+static_tabledef() ->
     SSMIXTable0 = {[
-                    {<<"name">>, BucketName0},
+                    {<<"name">>, ?SSMIX_PATIENTS_BUCKET},
                     {<<"columns">>, [atom_to_binary({Col})||Col<-hl7:columns()]}
                    ] ++ hl7:subtables() },
     jsone:encode(SSMIXTable0, [native_utf8]).
 
-normal_tabledef(HospitalID) ->
-    {_BType0, BucketName1} = hl7:bucket_from_hospital_id(HospitalID),
+normal_tabledef() ->
     SSMIXTable1 = {[
-                    {<<"name">>, BucketName1},
+                    {<<"name">>, ?SSMIX_BUCKET},
                     {<<"columns">>, [atom_to_binary({Col})||Col<-hl7:columns()]}
                    ] ++ hl7:subtables() },
     jsone:encode(SSMIXTable1, [native_utf8]).
 
-recept_tabledef(HospitalID) ->
-    {_BType, BucketName2} = rezept:bucket_from_hospital_id(HospitalID),
+recept_tabledef() ->
     ReceptTable = {[
-                    {<<"name">>, BucketName2},
+                    {<<"name">>, ?RECEPT_BUCKET},
                     {<<"columns">>, [atom_to_binary({C})||C<-rezept:columns()]}
                    ] ++ rezept:subtables()},
     jsone:encode(ReceptTable, [native_utf8]).
 
-create(Type, HospitalID0) ->
+create(Type) ->
     ok = io:setopts([{encoding,utf8}]),
-    HospitalID = list_to_binary(HospitalID0),
     Text= case Type of
-              static ->
-                  static_tabledef(HospitalID);
-              ssmix ->
-                  normal_tabledef(HospitalID);
-              recept ->
-                  recept_tabledef(HospitalID)
+              static -> static_tabledef();
+              ssmix ->  normal_tabledef();
+              recept -> recept_tabledef()
           end,
     io:format("~ts~n", [Text]).
 
-check(HospitalID0) ->
-    HospitalID = list_to_binary(HospitalID0),
+check() ->
     {ok, #context{logger=Logger,
                   riakc=C} = Context} = meddatum_console:setup(),
     try
@@ -58,24 +50,24 @@ check(HospitalID0) ->
         {ok, Tables} = get_tables(C, Logger, ?BUCKET_TYPE),
 
         %% table definition is in {<<"md">>, <<"__presto_schema">>}, <<"tablename">>
-        io:format("Checking schema for static ssmix records on hospital ~s...", [HospitalID]),
-        {_BType0, BucketName0} = hl7:static_bucket_from_hospital_id(HospitalID),
+        io:format("Checking schema for static ssmix records..."),
+        BucketName0 = ?SSMIX_PATIENTS_BUCKET,
         io:format("~p, ", [lists:member(BucketName0, Tables)]),
-        Tabledef0 = static_tabledef(HospitalID),
+        Tabledef0 = static_tabledef(),
         Tabledef1 = get_tabledef(C, BucketName0),
         io:format("~p~n", [Tabledef0 =:= Tabledef1]),
 
-        io:format("Checking schema for normal ssmix records on hospital ~s...", [HospitalID]),
-        {_BType0, BucketName1} = hl7:bucket_from_hospital_id(HospitalID),
+        io:format("Checking schema for normal ssmix records..."),
+        BucketName1 = ?SSMIX_BUCKET,
         io:format("~p, ", [lists:member(BucketName1, Tables)]),
-        Tabledef00 = normal_tabledef(HospitalID),
+        Tabledef00 = normal_tabledef(),
         Tabledef01 = get_tabledef(C, BucketName1),
         io:format("~p~n", [Tabledef00 =:= Tabledef01]),
 
-        io:format("Checking schema for rezept on hospital ~s...", [HospitalID]),
-        {_BType, BucketName2} = rezept:bucket_from_hospital_id(HospitalID),
+        io:format("Checking schema for rezept..."),
+        BucketName2 = ?RECEPT_BUCKET,
         io:format("~p, ", [lists:member(BucketName2, Tables)]),
-        Tabledef10 = recept_tabledef(HospitalID),
+        Tabledef10 = recept_tabledef(),
         Tabledef11 = get_tabledef(C, BucketName2),
         io:format("~p~n", [Tabledef10 =:= Tabledef11]),
         ok
@@ -84,8 +76,7 @@ check(HospitalID0) ->
             meddatum_console:teardown(Context)
     end.
 
-setup(HospitalID0) ->
-    HospitalID = list_to_binary(HospitalID0),
+setup() ->
     {ok, #context{logger=Logger,
                   riakc=C} = Context} = meddatum_console:setup(),
     try
@@ -93,29 +84,35 @@ setup(HospitalID0) ->
         case get_tables(C, Logger, ?BUCKET_TYPE) of
             {ok, Tables} ->
 
-                io:format("Updating schema for static ssmix records on hospital ~s...", [HospitalID]),
-                {_BType0, BucketName0} = hl7:static_bucket_from_hospital_id(HospitalID),
+                io:format("Updating schema for static ssmix records ..."),
+                BucketName0 = ?SSMIX_PATIENTS_BUCKET,
                 case lists:member(BucketName0, Tables) of
                     true -> ok;
                     false -> update_root_schema(C, Logger, BucketName0)
                 end,
-                io:format("done: ~p~n", [update_table_schema(C, Logger, BucketName0, static_tabledef(HospitalID))]),
+                io:format("done: ~p~n",
+                          [update_table_schema(C, Logger, BucketName0,
+                                               static_tabledef())]),
 
-                io:format("Checking schema for normal ssmix records on hospital ~s...", [HospitalID]),
-                {_BType0, BucketName1} = hl7:bucket_from_hospital_id(HospitalID),
+                io:format("Checking schema for normal ssmix records..."),
+                BucketName1 = ?SSMIX_BUCKET,
                 case lists:member(BucketName1, Tables) of
                     true -> ok;
                     false -> update_root_schema(C, Logger, BucketName1)
                 end,
-                io:format("done: ~p~n", [update_table_schema(C, Logger, BucketName1, normal_tabledef(HospitalID))]),
+                io:format("done: ~p~n",
+                          [update_table_schema(C, Logger, BucketName1,
+                                               normal_tabledef())]),
 
-                io:format("Checking schema for rezept on hospital ~s...", [HospitalID]),
-                {_BType, BucketName2} = rezept:bucket_from_hospital_id(HospitalID),
+                io:format("Checking schema for rezept..."),
+                BucketName2 = ?RECEPT_BUCKET,
                 case lists:member(BucketName2, Tables) of
                     true -> ok;
                     false -> update_root_schema(C, Logger ,BucketName2)
                 end,
-                io:format("done: ~p~n", [update_table_schema(C, Logger, BucketName2, recept_tabledef(HospitalID))]),
+                io:format("done: ~p~n",
+                          [update_table_schema(C, Logger, BucketName2,
+                                               recept_tabledef())]),
                 ok;
 
             Error ->

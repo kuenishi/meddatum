@@ -34,15 +34,15 @@
 -type rec() :: #dpcs{}.
 -export_type([record_type/0, rec/0]).
 
--spec bucket(rec()) -> binary().
+-spec bucket(rec()) -> {binary(), binary()}.
 bucket(#dpcs{type = efn}) ->
-    meddatum:true_bucket_name(<<?DPCS_BUCKET/binary, ":efndn">>);
+    {?BUCKET_TYPE, <<?DPCS_BUCKET/binary, ":efndn">>};
 bucket(#dpcs{type = efg}) ->
-    meddatum:true_bucket_name(<<?DPCS_BUCKET/binary, ":efg">>);
+    {?BUCKET_TYPE, <<?DPCS_BUCKET/binary, ":efg">>};
 bucket(#dpcs{type = dn}) ->
-    meddatum:true_bucket_name(<<?DPCS_BUCKET/binary, ":efndn">>);
+    {?BUCKET_TYPE, <<?DPCS_BUCKET/binary, ":efndn">>};
 bucket(#dpcs{type = ff4}) ->
-    meddatum:true_bucket_name(<<?DPCS_BUCKET/binary, ":ff">>).
+    {?BUCKET_TYPE, <<?DPCS_BUCKET/binary, ":ff">>}.
 
 -spec key(rec()) -> binary().
 key(#dpcs{key=Key}) -> Key;
@@ -51,7 +51,8 @@ key(_E) -> error(_E).
 %% TODO
 -spec make_2i_list(rec()) -> [{string(), binary()|integer()}].
 make_2i_list(Rec) ->
-    [{"kanjaid", patient_id(Rec)}].
+    [{"kanjaid", patient_id(Rec)},
+     {"cocd", hospital_id(Rec)}].
 
 -spec hospital_id(rec()) -> binary().
 hospital_id(#dpcs{cocd=HospitalID}) -> HospitalID.
@@ -141,9 +142,9 @@ mark_set_as_done(C, {HospitalID, Date}) ->
     riakc_pb_socket:put(C, RiakObject).
 
 tbk(HospitalID, Date) ->
-    BT = meddatum:true_bucket_name(<<?DPCS_BUCKET/binary,
-                                     ?BUCKET_NAME_SEPARATOR/binary,
-                                     "trail">>),
+    BT = {?BUCKET_TYPE, <<?DPCS_BUCKET/binary,
+                          ?BUCKET_NAME_SEPARATOR/binary,
+                          "trail">>},
     Key = [HospitalID, ?BUCKET_NAME_SEPARATOR, Date],
     BinKey = iolist_to_binary(Key),
     {BT, BinKey}.

@@ -45,15 +45,15 @@ process_a_patient(RiakKeys, Riakc, Margin, Dir) ->
 
             {ok, SSMIXResults} =
                 get_all_via_index(Riakc,
-                                  meddatum:ssmix_bucket(HospitalID),
+                                  hl7:bucket(normal),
                                   PatientID),
             {ok, ReceptResults} =
                 get_all_via_index(Riakc,
-                                  meddatum:recept_bucket(HospitalID),
+                                  rezept:bucket(boom),
                                   PatientID),
             {ok, StaticRecords0} =
                 get_all_via_index(Riakc,
-                                  meddatum:ssmix_patients_bucket(HospitalID),
+                                  hl7:bucket(static),
                                   PatientID),
             {ok, SearchResults} = get_all_keys(Riakc, BKeys),
 

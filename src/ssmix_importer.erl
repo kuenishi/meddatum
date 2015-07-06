@@ -58,7 +58,12 @@ delete_all(Host, Port, Bucket) ->
 -spec deleter(inet:hostname(), inet:port_number(), binary()) -> no_return().
 deleter(Host, Port, Bucket0) ->
     {ok, C} = riakc_pb_socket:start_link(Host, Port),
-    Bucket = meddatum:true_bucket_name(Bucket0),
+    Bucket = case Bucket0 of
+                 _ when is_binary(Bucket0) ->
+                     {?BUCKET_TYPE, Bucket0};
+                 _ when is_tuple(Bucket0) ->
+                     Bucket0
+             end,
     Result = deleter_loop(C, Bucket, 0),
     ok = riakc_pb_socket:stop(C),
     io:format("~p deleter: ~p~n", [Bucket, Result]),
@@ -82,7 +87,12 @@ deleter_loop(C, Bucket, Count) ->
 -spec fetcher(atom(), inet:port_number(), pid(), binary()) -> no_return().
 fetcher(Host, Port, DeleterPid, Bucket0) ->
     {ok, C} = riakc_pb_socket:start_link(Host, Port),
-    Bucket = meddatum:true_bucket_name(Bucket0),
+    Bucket = case Bucket0 of
+                 _ when is_binary(Bucket0) ->
+                     {?BUCKET_TYPE, Bucket0};
+                 _ when is_tuple(Bucket0) ->
+                     Bucket0
+             end,
     case riakc_pb_socket:stream_list_keys(C, Bucket) of
         {ok, ReqID} ->
             Result = fetcher_loop(C, ReqID, 0, DeleterPid),
@@ -133,14 +143,4 @@ process_file(File, HospitalID, #context{riakc=Riakc, logger=Logger} = _Ctx) ->
     end.
 
 -ifdef(TEST).
-
--define(assertBucketName(Exp, Val),
-        ?assertEqual({<<"md">>, <<Exp/binary, ":dummyhospital">>},
-                     hl7:bucket(#hl7msg{msg_type_s= Val,
-                                        hospital_id= <<"dummyhospital">>}))).
-
-bucket_name_test() ->
-    ?assertBucketName(?SSMIX_PATIENTS_BUCKET, <<"ADT^A60foorbaz">>),
-    ?assertBucketName(?SSMIX_BUCKET, <<"ADT^A61foobarbaz">>).
-
 -endif.

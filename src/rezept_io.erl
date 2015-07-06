@@ -26,7 +26,7 @@ delete_from_file(C, Filename) ->
     KeyPrefix = rezept:key_prefix(Filename),
     Start = KeyPrefix,
     End   = <<KeyPrefix/binary, 255>>,
-    Bucket = meddatum:true_bucket_name(?RECEPT_BUCKET),
+    Bucket = rezept:bucket(boom),
     case riakc_pb_socket:get_index_range(C, Bucket, <<"$key">>, Start, End) of
         {ok, #index_results_v1{keys=Keys}} ->
             {ok, lists:foldl(fun(ok, {OK,E}) -> {OK +1, E};

@@ -21,7 +21,6 @@
 -export([from_file/3, from_file/4,
          to_json/1, from_json/1,
          key/1, bucket/1, make_2i_list/1, merge/2,
-         static_bucket_from_hospital_id/1, bucket_from_hospital_id/1,
          patient_id/1, hospital_id/1,
          check_is_set_done/2, mark_set_as_done/2,
          columns/0]).
@@ -47,25 +46,27 @@ is_static(#hl7msg{msg_type_s=MsgType}) ->
         _B when is_binary(_B) -> false
     end.
 
-bucket(#hl7msg{hospital_id=HospitalID} = HL7Msg) ->
-    case is_static(HL7Msg) of
-        true -> static_bucket_from_hospital_id(HospitalID);
-        false -> bucket_from_hospital_id(HospitalID)
-    end.
-
-static_bucket_from_hospital_id(HospitalID) when is_binary(HospitalID) ->
+bucket(#hl7msg{} = HL7Msg) ->
     {?BUCKET_TYPE,
-     <<?SSMIX_PATIENTS_BUCKET/binary, ?BUCKET_NAME_SEPARATOR/binary, HospitalID/binary>>}.
-
-bucket_from_hospital_id(HospitalID) when is_binary(HospitalID) ->
-    {?BUCKET_TYPE,
-     <<?SSMIX_BUCKET/binary, ?BUCKET_NAME_SEPARATOR/binary, HospitalID/binary>>}.
+     case is_static(HL7Msg) of
+         true -> ?SSMIX_PATIENTS_BUCKET;
+         false -> ?SSMIX_BUCKET
+     end};
+bucket(static) ->
+    {?BUCKET_TYPE, ?SSMIX_PATIENTS_BUCKET};
+bucket(_) ->
+    {?BUCKET_TYPE, ?SSMIX_BUCKET}.
 
 key(#hl7msg{file=File}) ->
     filename:basename(File).
 
-make_2i_list(#hl7msg{date=Date, patient_id=PatientID}) ->
-    [{"date", Date}, {"patient_id", PatientID}].
+-spec make_2i_list(#hl7msg{}) -> [{string(), binary()}].
+make_2i_list(#hl7msg{date=Date,
+                     hospital_id=HospitalID,
+                     patient_id=PatientID}) ->
+    [{"date", Date},
+     {"hospital_id", HospitalID},
+     {"patient_id", PatientID}].
 
 merge(_, New) -> New. %% LRW
 

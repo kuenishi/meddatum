@@ -17,8 +17,6 @@
 -module(meddatum).
 
 -export([main/1, help/0, maybe_new_ro/4,
-         true_bucket_name/1,
-         ssmix_bucket/1, recept_bucket/1, ssmix_patients_bucket/1,
          check_setup/0,
          setup/2]).
 
@@ -38,16 +36,16 @@ main(["parse-dpcs"|Args]) ->  meddatum_console:parse_dpcs(Args);
 main(["delete-all-ssmix"|Args]) -> meddatum_console:delete_all_ssmix(Args);
 main(["delete-recept"|Args]) ->    meddatum_console:delete_recept(Args);
 main(["search"|Args]) ->    meddatum_console:search(Args);
-main(["show-schema", "ssmix-static", HospitalID]) ->
-    meddatum_sql_schema:create(static, HospitalID);
-main(["show-schema", "ssmix", HospitalID]) ->
-    meddatum_sql_schema:create(ssmix, HospitalID);
-main(["show-schema", "recept", HospitalID]) ->
-    meddatum_sql_schema:create(recept, HospitalID);
-main(["check-schema", HospitalID]) ->
-    meddatum_sql_schema:check(HospitalID);
-main(["setup-schema", HospitalID]) ->
-    meddatum_sql_schema:setup(HospitalID);
+main(["show-schema", "ssmix-static"]) ->
+    meddatum_sql_schema:create(static);
+main(["show-schema", "ssmix"]) ->
+    meddatum_sql_schema:create(ssmix);
+main(["show-schema", "recept"]) ->
+    meddatum_sql_schema:create(recept);
+main(["check-schema"]) ->
+    meddatum_sql_schema:check();
+main(["setup-schema"]) ->
+    meddatum_sql_schema:setup();
 main(["help"]) -> help();
 main(_) -> help().
 
@@ -67,37 +65,10 @@ help() ->
               "meddatum search <keyword> (prints all keys matched)~n"
               "meddatum [help]~n"
               "experimental:~n"
-              "meddatum show-schema ssmix-static <hospital-id>~n"
-              "meddatum show-schema ssmix <hospital-id>~n"
-              "meddatum show-schema recept <hospital-id>~n"
-              "meddatum show-schema <hospital-id> (prints out supposed schema about ssmix, recept)~n"
-              "meddatum ckeck-schema <hospital-id> (checks tabledef about ssmix, recept in Riak)~n"
-              "meddatum setup-schema <hospital-id> (creates tabledef on ssmix, recept)~n"
+              "meddatum show-schema [ssmix-static|ssmix|recept]~n"
+              "meddatum ckeck-schema (checks tabledef of ssmix, recept in Riak)~n"
+              "meddatum setup-schema (creates tabledef on ssmix, recept)~n"
              ).
-
-true_bucket_name(Bucket0) ->
-    {?BUCKET_TYPE, Bucket0}.
-
-ssmix_bucket(HospitalID) when is_binary(HospitalID) ->
-    io:format("~p~n", [HospitalID]),
-    Bucket = <<?SSMIX_BUCKET/binary, ?BUCKET_NAME_SEPARATOR/binary, HospitalID/binary>>,
-    meddatum:true_bucket_name(Bucket);
-ssmix_bucket(HospitalID) ->
-    ssmix_bucket(iolist_to_binary(HospitalID)).
-
-%% @private
-recept_bucket(HospitalID) when is_binary(HospitalID) ->
-    Bucket = <<?RECEPT_BUCKET/binary, ?BUCKET_NAME_SEPARATOR/binary, HospitalID/binary>>,
-    meddatum:true_bucket_name(Bucket);
-recept_bucket(HospitalID) ->
-    recept_bucket(iolist_to_binary(HospitalID)).
-
-%% @private
-ssmix_patients_bucket(HospitalID) when is_binary(HospitalID) ->
-    Bucket = <<?SSMIX_PATIENTS_BUCKET/binary, ?BUCKET_NAME_SEPARATOR/binary, HospitalID/binary>>,
-    meddatum:true_bucket_name(Bucket);
-ssmix_patients_bucket(HospitalID) ->
-    ssmix_patients_bucket(iolist_to_binary(HospitalID)).
 
 -define(RESULT(N, X), io:format("~s: ~p~n", [(N), (X)])).
 

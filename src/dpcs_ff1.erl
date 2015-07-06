@@ -42,9 +42,9 @@ stay(#dpcs_ff1{stay=null}) -> null.
 -spec wards(#dpcs_ff1{}) -> [{orddict:orddict()}].
 wards(#dpcs_ff1{wards=Wards}) -> Wards.
 
--spec bucket(#dpcs_ff1{}) -> binary().
+-spec bucket(#dpcs_ff1{}) -> {binary(), binary()}.
 bucket(#dpcs_ff1{} = _) ->
-    meddatum:true_bucket_name(<<?DPCS_BUCKET/binary, ":ff">>).
+    {?BUCKET_TYPE, <<?DPCS_BUCKET/binary, ":ff">>}.
 
 -spec key(#dpcs_ff1{}) -> binary().
 key(#dpcs_ff1{key=Key}) -> Key.
@@ -114,9 +114,8 @@ mark_set_as_done(C, {HospitalID, Date}) ->
     riakc_pb_socket:put(C, RiakObject).
 
 tbk(HospitalID, Date) ->
-    BT = meddatum:true_bucket_name(<<?DPCS_BUCKET/binary,
-                                     ?BUCKET_NAME_SEPARATOR/binary,
-                                     "trail">>),
+    BT ={?BUCKET_TYPE,
+         <<?DPCS_BUCKET/binary,?BUCKET_NAME_SEPARATOR/binary,"trail">>},
     Key = [HospitalID, ?BUCKET_NAME_SEPARATOR, Date],
     BinKey = iolist_to_binary(Key),
     {BT, BinKey}.

@@ -17,8 +17,7 @@
 -module(md_record).
 
 -include("meddatum.hrl").
--export([bucket2hospital_id/1,
-         put_json/4,
+-export([put_json/4,
          mark_set_as_done/3, check_is_set_done/3]).
 
 %% note that the file is usually *NOT* JSON.
@@ -60,17 +59,6 @@ put_json(C, Msg, Mod, Logger) when is_atom(Mod) ->
     case riakc_pb_socket:put(C, RiakObj) of
         ok -> ok;
         Error -> treehugger:log(error, Logger, "error inserting ~p: ~p", [Key, Error])
-    end.
-
-bucket2hospital_id({_, Bucket}) -> bucket2hospital_id(Bucket);
-bucket2hospital_id(Bucket) when is_binary(Bucket) ->
-    case Bucket of
-        <<"ssmix:", HospitalID/binary>> ->
-            {ssmix, HospitalID};
-        <<"ssmix-patients:", HospitalID/binary>> ->
-            {ssmix_patients, HospitalID};
-        <<"recept:", HospitalID/binary>> ->
-            {recept, HospitalID}
     end.
 
 -spec mark_set_as_done(pid(), module(), term()) -> ok | {error, term()}.

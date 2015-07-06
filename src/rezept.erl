@@ -25,7 +25,7 @@
 
 -export([from_json/1, to_json/1,
          key/1, key_prefix/1,
-         bucket/1, bucket_from_hospital_id/1,
+         bucket/1,
          make_2i_list/1, merge/2,
          patient_id/1, hospital_id/1,
          check_is_set_done/2, mark_set_as_done/2,
@@ -99,17 +99,17 @@ key_prefix(Filename) when is_list(Filename) ->
     BinChecksum = checksum:bin_to_hexbin(Checksum),
     <<BinFilename/binary, "-", BinChecksum/binary>>.
 
--spec bucket(#recept{}) -> binary().
-bucket(#recept{hospital_id = HospitalID} = _Recept) ->
-    bucket_from_hospital_id(HospitalID).
+-spec bucket(any()) -> {binary(), binary()}.
+bucket(_) ->
+    {?BUCKET_TYPE, ?RECEPT_BUCKET}.
 
--spec bucket_from_hospital_id(binary()) -> {binary(), binary()}.
-bucket_from_hospital_id(HospitalID) when is_binary(HospitalID) ->
-    BucketName = <<?RECEPT_BUCKET/binary, ?BUCKET_NAME_SEPARATOR/binary, HospitalID/binary>>,
-    {?BUCKET_TYPE, BucketName}.
-
-make_2i_list(#recept{patient_id=PatientID, date=Date}) ->
-    [{"date", Date}, {"patient_id", PatientID}].
+-spec make_2i_list(#recept{}) -> [{string(), binary()}].
+make_2i_list(#recept{date=Date,
+                     hospital_id=HospitalID,
+                     patient_id=PatientID}) ->
+    [{"date", Date},
+     {"hospital_id", HospitalID},
+     {"patient_id", PatientID}].
 
 merge(_, New) -> New.
 
