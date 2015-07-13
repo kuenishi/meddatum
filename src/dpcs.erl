@@ -52,7 +52,8 @@ key(_E) -> error(_E).
 -spec make_2i_list(rec()) -> [{string(), binary()|integer()}].
 make_2i_list(Rec) ->
     [{"kanjaid", patient_id(Rec)},
-     {"cocd", hospital_id(Rec)}].
+     {"cocd", hospital_id(Rec)},
+     {"nyuymd", Rec#dpcs.nyuymd}].
 
 -spec hospital_id(rec()) -> binary().
 hospital_id(#dpcs{cocd=HospitalID}) -> HospitalID.

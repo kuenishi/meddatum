@@ -51,7 +51,9 @@ key(#dpcs_ff1{key=Key}) -> Key.
 
 -spec make_2i_list(#dpcs_ff1{}) -> [{string(), binary()|integer()}].
 make_2i_list(Rec) ->
-    [{"kanjaid", patient_id(Rec)}].
+    [{"kanjaid", patient_id(Rec)},
+     {"cocd", hospital_id(Rec)},
+     {"nyuymd", Rec#dpcs_ff1.nyuymd}].
 
 -spec hospital_id(#dpcs_ff1{}) -> binary().
 hospital_id(#dpcs_ff1{cocd=HospitalID}) -> HospitalID.
