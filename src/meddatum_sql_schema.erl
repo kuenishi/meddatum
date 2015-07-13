@@ -5,7 +5,7 @@
 
 -include("meddatum.hrl").
 
--export([create/1, check/0, setup/0]).
+-export([create/1, create/2, check/0, setup/0]).
 
 %% meta structures are here
 -define(PRESTO_SCHEMA_BUCKET, <<"__presto_schema">>).
@@ -16,32 +16,52 @@ static_tabledef() ->
     SSMIXTable0 = {[
                     {<<"name">>, ?SSMIX_PATIENTS_BUCKET},
                     {<<"columns">>, [atom_to_binary({Col})||Col<-hl7:columns()]}
-                   ] ++ hl7:subtables() },
+                   ] ++
+                       case hl7:subtables() of
+                           [] -> [];
+                           Subtables -> [{subtables, Subtables}]
+                       end
+                  },
     jsone:encode(SSMIXTable0, [native_utf8]).
 
 normal_tabledef() ->
     SSMIXTable1 = {[
                     {<<"name">>, ?SSMIX_BUCKET},
                     {<<"columns">>, [atom_to_binary({Col})||Col<-hl7:columns()]}
-                   ] ++ hl7:subtables() },
+                   ] ++
+                       case hl7:subtables() of
+                           [] -> [];
+                           Subtables -> [{subtables, Subtables}]
+                       end
+                  },
     jsone:encode(SSMIXTable1, [native_utf8]).
 
 recept_tabledef() ->
     ReceptTable = {[
                     {<<"name">>, ?RECEPT_BUCKET},
                     {<<"columns">>, [atom_to_binary({C})||C<-rezept:columns()]}
-                   ] ++ rezept:subtables()},
+                   ] ++
+                       case rezept:subtables() of
+                           [] -> [];
+                           Subtables -> [{subtables, Subtables}]
+                       end},
     jsone:encode(ReceptTable, [native_utf8]).
 
-dpcs_tabledef(RecordType)
-  when RecordType =:= <<"efndn">> orelse
-       RecordType =:= <<"efg">> orelse
-       RecordType =:= <<"ff">> ->
+dpcs_tabledef(RecordType) when is_atom(RecordType) ->
     %% Bucket names: dpcs:efndn / dpcs:efg / dpcs:ff
-    BucketName = <<"dpcs:", RecordType/binary>>,
+    Bin = atom_to_binary(RecordType, latin1),
+    BucketName = <<"dpcs:", Bin/binary>>,
+    Subtables = case RecordType of
+                    ff ->
+                        dpcs:subtables(ff4) ++ dpcs_ff1:subtables();
+                    efndn ->
+                        dpcs:subtables(efndn);
+                    efg ->
+                        dpcs:subtables(efg)
+                end,
     Table = {[{name, BucketName},
               {columns, dpcs:columns()},
-              {subtables, dpcs:subtables()}]},
+              {subtables, Subtables}]},
     jsone:encode(Table, [native_utf8]).
 
 create(Type) ->
@@ -49,9 +69,17 @@ create(Type) ->
     Text= case Type of
               static -> static_tabledef();
               ssmix ->  normal_tabledef();
-              recept -> recept_tabledef();
-              dpcs ->   dpcs_tabledef(todo)
+              recept -> recept_tabledef()
           end,
+    io:format("~ts~n", [Text]).
+
+create(dpcs, [RecordType]) ->
+    ok = io:setopts([{encoding,utf8}]),
+    Text = case RecordType of
+               "efndn" -> dpcs_tabledef(efndn);
+               "efg" ->  dpcs_tabledef(efg);
+               "ff" -> dpcs_tabledef(ff)
+           end,
     io:format("~ts~n", [Text]).
 
 check() ->

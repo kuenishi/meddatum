@@ -3,6 +3,7 @@
 -include("meddatum.hrl").
 -include("md_json.hrl").
 -incluce_lib("eunit/include/eunit.hrl").
+-include("dpcs.hrl").
 
 -behaviour(md_record).
 
@@ -16,6 +17,7 @@
 
 -record(dpcs_ff1, {
           key :: binary(),
+          type = ff1 :: ff1,
           cocd :: binary(),
           kanjaid :: binary(),
           nyuymd :: binary(),
@@ -122,14 +124,27 @@ tbk(HospitalID, Date) ->
     BinKey = iolist_to_binary(Key),
     {BT, BinKey}.
 
--spec columns() -> list().
-columns() -> undefined.
+-spec columns() -> [md_record:columns()].
+columns() ->
+    dpcs:columns().
 
--spec subtables() -> tmp.
-subtables() -> undefined.
+-spec subtables() -> [{subtables, [md_record:subtable()]}].
+subtables() ->
+    Columns = [{[
+                 {name, Name},
+                 {type, case Type of
+                            str -> varchar;
+                            numeric -> double
+                        end},
+                 {index, false}]}
+              || {Name, _, Type} <- ?FF1_FIELDS],
+    StaySubtable =
+        {[{name, ff1},
+          {path, <<"$[?(@.type=='ff1')].sty[*]">>},
+          {columns, Columns}]},
+    [StaySubtable].
 
 %% =======
-
 
 parse_line(Line, Date, #ctx{
                       current_medicalno = undefined,

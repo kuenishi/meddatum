@@ -3,6 +3,8 @@
 -include("meddatum.hrl").
 -include("md_json.hrl").
 
+-include("dpcs.hrl").
+
 -behaviour(md_record).
 
 -export([to_json/1, from_json/1,
@@ -13,7 +15,7 @@
          columns/0, subtables/0]).
 
 -export([new/5, merge/2, update_shinym/2,
-         maybe_verify/3]).
+         maybe_verify/3, subtables/1]).
 
 -export([files_to_parse/1, parse_files/4, maybe_verify_date_prefix/3]).
 
@@ -152,17 +154,62 @@ tbk(HospitalID, Date) ->
 
 -spec columns() -> [md_record:column()].
 columns() ->
-    [
-     {[{name, date},        {type, 'varchar'}, {index, true}]},
-     {[{name, patient_id},  {type, 'varchar'}, {index, true}]},
-     {[{name, hospital_id}, {type, 'varchar'}, {index, false}]},
-     {[{name, file},        {type, 'varchar'}, {index, false}]},
-     {[{name, checksum},    {type, 'varchar'}, {index, false}]}
-     ].
+    [{[{name, key},    {type, 'varchar'}, {index, true}]},
+     {[{name, type},   {type, 'varchar'}, {index, false}]},
+     {[{name, cocd},   {type, 'varchar'}, {index, true}]},
+     {[{name, kanjaid},{type, 'varchar'}, {index, true}]},
+     {[{name, nyuymd}, {type, 'varchar'}, {index, true}]},
+     {[{name, taiymd}, {type, 'varchar'}, {index, false}]},
+     {[{name, shinym}, {type, 'varchar'}, {index, false}]}
+    ].
 
 -spec subtables() -> [md_record:subtable()].
 subtables() ->
-    [].
+    subtables(ff4) ++ subtables(efndn) ++ subtables(efg).
+
+subtables(ff4) ->
+    Columns =
+        [{[{name, cocd},   {type, 'varchar'}, {index, true}]},
+         {[{name, kanjaid},{type, 'varchar'}, {index, true}]},
+         {[{name, nyuymd}, {type, 'varchar'}, {index, true}]},
+         {[{name, taiymd}, {type, 'varchar'}, {index, false}]},
+         {[{name, hokkb},  {type, 'varchar'}, {index, false}]},
+         {[{name, shinym}, {type, 'varchar'}, {index, false}]}],
+    Subtable = {[{name, ff4},
+                 {path, <<"$[?(@.type=='ff4')].fields[*]">>},
+                 {columns, Columns}]},
+    [Subtable];
+subtables(efndn) ->
+    EFSubtable = {[{name, efn},
+                  {path, <<"$[?(@.type=='efn')].fields[*]">>},
+                  {columns, efcols()}]},
+
+    Columns = [{[{name, Name},
+                 {type, case DataType of
+                            str -> varchar;
+                            numeric -> double
+                        end},
+                 {index, false}]}
+               || {Name, _, DataType} <- ?DN_FIELDS],
+    DnSubtable = {[{name, dn},
+                 {path, <<"$[?(@.type=='dn')].fields[*]">>},
+                 {columns, Columns}]},
+    [EFSubtable, DnSubtable];
+
+subtables(efg) ->
+    Subtable = {[{name, efg},
+                 {path, <<"$[?(@.type=='efg')].fields[*]">>},
+                 {columns, efcols()}]},
+    [Subtable].
+
+efcols() ->
+    [{[{name, Name},
+       {type, case DataType of
+                  str -> varchar;
+                  numeric -> double
+              end},
+       {index, false}]}
+     || {Name, _, DataType} <- ?EF_FIELDS].
 
 %% =======
 
