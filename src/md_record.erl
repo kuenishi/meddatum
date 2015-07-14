@@ -33,12 +33,18 @@
 
 -callback patient_id(_) -> binary().
 -callback hospital_id(_) -> binary().
--callback columns() -> JSON::binary().
+
+-type column() :: {[{name,atom()}|{type,atom()}|{index,boolean()}]}.
+-callback columns() -> [column()].
+-type subtable() :: {[{name,binary()}|{path,binary()}|{columns,[column()]}]}.
+-callback subtables() -> [subtable()].
 
 -callback mark_set_as_done(RiakClient::pid(), Identifier::term()) ->
     ok | {error, term()}.
 -callback check_is_set_done(RiakClient::pid(), Identifier::term()) ->
     boolean().
+
+-export_type([column/0, subtable/0]).
 
 -spec put_json(pid(), _::any(), module(), pid()) -> ok.
 put_json(C, Msg, Mod, Logger) when is_atom(Mod) ->
