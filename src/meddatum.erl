@@ -48,10 +48,6 @@ main(["check-schema"]) ->
     meddatum_sql_schema:check();
 main(["setup-schema"]) ->
     meddatum_sql_schema:setup();
-main(["check-schema", HospitalID]) ->
-    meddatum_sql_schema:check(HospitalID);
-main(["setup-schema", HospitalID]) ->
-    meddatum_sql_schema:setup(HospitalID);
 main(["help"]) -> help();
 main(_) -> help().
 
