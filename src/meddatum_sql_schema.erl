@@ -89,32 +89,31 @@ check() ->
         %% check presto-riak enabled or not
         {ok, Tables} = get_tables(C, Logger, ?BUCKET_TYPE),
 
-        %% table definition is in {<<"md">>, <<"__presto_schema">>}, <<"tablename">>
-        io:format("Checking schema for static ssmix records..."),
-        BucketName0 = ?SSMIX_PATIENTS_BUCKET,
-        io:format("~p, ", [lists:member(BucketName0, Tables)]),
-        Tabledef0 = static_tabledef(),
-        Tabledef1 = get_tabledef(C, BucketName0),
-        io:format("~p~n", [Tabledef0 =:= Tabledef1]),
-
-        io:format("Checking schema for normal ssmix records..."),
-        BucketName1 = ?SSMIX_BUCKET,
-        io:format("~p, ", [lists:member(BucketName1, Tables)]),
-        Tabledef00 = normal_tabledef(),
-        Tabledef01 = get_tabledef(C, BucketName1),
-        io:format("~p~n", [Tabledef00 =:= Tabledef01]),
-
-        io:format("Checking schema for rezept..."),
-        BucketName2 = ?RECEPT_BUCKET,
-        io:format("~p, ", [lists:member(BucketName2, Tables)]),
-        Tabledef10 = recept_tabledef(),
-        Tabledef11 = get_tabledef(C, BucketName2),
-        io:format("~p~n", [Tabledef10 =:= Tabledef11]),
-        ok
-
+        %% table definition is in {<<"md">>, <<"__presto_schema">>}, <<"tablen%% ame">>
+        Results =
+            [maybe_check_schema(C, Tables, BucketName, Tabledef, Name)
+             || {BucketName, Tabledef, Name}
+                    <- [{?SSMIX_PATIENTS_BUCKET, static_tabledef(), "static ssmix"},
+                        {?SSMIX_BUCKET, normal_tabledef(), "normal ssmix"},
+                        {?RECEPT_BUCKET, recept_tabledef(), "recept"},
+                        {<<"dpcs:efndn">>, dpcs_tabledef(efndn), "EFn and Dn"},
+                        {<<"dpcs:efg">>, dpcs_tabledef(efg), "EFg"},
+                        {<<"dpcs:ff">>, dpcs_tabledef(ff), "FF1 and FF4"}
+]],
+        lists:all(fun({L, R}) -> L andalso R end, Results)
     after
             meddatum_console:teardown(Context)
     end.
+
+maybe_check_schema(C, Tables, BucketName, Tabledef, Name) ->
+    io:format("Checking schema for ~s ...", [Name]),
+    InMeta = lists:member(BucketName, Tables),
+    %% io:format("Bucket ~s in Root schema: ~p~n", [BucketName, InMeta]),
+    TabledefInRiak = get_tabledef(C, BucketName),
+    Match = TabledefInRiak =:= Tabledef,
+    %% io:format("Tabledef equals: ~p~n", [Match]),
+    io:format("~p, ~p~n", [Match, InMeta]),
+    {Match, InMeta}.
 
 setup() ->
     {ok, #context{logger=Logger,
@@ -124,35 +123,21 @@ setup() ->
         case get_tables(C, Logger, ?BUCKET_TYPE) of
             {ok, Tables} ->
 
-                io:format("Updating schema for static ssmix records ..."),
-                BucketName0 = ?SSMIX_PATIENTS_BUCKET,
-                case lists:member(BucketName0, Tables) of
-                    true -> ok;
-                    false -> update_root_schema(C, Logger, BucketName0)
-                end,
-                io:format("done: ~p~n",
-                          [update_table_schema(C, Logger, BucketName0,
-                                               static_tabledef())]),
+                maybe_update_schemas(C, Logger, Tables, ?SSMIX_PATIENTS_BUCKET,
+                                     static_tabledef(), "static ssmix"),
+                maybe_update_schemas(C, Logger, Tables, ?SSMIX_BUCKET,
+                                     normal_tabledef(), "normal ssmix"),
+                maybe_update_schemas(C, Logger, Tables, ?RECEPT_BUCKET,
+                                     recept_tabledef(), "recept"),
 
-                io:format("Checking schema for normal ssmix records..."),
-                BucketName1 = ?SSMIX_BUCKET,
-                case lists:member(BucketName1, Tables) of
-                    true -> ok;
-                    false -> update_root_schema(C, Logger, BucketName1)
-                end,
-                io:format("done: ~p~n",
-                          [update_table_schema(C, Logger, BucketName1,
-                                               normal_tabledef())]),
+                %% DPCS
+                maybe_update_schemas(C, Logger, Tables, <<"dpcs:efndn">>,
+                                     dpcs_tabledef(efndn), "EFn and Dn"),
+                maybe_update_schemas(C, Logger, Tables, <<"dpcs:efg">>,
+                                     dpcs_tabledef(efg), "EFg"),
+                maybe_update_schemas(C, Logger, Tables, <<"dpcs:ff">>,
+                                     dpcs_tabledef(ff), "FF1 and FF4"),
 
-                io:format("Checking schema for rezept..."),
-                BucketName2 = ?RECEPT_BUCKET,
-                case lists:member(BucketName2, Tables) of
-                    true -> ok;
-                    false -> update_root_schema(C, Logger ,BucketName2)
-                end,
-                io:format("done: ~p~n",
-                          [update_table_schema(C, Logger, BucketName2,
-                                               recept_tabledef())]),
                 ok;
 
             Error ->
@@ -182,15 +167,15 @@ get_tables(C, Logger, _SchemaName = BucketType) ->
             Tables = proplists:get_value(<<"tables">>, List),
             treehugger:log(Logger, debug, "Tables in schema: ~p", [Tables]),
             {ok, Tables};
-        {error, notfound} ->
+        {error, notfound} = E->
             treehugger:log(Logger, error,
                            "No schema data is set up at bucket_type ~p.",
                            [?BUCKET_TYPE]),
-            throw(no_tables);
+            E;
 
         Error ->
             treehugger:log(Logger, error, "~p:~p ~p", [?FILE, ?LINE, Error]),
-            throw(Error)
+            Error
     end.
 
 update_root_schema(C, Logger, _TableName = Bucket) ->
@@ -210,6 +195,15 @@ update_root_schema(C, Logger, _TableName = Bucket) ->
     ok = riakc_pb_socket:put(C, RiakObj),
     J = riakc_obj:get_update_value(RiakObj),
     treehugger:log(Logger, info, "new default schema updated: ~s.", [J]).
+
+
+maybe_update_schemas(C, Logger, Tables, BucketName, Tabledef, Name) ->
+    io:format("Updating schema for ~s records ...", [Name]),
+    case lists:member(BucketName, Tables) of
+        true -> ok;
+        false -> update_root_schema(C, Logger, BucketName)
+    end,
+    update_table_schema(C, Logger, BucketName, Tabledef).
 
 update_table_schema(C, Logger, _TableName = Bucket, TableDef) ->
     B = {?BUCKET_TYPE, ?PRESTO_SCHEMA_BUCKET},
