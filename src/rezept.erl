@@ -217,7 +217,7 @@ recept_record_to_presto_nested_column({Rinfo0, _, RecordTypes0}) ->
                             {index, false}]}
                   end,
                   handle_30days_schema(RecordTypes0)),
-    Rinfo = list_to_binary(Rinfo0),
+    Rinfo = list_to_binary(string:to_lower(Rinfo0)),
     {[{name, Rinfo},
       {path, <<"$.segments[?(@.record_info=='", Rinfo/binary, "')]">>},
       {columns, SubtableColumns}

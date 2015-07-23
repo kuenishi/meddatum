@@ -16,25 +16,17 @@ static_tabledef() ->
     SSMIXTable0 = {[
                     {<<"name">>, ?SSMIX_PATIENTS_BUCKET},
                     {<<"columns">>, [atom_to_binary({Col})||Col<-hl7:columns()]},
-                    {<<"comment">>, <<"SSMIX2 Static data">>}
-                   ] ++
-                       case hl7:subtables() of
-                           [] -> [];
-                           Subtables -> [{subtables, Subtables}]
-                       end
-                  },
+                    {<<"comment">>, <<"SSMIX2 Static data">>},
+                    {subtables, hl7:subtables()}
+                   ]},
     jsone:encode(SSMIXTable0, [native_utf8]).
 
 normal_tabledef() ->
     SSMIXTable1 = {[
                     {<<"name">>, ?SSMIX_BUCKET},
                     {<<"columns">>, [atom_to_binary({Col})||Col<-hl7:columns()]},
-                    {<<"comment">>, <<"SSMIX2 Normal data">>}
-                   ] ++
-                       case hl7:subtables() of
-                           [] -> [];
-                           Subtables -> [{subtables, Subtables}]
-                       end
+                    {<<"comment">>, <<"SSMIX2 Normal data">>},
+                    {subtables, hl7:subtables()}]
                   },
     jsone:encode(SSMIXTable1, [native_utf8]).
 
@@ -42,12 +34,9 @@ recept_tabledef() ->
     ReceptTable = {[
                     {<<"name">>, ?RECEPT_BUCKET},
                     {<<"columns">>, [atom_to_binary({C})||C<-rezept:columns()]},
-                    {<<"comment">>, <<"E-Recept data">>}
-                   ] ++
-                       case rezept:subtables() of
-                           [] -> [];
-                           Subtables -> [{subtables, Subtables}]
-                       end},
+                    {<<"comment">>, <<"E-Recept data">>},
+                    {subtables, rezept:subtables()}
+                   ]},
     jsone:encode(ReceptTable, [native_utf8]).
 
 dpcs_tabledef(RecordType) when is_atom(RecordType) ->
