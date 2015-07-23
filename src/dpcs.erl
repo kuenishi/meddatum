@@ -154,7 +154,7 @@ tbk(HospitalID, Date) ->
 
 -spec columns() -> [md_record:column()].
 columns() ->
-    [{[{name, key},    {type, 'varchar'}, {index, true}]},
+    [{[{name, key},    {type, 'varchar'}, {index, true}, {pkey, true}]},
      {[{name, type},   {type, 'varchar'}, {index, false}]},
      {[{name, cocd},   {type, 'varchar'}, {index, true}]},
      {[{name, kanjaid},{type, 'varchar'}, {index, true}]},
