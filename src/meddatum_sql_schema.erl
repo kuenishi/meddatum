@@ -15,7 +15,8 @@
 static_tabledef() ->
     SSMIXTable0 = {[
                     {<<"name">>, ?SSMIX_PATIENTS_BUCKET},
-                    {<<"columns">>, [atom_to_binary({Col})||Col<-hl7:columns()]}
+                    {<<"columns">>, [atom_to_binary({Col})||Col<-hl7:columns()]},
+                    {<<"comment">>, <<"SSMIX2 Static data">>}
                    ] ++
                        case hl7:subtables() of
                            [] -> [];
@@ -27,7 +28,8 @@ static_tabledef() ->
 normal_tabledef() ->
     SSMIXTable1 = {[
                     {<<"name">>, ?SSMIX_BUCKET},
-                    {<<"columns">>, [atom_to_binary({Col})||Col<-hl7:columns()]}
+                    {<<"columns">>, [atom_to_binary({Col})||Col<-hl7:columns()]},
+                    {<<"comment">>, <<"SSMIX2 Normal data">>}
                    ] ++
                        case hl7:subtables() of
                            [] -> [];
@@ -39,7 +41,8 @@ normal_tabledef() ->
 recept_tabledef() ->
     ReceptTable = {[
                     {<<"name">>, ?RECEPT_BUCKET},
-                    {<<"columns">>, [atom_to_binary({C})||C<-rezept:columns()]}
+                    {<<"columns">>, [atom_to_binary({C})||C<-rezept:columns()]},
+                    {<<"comment">>, <<"E-Recept data">>}
                    ] ++
                        case rezept:subtables() of
                            [] -> [];
@@ -61,6 +64,7 @@ dpcs_tabledef(RecordType) when is_atom(RecordType) ->
                 end,
     Table = {[{name, BucketName},
               {columns, dpcs:columns()},
+              {comment, <<"DPC Survey Data">>},
               {subtables, Subtables}]},
     jsone:encode(Table, [native_utf8]).
 
