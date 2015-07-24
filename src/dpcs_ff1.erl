@@ -138,11 +138,42 @@ subtables() ->
                         end},
                  {index, false}]}
               || {Name, _, Type} <- ?FF1_FIELDS],
-    StaySubtable =
-        {[{name, ff1},
-          {path, <<"$[?(@.type=='ff1')].sty[*]">>},
-          {columns, Columns}]},
-    [StaySubtable].
+    StaySubtable = {[{name, stay},
+                     {path, <<"$.stay">>},
+                     {columns, Columns}]},
+    WardsSubtable = {[{name, wards},
+                      {path, <<"$.wards.*">>},
+                      {columns, Columns}]},
+    StayOpeSubtable = {[{name, stayope},
+                        {path, <<"$.stay.ope.*">>},
+                        {columns, ope_columns()}]},
+    StaySickSubtable = {[{name, staysick},
+                         {path, <<"$.stay.sick.*">>},
+                         {columns, sick_columns()}]},
+    WardsOpeSubtable = {[{name, wardsope},
+                         {path, <<"$.wards.*.ope.*">>},
+                         {columns, ope_columns()}]},
+    WardsSickSubtable = {[{name, wardssick},
+                          {path, <<"$.wards.*.sick.*">>},
+                          {columns, sick_columns()}]},
+    [StaySubtable, WardsSubtable,
+     StayOpeSubtable, StaySickSubtable,
+     WardsOpeSubtable, WardsSickSubtable].
+
+ope_columns() ->
+    [
+     {[{name, Name}, {type, varchar}, {index, false}]}
+     || Name <- [opeymd,
+                 tencd,
+                 cnt,
+                 side,
+                 ane,
+                 nm]].
+
+sick_columns() ->
+    [{[{name, sick_type}, {type, bigint}, {index, false}]}] ++
+        [{[{name, Name}, {type, varchar}, {index, false}]}
+         || Name <- [sick_cd, sick_nm, disaddcd]].
 
 %% =======
 

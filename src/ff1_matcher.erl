@@ -53,24 +53,24 @@ verify_fields([{Property, _, 1, _}|Defs], Obj, LineNo) ->
 
 -spec postprocess_payload(string(), proplists:proplist()) -> proplists:proplist().
 postprocess_payload("A006010", Obj) -> %%診断情報/主傷病  mainsick_(cd|nm)
-    tie_up_sick(mainsick_cd, mainsick_nm, Obj);
+    tie_up_sick(mainsick_cd, mainsick_nm, Obj, 1);
 postprocess_payload("A006020", Obj) -> %%診断情報/入院契機 oppsick
-    tie_up_sick(oppsick_cd, oppsick_nm, Obj);
+    tie_up_sick(oppsick_cd, oppsick_nm, Obj, 2);
 postprocess_payload("A006030", Obj) -> %%診断情報/医療資源 maxsick, disaddcd
-    tie_up_sick(maxsick_cd, maxsick_nm, Obj);
+    tie_up_sick(maxsick_cd, maxsick_nm, Obj, 3);
 postprocess_payload("A006031", Obj) -> %%診断情報/医療資源2 nextsick
-    tie_up_sick(nextsick_cd, nextsick_nm, Obj);
+    tie_up_sick(nextsick_cd, nextsick_nm, Obj, 4);
 postprocess_payload("A006040", Obj) -> %%診断情報/併存症 heisick
-    tie_up_sick(heisick_cd, heisick_nm, Obj);
+    tie_up_sick(heisick_cd, heisick_nm, Obj, 5);
 postprocess_payload("A006050", Obj) -> %%診断情報/続発症 hassick
-    tie_up_sick(hassick_cd, hassick_nm, Obj);
+    tie_up_sick(hassick_cd, hassick_nm, Obj, 6);
 postprocess_payload("A007010", Obj) -> %%手術情報 ope, ...
     tie_up_ope(Obj);
 postprocess_payload(_, Obj) ->
     Obj.
 
 %% Dirty!!!
-tie_up_sick(A, B, Obj) ->
+tie_up_sick(A, B, Obj, SickType) ->
     case lists:keytake(A, 1, Obj) of
         {value, {A, null}, _} ->
             error({notfound, A});
@@ -82,7 +82,7 @@ tie_up_sick(A, B, Obj) ->
                     error({notfound, B});
                 {value, {B, NM0}, Obj2} ->
                     NM = unicode:characters_to_binary(NM0, utf8, utf8),
-                    Sicks = [{sick_cd, CD}, {sick_nm, NM}],
+                    Sicks = [{sick_cd, CD}, {sick_nm, NM}, {sick_type, SickType}],
                     case lists:keytake(disaddcd, 1, Obj2) of
                         {value, {disaddcd, null}, Obj3} ->
                             [{sick, [{Sicks}]}|Obj3];
