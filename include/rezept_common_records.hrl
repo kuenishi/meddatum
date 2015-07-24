@@ -223,10 +223,10 @@
           %% 1 保険医療機関の所在地を記録する。
           %% 2 保険医療機関の所在地が80バイトに満たない場合、 後続する“スペース”の記録は省略する
 
-         {yobi, {maybe, integer}, 30}, %% 可変 記録は省略する。
-         {yobi, {maybe, integer}, 1},  %% 可変 記録は省略する。
-         {yobi, {maybe, integer}, 1},  %% 可変 記録は省略する。
-         {yobi, {maybe, unicode}, 100}
+         {yobi1, {maybe, integer}, 30}, %% 可変 記録は省略する。
+         {yobi2, {maybe, integer}, 1},  %% 可変 記録は省略する。
+         {yobi3, {maybe, integer}, 1},  %% 可変 記録は省略する。
+         {yobi4, {maybe, unicode}, 100}
         ]).
 
 -define(REZEPT_COMMON_RECORDS,

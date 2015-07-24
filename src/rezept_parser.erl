@@ -335,4 +335,16 @@ extract_hospital_test() ->
                      " ", "0", [{return,binary},global]),
     ?assertEqual(<<"010000001">>, Str).
 
+record_types_test() ->
+    Types = ?DPC_RECORD_TYPES ++ ?MED_RECORD_TYPES,
+    [begin
+         %% ?debugVal({Name, Txt}),
+         Keys = [Key || {Key, _, _} <- Cols],
+         Sorted = lists:sort(Keys),
+         USorted = lists:usort(Keys),
+         %% ?debugVal(Sorted -- USorted),
+         ?assertEqual(length(Sorted), length(USorted)),
+         ?assertEqual(Sorted, lists:usort(Keys))
+     end || {_Name, _Txt, Cols} <- Types].
+
 -endif.
