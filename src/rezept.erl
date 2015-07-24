@@ -202,14 +202,13 @@ columns() ->
     ].
 
 subtables() ->
-    %% ?MED_RECORD_TYPES and ?DPC_RECORD_TYPES both have part, which
-    %% is ?REZEPT_COMMON_RECORDS. So duplication is removed by sets
-    RecordTypes = sets:union(sets:from_list(?DPC_RECORD_TYPES),
-                             sets:from_list(?MED_RECORD_TYPES)),
-    lists:map(fun(C) -> recept_record_to_presto_nested_column(C) end,
-              sets:to_list(RecordTypes)).
+    lists:map(fun(C) -> recept_record_to_presto_nested_column("dpc", C) end,
+              ?DPC_RECORD_TYPES)
+        ++
+        lists:map(fun(C) -> recept_record_to_presto_nested_column("med", C) end,
+                  ?MED_RECORD_TYPES).
 
-recept_record_to_presto_nested_column({Rinfo0, _, RecordTypes0}) ->
+recept_record_to_presto_nested_column(Prefix, {Rinfo0, _, RecordTypes0}) ->
     SubtableColumns =
         lists:map(fun({Name0, Type, _Length}) ->
                           {[{name, Name0},
@@ -218,7 +217,7 @@ recept_record_to_presto_nested_column({Rinfo0, _, RecordTypes0}) ->
                   end,
                   handle_30days_schema(RecordTypes0)),
     %% Table name should be lower case
-    Name = list_to_binary(string:to_lower(Rinfo0)),
+    Name = list_to_binary(Prefix ++ string:to_lower(Rinfo0)),
     %% But the path is as upper case
     Rinfo = list_to_binary(Rinfo0),
     {[{name, Name},
