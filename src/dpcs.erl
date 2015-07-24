@@ -8,7 +8,9 @@
 -behaviour(md_record).
 
 -export([to_json/1, from_json/1,
-         key/1, bucket/1, make_2i_list/1,
+         key/1, bucket/1,
+         last_modified/1,
+         make_2i_list/1,
          patient_id/1, hospital_id/1,
          from_file/3, from_file/4,
          check_is_set_done/2, mark_set_as_done/2,
@@ -30,7 +32,8 @@
           kanjaid :: binary(),
           nyuymd :: binary(),
           shinym :: binary(),
-          fields = [] :: list()
+          fields = [] :: list(),
+          last_modified = klib:epoch() :: non_neg_integer()
          }).
 
 -type rec() :: #dpcs{}.
@@ -50,11 +53,15 @@ bucket(#dpcs{type = ff4}) ->
 key(#dpcs{key=Key}) -> Key;
 key(_E) -> error(_E).
 
+last_modified(#dpcs{last_modified=LM}) ->
+    LM.
+
 %% TODO
 -spec make_2i_list(rec()) -> [{string(), binary()|integer()}].
 make_2i_list(Rec) ->
     [{"kanjaid", patient_id(Rec)},
      {"cocd", hospital_id(Rec)},
+     {"last_modified", last_modified(Rec)},
      {"nyuymd", Rec#dpcs.nyuymd}].
 
 -spec hospital_id(rec()) -> binary().
@@ -89,13 +96,16 @@ from_json([{<<"nyuymd">>, V}|L], DPCS) ->
 from_json([{<<"shinym">>, V}|L], DPCS) ->
     from_json(L, DPCS#dpcs{shinym=V});
 from_json([{K, V}|L], DPCS = #dpcs{fields=F}) ->
-    from_json(L, DPCS#dpcs{fields=[{K,V}|F]}).
+    from_json(L, DPCS#dpcs{fields=[{K,V}|F]});
+from_json([{<<"last_modified">>, V}|L], DPCS) ->
+    from_json(L, DPCS#dpcs{last_modified=V}).
 
 -spec to_json(rec()) -> {ok, binary()}.
 to_json(#dpcs{key=Key, type=Type, cocd=Cocd, kanjaid=Kanjaid,
-              nyuymd=Nyuymd, shinym=Shinym, fields=Fields0}) ->
+              nyuymd=Nyuymd, shinym=Shinym, fields=Fields0,
+              last_modified=LM}) ->
     Fields = [{key, Key}, {type, Type}, {cocd, Cocd}, {kanjaid, Kanjaid},
-              {nyuymd, Nyuymd}, {shinym, Shinym}] ++ Fields0,
+              {nyuymd, Nyuymd}, {shinym, Shinym}, {last_modified, LM}] ++ Fields0,
     JSON = jsone:encode({Fields}, [native_utf8]),
     {ok, JSON}.
 
@@ -159,6 +169,7 @@ columns() ->
      {[{name, cocd},   {type, 'varchar'}, {index, true}]},
      {[{name, kanjaid},{type, 'varchar'}, {index, true}]},
      {[{name, nyuymd}, {type, 'varchar'}, {index, true}]},
+     {[{name, last_modified}, {type, bigint}, {index, true}]},
      {[{name, taiymd}, {type, 'varchar'}, {index, false}]},
      {[{name, shinym}, {type, 'varchar'}, {index, false}]}
     ].
@@ -217,7 +228,7 @@ maybe_verify(Record, HospitalID, Date) ->
     case Record#dpcs.cocd of
         HospitalID -> maybe_verify(Record, Date);
         Wrong -> error({no_cocd_match, Wrong, HospitalID})
-    end.             
+    end.
 
 %% @doc verify record with date specified via CUI
 -spec maybe_verify(rec(), binary()) -> rec(). %error({no_date_match, binary(), string()}).
@@ -266,7 +277,8 @@ new(Type, Cocd, Kanjaid, Nyuymd, Fields0) ->
           cocd=iolist_to_binary(Cocd),
           kanjaid=iolist_to_binary(Kanjaid),
           nyuymd=iolist_to_binary(Nyuymd),
-          fields=orddict:from_list(Fields)}.
+          fields=orddict:from_list(Fields),
+          last_modified=klib:epoch()}.
 
 -spec update_shinym(rec(), binary()) -> rec().
 update_shinym(Rec, Date) ->

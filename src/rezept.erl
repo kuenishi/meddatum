@@ -26,6 +26,7 @@
 -export([from_json/1, to_json/1,
          key/1, key_prefix/1,
          bucket/1,
+         last_modified/1,
          make_2i_list/1, merge/2,
          patient_id/1, hospital_id/1,
          check_is_set_done/2, mark_set_as_done/2,
@@ -103,13 +104,17 @@ key_prefix(Filename) when is_list(Filename) ->
 bucket(_) ->
     {?BUCKET_TYPE, ?RECEPT_BUCKET}.
 
+last_modified(#recept{last_modified=LM}) -> LM.
+
 -spec make_2i_list(#recept{}) -> [{string(), binary()}].
 make_2i_list(#recept{date=Date,
                      hospital_id=HospitalID,
-                     patient_id=PatientID}) ->
+                     patient_id=PatientID,
+                     last_modified=LM}) ->
     [{"date", Date},
      {"hospital_id", HospitalID},
-     {"patient_id", PatientID}].
+     {"patient_id", PatientID},
+     {"last_modified", LM}].
 
 merge(_, New) -> New.
 
@@ -137,7 +142,8 @@ finalize(#recept{segments=List, file=_File} = Recept) ->
 
     NewList = [{rezept_parser:postprocess(Seg, Recept)}|| Seg <- List1],
     %% Length = length(List) = length(List1) = length(NewList),
-    Recept#recept{segments=NewList}.
+    Recept#recept{segments=NewList,
+                  last_modified=klib:epoch()}.
 
 compensate(undefined, [H|L], Acc) -> compensate(H, L, [H|Acc]);
 compensate(_, [], Acc) ->            lists:reverse(Acc);
@@ -198,7 +204,8 @@ columns() ->
      [{name, patient_id},  {type, 'varchar'}, {index, true}],
      [{name, hospital_id}, {type, 'varchar'}, {index, false}],
      [{name, file},        {type, 'varchar'}, {index, false}],
-     [{name, checksum},    {type, 'varchar'}, {index, false}]
+     [{name, checksum},    {type, 'varchar'}, {index, false}],
+     [{name, last_modified}, {type, bigint}, {index, true}]
     ].
 
 subtables() ->

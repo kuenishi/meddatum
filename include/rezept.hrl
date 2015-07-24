@@ -8,7 +8,8 @@
           hospital_id   :: binary(),
           segments = [] :: list(),
           file          :: binary(), %% <- filename:filename()
-          checksum      :: binary()
+          checksum      :: binary(),
+          last_modified = klib:epoch() :: non_neg_integer()
          }).
 
 %% TYPE_CONVERSION:

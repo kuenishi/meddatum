@@ -20,7 +20,9 @@
 
 -export([from_file/3, from_file/4,
          to_json/1, from_json/1,
-         key/1, bucket/1, make_2i_list/1, merge/2,
+         key/1, bucket/1,
+         last_modified/1,
+         make_2i_list/1, merge/2,
          patient_id/1, hospital_id/1,
          check_is_set_done/2, mark_set_as_done/2,
          columns/0]).
@@ -60,13 +62,17 @@ bucket(_) ->
 key(#hl7msg{file=File}) ->
     filename:basename(File).
 
+last_modified(#hl7msg{last_modified=LM}) -> LM.
+
 -spec make_2i_list(#hl7msg{}) -> [{string(), binary()}].
 make_2i_list(#hl7msg{date=Date,
                      hospital_id=HospitalID,
-                     patient_id=PatientID}) ->
+                     patient_id=PatientID,
+                     last_modified=LM}) ->
     [{"date", Date},
      {"hospital_id", HospitalID},
-     {"patient_id", PatientID}].
+     {"patient_id", PatientID},
+     {"last_modified", LM}].
 
 merge(_, New) -> New. %% LRW
 
@@ -155,20 +161,14 @@ mark_set_as_done(_, _) -> ok.
 %% @doc return schema for presto-riak. The format is JSON.
 columns() ->
     [
-     %%[{name, segments},    {type, 'varchar'}, {index, true}]
-     %%[{name, segments},    {type, 'array'}, {index, false}]
      [{name, hospital_id}, {type, 'varchar'}, {index, false}],
      [{name, patient_id},  {type, 'varchar'}, {index, true}],
      [{name, file},        {type, 'varchar'}, {index, false}],
      [{name, date},        {type, 'varchar'}, {index, true}],
      [{name, msg_type_s},  {type, 'varchar'}, {index, false}],
-     [{name, msg_id},      {type, 'varchar'}, {index, false}]
+     [{name, msg_id},      {type, 'varchar'}, {index, false}],
+     [{name, last_modified}, {type, bigint}, {index, true}]
     ].
 
 subtables() ->
     [].
-    %% [{<<"subtables">>,
-    %%  lists:map(fun({Name, _Type}) ->
-    %%                    {list_to_binary(Name), <<"boom">>}
-    %%            end, ?HL7_TYPES)
-    %%  }].

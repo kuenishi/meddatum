@@ -28,6 +28,7 @@
 -callback from_json(JSON::binary()) -> _.
 -callback key(_) -> binary().
 -callback bucket(_) -> binary().
+-callback last_modified(_) -> non_neg_integer().
 -callback make_2i_list(_) -> [{binary(), binary()|integer()}].
 -callback merge(Old :: [Record], New :: Record) -> Record.
 

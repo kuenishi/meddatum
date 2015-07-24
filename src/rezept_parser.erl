@@ -56,7 +56,8 @@ parse_file(Filename, Mode, Logger, InfoExtractor) when is_function(InfoExtractor
            (_, {LineNo, Ctx0}) -> {LineNo+1, Ctx0}
         end,
 
-    InitCtx = #state{template = #recept{file=BinFilename, checksum=BinChecksum},
+    InitCtx = #state{template = #recept{file=BinFilename,
+                                        checksum=BinChecksum},
                      filename = BinFilename, mode = Mode,
                      logger=Logger},
     {ok, {Total, ResultCtx}} = ecsv:process_csv_string_with(lists:flatten(Lines), F, {0, InitCtx}),

@@ -28,6 +28,7 @@ parse(Filename, Logger)->
     {ok, HL7Msg0} = parse_msg(Filename, Logger),
     Date = filename_to_date(Filename),
     {ok, HL7Msg0#hl7msg{file=list_to_binary(Filename),
+                        last_modified=klib:epoch(),
                         date=Date}}.
 
 parse(Filename, Logger, undefined)->

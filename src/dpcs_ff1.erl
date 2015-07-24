@@ -8,7 +8,9 @@
 -behaviour(md_record).
 
 -export([to_json/1, from_json/1,
-         key/1, bucket/1, make_2i_list/1,
+         key/1, bucket/1,
+         last_modified/1,
+         make_2i_list/1,
          patient_id/1, hospital_id/1,
          from_file/3, from_file/4, merge/2,
          check_is_set_done/2, mark_set_as_done/2,
@@ -20,6 +22,7 @@
           type = ff1 :: ff1,
           cocd :: binary(),
           kanjaid :: binary(),
+          last_modified = klib:epoch() :: non_neg_integer(),
           nyuymd :: binary(),
           taiymd :: binary(),
           shinym :: binary(),
@@ -48,6 +51,9 @@ wards(#dpcs_ff1{wards=Wards}) -> Wards.
 bucket(#dpcs_ff1{} = _) ->
     {?BUCKET_TYPE, <<?DPCS_BUCKET/binary, ":ff">>}.
 
+last_modified(#dpcs_ff1{last_modified=LM}) ->
+    LM.
+
 -spec key(#dpcs_ff1{}) -> binary().
 key(#dpcs_ff1{key=Key}) -> Key.
 
@@ -55,6 +61,7 @@ key(#dpcs_ff1{key=Key}) -> Key.
 make_2i_list(Rec) ->
     [{"kanjaid", patient_id(Rec)},
      {"cocd", hospital_id(Rec)},
+     {"last_modified", last_modified(Rec)},
      {"nyuymd", Rec#dpcs_ff1.nyuymd}].
 
 -spec hospital_id(#dpcs_ff1{}) -> binary().
@@ -292,7 +299,8 @@ new(Cocd, Kanjaid, Nyuymd, Date, Kaisukanrino) ->
               cocd=iolist_to_binary(Cocd),
               kanjaid=iolist_to_binary(Kanjaid),
               nyuymd=iolist_to_binary(Nyuymd),
-              shinym=Date}.
+              shinym=Date,
+              last_modified=klib:epoch()}.
 
 finalize(DPCS = #dpcs_ff1{stay={Stay}, shinym=Date}) ->
     case verify_taiymd(Stay, Date, false) of

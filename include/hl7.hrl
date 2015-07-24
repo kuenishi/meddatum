@@ -7,7 +7,8 @@
           date :: string(),
           msg_type_s :: binary() | string(),
           msg_id :: string(),
-          segments = [] :: list({list()})
+          segments = [] :: list({list()}),
+          last_modified = klib:epoch() :: non_neg_integer()
          }).
 
 %% define primary records here, type/specs are in hl7.erl

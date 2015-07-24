@@ -18,7 +18,8 @@
 
 -export([rev_map/2, maybe_binary/1,
          maybe_a2b/1, ensure_dir/1,
-         str_to_numeric/1]).
+         str_to_numeric/1,
+         epoch/0]).
 
 -include_lib("kernel/include/file.hrl").
 
@@ -66,3 +67,9 @@ str_to_nm_float(Str) ->
       true  -> list_to_float(lists:append(Str, "0")); %% end with "."
       false -> list_to_float(Str)
     end.
+
+
+-spec epoch() -> non_neg_integer().
+epoch() ->
+    {MegaSecs, Secs, _} = os:timestamp(),
+    MegaSecs * 1000000 + Secs.
