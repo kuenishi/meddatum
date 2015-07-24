@@ -217,8 +217,11 @@ recept_record_to_presto_nested_column({Rinfo0, _, RecordTypes0}) ->
                             {index, false}]}
                   end,
                   handle_30days_schema(RecordTypes0)),
-    Rinfo = list_to_binary(string:to_lower(Rinfo0)),
-    {[{name, Rinfo},
+    %% Table name should be lower case
+    Name = list_to_binary(string:to_lower(Rinfo0)),
+    %% But the path is as upper case
+    Rinfo = list_to_binary(Rinfo0),
+    {[{name, Name},
       {path, <<"$.segments[?(@.record_info=='", Rinfo/binary, "')]">>},
       {columns, SubtableColumns}
      ]}.
