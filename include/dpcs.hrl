@@ -50,7 +50,7 @@
          %% 実施年月日	1	str	0	jisymd
          {jisymd, true, str},
          %% レセプト科区分	1	str	0	recptkakb
-         {recesyucd, true, str},
+         {recptkakb, true, str},
          %% 診療科区分	1	str	0	shinkakb
          {shinkakb, true, str},
          %% 医師コード	0	str	0	drcd
@@ -105,7 +105,7 @@
          %% 実施年月日	1	str	0	jisymd
          {jisymd, true, str},
          %% レセプト科区分	1	str	0	recptkakb
-         {recesyucd, true, str},
+         {recptkakb, true, str},
          %% 診療科区分	1	str	0	shinkakb
          {shinkakb, true, str},
          %% 医師コード	0	str	0	drcd
