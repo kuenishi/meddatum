@@ -32,7 +32,7 @@
           kanjaid :: binary(),
           nyuymd :: binary(),
           shinym :: binary(),
-          fields = [] :: list(),
+          fields = [] :: orddict:orddict(),
           last_modified = klib:epoch() :: non_neg_integer()
          }).
 

@@ -58,17 +58,17 @@ last_modified(#dpcs_ff1{last_modified=LM}) ->
 key(#dpcs_ff1{key=Key}) -> Key.
 
 -spec make_2i_list(#dpcs_ff1{}) -> [{string(), binary()|integer()}].
-make_2i_list(Rec = #dpcs_ff1{stay=Stay, wards=Wards}) ->
+make_2i_list(Rec = #dpcs_ff1{stay=Stay0, wards=Wards}) ->
     OpeIndex =
-        case Stay of
+        case Stay0 of
             null -> [];
-            _ -> opeymd_2i(Stay) ++ sick_cs_2i(Stay)
+            {Stay} -> opeymd_2i(Stay) ++ sick_cs_2i(Stay)
         end,
     WardsIndex =
         case Wards of
             null -> [];
             _ -> lists:flatten([ opeymd_2i(Ward) ++ sick_cs_2i(Ward)
-                                 || Ward <- Wards ])
+                                 || {Ward} <- Wards ])
         end,
     OpeIndex ++ WardsIndex ++
     [{"kanjaid", patient_id(Rec)},
@@ -80,11 +80,11 @@ make_2i_list(Rec = #dpcs_ff1{stay=Stay, wards=Wards}) ->
 opeymd_2i(Fields) ->
     case orddict:find(ope, Fields) of
         error -> [];
-        Opes0 ->
-            Opes1 = lists:filter(fun(Ope) ->
+        {ok, Opes0} ->
+            Opes1 = lists:filter(fun({Ope}) ->
                                          proplists:is_defined(opeymd, Ope)
                                  end, Opes0),
-            lists:map(fun(Ope) ->
+            lists:map(fun({Ope}) ->
                               {"opeymd",
                                proplists:get_value(opeymd, Ope)}
                       end, Opes1)
@@ -93,11 +93,11 @@ opeymd_2i(Fields) ->
 sick_cs_2i(Fields) ->
     case orddict:find(sick, Fields) of
         error -> [];
-        Sick0 ->
-            Sick1 = lists:filter(fun(S) ->
+        {ok, Sick0} ->
+            Sick1 = lists:filter(fun({S}) ->
                                          proplists:is_defined(sick_cd, S)
                                  end, Sick0),
-            lists:map(fun(S) ->
+            lists:map(fun({S}) ->
                               {"sick_cd",
                                proplists:get_value(sick_cd, S)}
                       end, Sick1)
