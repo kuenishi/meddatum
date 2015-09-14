@@ -56,13 +56,25 @@ key(_E) -> error(_E).
 last_modified(#dpcs{last_modified=LM}) ->
     LM.
 
-%% TODO
 -spec make_2i_list(rec()) -> [{string(), binary()|integer()}].
-make_2i_list(Rec) ->
-    [{"kanjaid", patient_id(Rec)},
-     {"cocd", hospital_id(Rec)},
-     {"last_modified", last_modified(Rec)},
-     {"nyuymd", Rec#dpcs.nyuymd}].
+make_2i_list(Rec = #dpcs{type=Type, fields=Fields}) ->
+    Base = [{"kanjaid", patient_id(Rec)},
+            {"cocd", hospital_id(Rec)},
+            {"last_modified", last_modified(Rec)}],
+    case Type of
+        efn ->
+            Rececd = proplists:get_value(rececd, Fields),
+            Jisymd = proplists:get_value(jisymd, Fields),
+            [{"jisymd", Jisymd}, {"rececd", Rececd}, {"nyuymd", Rec#dpcs.nyuymd}|Base];
+        efg ->
+            Rececd = proplists:get_value(rececd, Fields),
+            Jisymd = proplists:get_value(jisymd, Fields),
+            [{"jisymd", Jisymd}, {"rececd", Rececd}, {"nyuymd", Rec#dpcs.nyuymd}|Base];
+        dn ->
+            Base;
+        ff4 ->
+            [{"nyuymd", Rec#dpcs.nyuymd}|Base]
+    end.
 
 -spec hospital_id(rec()) -> binary().
 hospital_id(#dpcs{cocd=HospitalID}) -> HospitalID.
