@@ -34,7 +34,8 @@
          %% 出来高実績点数	1	numeric	0	jissekiten
          {jissekiten, true, str},
          %% 出来高・包括フラグ	1	str	0	includekb
-         {includekb, true, str},
+         %% {includekb, true, str},
+         {includekb, false, str},
          %% 行為点数	1	numeric	0	actten
          {actten, true, numeric},
          %% 行為薬剤料	1	numeric	0	actdrg
@@ -44,13 +45,15 @@
          %% 行為回数	1	numeric	0	actcnt
          {actcnt, true, numeric},
          %% 保険者番号	1	str	0	hokno
-         {hokno, true, str},
+         %% {hokno, true, str},
+         {hokno, false, str},
          %% レセプト種別コード	0	str	0	recesyucd
          {recesyucd, false, str},
          %% 実施年月日	1	str	0	jisymd
          {jisymd, true, str},
          %% レセプト科区分	1	str	0	recptkakb
-         {recptkakb, true, str},
+         %% {recptkakb, true, str},
+         {recptkakb, false, str},
          %% 診療科区分	1	str	0	shinkakb
          {shinkakb, true, str},
          %% 医師コード	0	str	0	drcd
@@ -60,9 +63,11 @@
          %% 病棟区分	1	str	0	wrdkb
          {wrdkb, true, str},
          %% 入外区分	1	str	0	nyugaikb
-         {nyugaikb, true, str},
+         %% {nyugaikb, true, str},
+         {nyugaikb, false, str},
          %% 施設タイプ	1	str	0	cotype
-         {cotype, true, str},
+         %% {cotype, true, str},
+         {cotype, false, str},
          %% 診療年月	1	str	1	shinym
          {shinym, true, str}
         ]).
@@ -89,7 +94,8 @@
          %% 解釈番号	0	str	0	undno
          {undno, false, str},
          %% 診療明細名称	1	str	0	shindetnm
-         {shindetnm, true, str},
+         %% {shindetnm, true, str},
+         {shindetnm, false, str},
          %% 行為点数	1	numeric	0	actten
          {actten, true, numeric},
          %% 行為薬剤料	1	numeric	0	actdrg
@@ -99,7 +105,8 @@
          %% 行為回数	1	numeric	0	actcnt
          {actcnt, true, numeric},
          %% 保険者番号	1	str	0	hokno
-         {hokno, true, str},
+         %% {hokno, true, str},
+         {hokno, false, str},
          %% レセプト種別コード	0	str	0	recesyucd
          {recesyucd, false, str},
          %% 実施年月日	1	str	0	jisymd
