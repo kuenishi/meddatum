@@ -326,3 +326,19 @@
          {injunk, true, str}
 
         ]).
+
+-define(FF4_FIELDS,
+        [
+         %% 施設コード	1	str	1	cocd	
+         {cocd, true, str},
+         %% データ識別番号	1	str	1	kanjaid	
+         {kanjaid, true, str},
+         %% 入院年月日	1	str	1	nyuymd	
+         {nyuymd, true, str},
+         %% 退院年月日	1	str	1	taiymd	
+         {taiymd, true, str},
+         %% 医療保険外との 組合せ	1	str	0	hokkb	
+         {hokkb, true, str},
+         %% 診療年月	1	str	1	shinym	インポート時に指定するyyyyMM
+         {shinym, true, str}
+        ]).

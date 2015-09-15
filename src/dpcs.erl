@@ -64,12 +64,12 @@ make_2i_list(Rec = #dpcs{type=Type, fields=Fields, nyuymd=Nyuymd}) ->
             {"last_modified", last_modified(Rec)}],
     case Type of
         efn ->
-            Rececd = proplists:get_value(rececd, Fields),
-            Jisymd = proplists:get_value(jisymd, Fields),
+            Rececd = proplists:get_value(<<"rececd">>, Fields),
+            Jisymd = proplists:get_value(<<"jisymd">>, Fields),
             [{"jisymd", Jisymd}, {"rececd", Rececd}|Base];
         efg ->
-            Rececd = proplists:get_value(rececd, Fields),
-            Jisymd = proplists:get_value(jisymd, Fields),
+            Rececd = proplists:get_value(<<"rececd">>, Fields),
+            Jisymd = proplists:get_value(<<"jisymd">>, Fields),
             [{"jisymd", Jisymd}, {"rececd", Rececd}|Base];
         dn ->
             Base;
@@ -252,18 +252,43 @@ maybe_verify(Record, HospitalID, Date) ->
 %% @doc verify record with date specified via CUI
 -spec maybe_verify(rec(), binary()) -> rec(). %error({no_date_match, binary(), string()}).
 maybe_verify(#dpcs{type=ff4, fields=F} = Record, Date) ->
+    verify_required_fields(F, ?FF4_FIELDS),
     maybe_verify_date_prefix(proplists:get_value(<<"taiymd">>, F), Date, Record);
 maybe_verify(#dpcs{type=efg, fields=F} = Record, Date) ->
+    verify_required_fields(F, ?EF_FIELDS),
     maybe_verify_date_prefix(proplists:get_value(<<"jisymd">>, F), Date, Record);
 maybe_verify(#dpcs{type=efn, fields=F} = Record, Date) ->
+    verify_required_fields(F, ?EF_FIELDS),
     maybe_verify_date_prefix(proplists:get_value(<<"jisymd">>, F), Date, Record);
 maybe_verify(#dpcs{type=dn, fields=F} = Record, Date) ->
+    verify_required_fields(F, ?DN_FIELDS),
     maybe_verify_date_prefix(proplists:get_value(<<"jisymd">>, F), Date, Record).
 
 maybe_verify_date_prefix(undefined, Date, _) -> error({no_date_match, Date});
 maybe_verify_date_prefix(<<Date:6/binary, _/binary>>, Date, Record) ->  Record;
 maybe_verify_date_prefix(<<"00000000">>, _, Record) -> Record; %% TODO: is this skipping really okay?
 maybe_verify_date_prefix(YMD, Date, _) -> error({no_date_match, YMD, Date}).
+
+verify_required_fields(Fields, FieldDefs) ->
+    BinFieldDefs = lists:map(fun({Name, Req, Type}) ->
+                                     {klib:maybe_binary(Name), Req, Type}
+                             end, FieldDefs),
+    %% io:format("verify: ~p vs ~p~n", [FieldDefs, Fields]),
+    Joined = klib:join(BinFieldDefs, 1, Fields, 1),
+    case lists:filter(fun({[{<<"cocd">>, _, _}], []}) -> false;
+                         ({[{<<"kanjaid">>, _, _}], []}) -> false;
+                         ({[{<<"nyuymd">>, _, _}], []}) -> false;
+                         ({[{<<"shinym">>, _, _}], []}) -> false;
+                         ({[{_, true, _}], [_]}) -> false;
+                         ({[{_, true, _}], []}) -> true;
+                         ({[{_, false, _}], _}) -> false;
+                         
+                         %% TODO: unknown fields; shouldn't happen
+                         ({[], _}) -> false
+                      end, Joined) of
+        [] -> ok;
+        Invalids -> error({required_fields, Invalids})
+    end.
 
 -spec new(record_type(),
           Cocd :: binary(),

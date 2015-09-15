@@ -16,12 +16,41 @@
 
 -module(klib).
 
--export([rev_map/2, maybe_binary/1,
+-export([join/4,
+         rev_map/2, maybe_binary/1,
          maybe_a2b/1, ensure_dir/1,
          str_to_numeric/1,
          epoch/0]).
 
 -include_lib("kernel/include/file.hrl").
+
+-spec join([tuple()], pos_integer(),
+           [tuple()], pos_integer()) -> [{[tuple()], [tuple()]}].
+join(Left, LN, Right, RN) ->
+    join(Left, LN, Right, RN, []).
+
+join([], _, [], _, Result) ->
+    Result;
+join(Left, LN, Right, RN, Result0) ->
+    JoinKey = case Left of
+                  [] -> element(RN, hd(Right));
+                  _ -> element(LN, hd(Left))
+              end,
+    {RightTuples, RightRest} =
+        keytake_all(JoinKey, RN, Right, []),
+    {LeftTuples, LeftRest} =
+        keytake_all(JoinKey, LN, Left, []),
+    %% io:format("LeftTuples: ~p~n", [LeftTuples]),
+    %% io:format("RightTuples: ~p~n", [RightTuples]),
+    join(LeftRest, LN, RightRest, RN,
+         [{LeftTuples, RightTuples}|Result0]).
+
+keytake_all(Key, N, TupleList, Acc) ->
+    case lists:keytake(Key, N, TupleList) of
+        false -> {Acc, TupleList};
+        {value, Tuple, TupleList1} ->
+            keytake_all(Key, N, TupleList1, [Tuple|Acc])
+    end.
 
 -spec rev_map(fun(), list()) -> list().
 rev_map(F, L) ->

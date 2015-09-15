@@ -8,7 +8,8 @@
             binary(), binary(), pid()) ->[dpcs:rec()].
 parse(Filename, Mode, Date, HospitalID, Logger) ->
     case japanese:read_file(Filename) of
-        {ok, Lines0} -> parse_1(Filename, Lines0, Mode, Date, HospitalID, Logger);
+        {ok, Lines0} ->
+            parse_1(Filename, Lines0, Mode, Date, HospitalID, Logger);
         E -> E
     end.
 
