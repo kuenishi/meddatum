@@ -57,23 +57,24 @@ last_modified(#dpcs{last_modified=LM}) ->
     LM.
 
 -spec make_2i_list(rec()) -> [{string(), binary()|integer()}].
-make_2i_list(Rec = #dpcs{type=Type, fields=Fields}) ->
+make_2i_list(Rec = #dpcs{type=Type, fields=Fields, nyuymd=Nyuymd}) ->
     Base = [{"kanjaid", patient_id(Rec)},
             {"cocd", hospital_id(Rec)},
+            {"nyuymd", Nyuymd},
             {"last_modified", last_modified(Rec)}],
     case Type of
         efn ->
             Rececd = proplists:get_value(rececd, Fields),
             Jisymd = proplists:get_value(jisymd, Fields),
-            [{"jisymd", Jisymd}, {"rececd", Rececd}, {"nyuymd", Rec#dpcs.nyuymd}|Base];
+            [{"jisymd", Jisymd}, {"rececd", Rececd}|Base];
         efg ->
             Rececd = proplists:get_value(rececd, Fields),
             Jisymd = proplists:get_value(jisymd, Fields),
-            [{"jisymd", Jisymd}, {"rececd", Rececd}, {"nyuymd", Rec#dpcs.nyuymd}|Base];
+            [{"jisymd", Jisymd}, {"rececd", Rececd}|Base];
         dn ->
             Base;
         ff4 ->
-            [{"nyuymd", Rec#dpcs.nyuymd}|Base]
+            Base
     end.
 
 -spec hospital_id(rec()) -> binary().
@@ -204,9 +205,9 @@ subtables(ff4) ->
     [Subtable];
 subtables(efndn) ->
     EFSubtable = {[{name, efn},
-                  {path, <<"$[?(@.type=='efn')].fields[*]">>},
-                  {columns, efcols()}]},
-
+                   {path, <<"$[?(@.type=='efn')].fields[*]">>},
+                   {columns, efcols()}]},
+    %% No index needed for Dn files
     Columns = [{[{name, Name},
                  {type, case DataType of
                             str -> varchar;
@@ -215,8 +216,8 @@ subtables(efndn) ->
                  {index, false}]}
                || {Name, _, DataType} <- ?DN_FIELDS],
     DnSubtable = {[{name, dn},
-                 {path, <<"$[?(@.type=='dn')].fields[*]">>},
-                 {columns, Columns}]},
+                   {path, <<"$[?(@.type=='dn')].fields[*]">>},
+                   {columns, Columns}]},
     [EFSubtable, DnSubtable];
 
 subtables(efg) ->
@@ -231,7 +232,13 @@ efcols() ->
                   str -> varchar;
                   numeric -> double
               end},
-       {index, false}]}
+       {index, case Name of
+                   cocd -> true;
+                   kanjaid -> true;
+                   jisymd -> true;
+                   rececd -> true;
+                   _ -> false
+               end}]}
      || {Name, _, DataType} <- ?EF_FIELDS].
 
 %% =======

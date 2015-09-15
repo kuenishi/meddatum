@@ -182,7 +182,12 @@ subtables() ->
                             str -> varchar;
                             numeric -> double
                         end},
-                 {index, false}]}
+                 {index, case Name of
+                             cocd -> true;
+                             kanjaid -> true;
+                             nyuumd -> true;
+                             _ -> false
+                         end}]}
               || {Name, _, Type} <- ?FF1_FIELDS],
     StaySubtable = {[{name, stay},
                      {path, <<"$.stay">>},
@@ -208,7 +213,11 @@ subtables() ->
 
 ope_columns() ->
     [
-     {[{name, Name}, {type, varchar}, {index, false}]}
+     {[{name, Name}, {type, varchar},
+       {index, case Name of
+                   opeymd -> true;
+                   _ -> false
+               end}]}
      || Name <- [opeymd,
                  tencd,
                  cnt,
@@ -218,7 +227,11 @@ ope_columns() ->
 
 sick_columns() ->
     [{[{name, sick_type}, {type, bigint}, {index, false}]}] ++
-        [{[{name, Name}, {type, varchar}, {index, false}]}
+        [{[{name, Name}, {type, varchar},
+           {index, case Name of
+                       sick_cd -> true;
+                       _ -> false
+                   end}]}
          || Name <- [sick_cd, sick_nm, disaddcd]].
 
 %% =======
